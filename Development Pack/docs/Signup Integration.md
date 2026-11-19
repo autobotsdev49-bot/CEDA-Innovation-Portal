@@ -1,0 +1,20 @@
+# Signup integration handover
+
+## Completed
+
+- Hosted migration `20261119181502_innovator_signup.sql` provisions an active Innovator profile after Supabase Auth confirms the email. The database sets the role. SQL checks passed, and the hosted security, health and performance advisors returned zero findings.
+- `src/publicSite/access.ts` renders the signup form. `src/publicSite/assets/signup.js` controls signup. `signupApi.js` submits credentials directly to Supabase Auth and checks the active profile through owner-only access. The verification page removes returned credentials from the URL. After the user continues, an access token is held in session storage for the temporary Innovator home.
+- The form collects name, email and password. Create account enables when the fields are valid and both passwords match. Each password input has a show/hide control. Phone collection is deferred until there is a specific use for it. Sign-in uses Supabase Auth with email and password. It checks the verified Auth user and their active Innovator profile before opening /account/. The temporary portal session is scoped to the current browser tab and expires with the access token. Unverified applicants can return to email verification without automatically sending another email.
+
+## Pending and next step
+
+Signup and resend show an absolute retry countdown after a Supabase rate limit. Use the provider's retry time when visible. If no reset time is supplied, the portal suggests five minutes for a general limit or a one-minute recheck for the project email quota. The page saves the absolute project retry deadline in session storage and can restore it before the applicant re-enters their address. This fallback does not predict when the provider quota will refill. The client does not change the provider's limits. The portal uses 1 minute, 5 minutes and 1 hour after successive requests accepted for the same email in the same browser tab.
+
+After signup is accepted, the browser opens the dedicated `/verify-email/` screen based on AUTH 03. Clicking Verify email before confirmation shows inbox instructions. Verification uses Supabase Auth and requires an active Innovator profile. When the email link opens in another tab of the same browser, the verification pages can pass confirmation through a same-origin channel scoped to the email address. The receiving tab checks the token and email address against Supabase. Once the user clicks Verify email, an accessible success state appears and redirects to the temporary Innovator home at /account/. Log out clears the local token and requests revocation of the current Supabase session. The full dashboard and production mail setup remain separate milestones.
+
+1. In the Ceda Innovation Supabase project's Auth settings, confirm custom SMTP for emails to public applicants and add the exact callback URL `https://ceda-innovation-portal-nine.vercel.app/verify-email/`. For local testing add `http://127.0.0.1:3000/verify-email/` separately if necessary. Keep email confirmation enabled.
+2. Set `CEDA_SIGNUP_ENABLED=true`, `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY` in the environment that builds an isolated test version. Use the `sb_publishable_` key. Run `npm run build` or `npm run dev`. Use a return URL allowlisted for that same test origin.
+3. Create an account with a controlled inbox. Confirm it appears unverified in Auth and has no profile yet. Open the email, confirm the return screen displays the verified state, and verify the account has one active Innovator profile. Record the evidence without storing passwords or tokens.
+4. Record the live result and then build the full authenticated workspace.
+
+Signup is enabled for the hosted build. Local builds default to preview unless configured. A live verification email and the exact allowed callback are still to be checked. Supabase's default email delivery is limited to project team addresses. See [Supabase SMTP guidance](https://supabase.com/docs/guides/auth/auth-smtp).

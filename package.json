@@ -1,0 +1,16 @@
+{
+  "name": "ceda-innovation-portal",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=22.18.0 <23"
+  },
+  "scripts": {
+    "test": "node --test",
+    "demo:autobots": "node scripts/demoAutobotsDev.ts",
+    "build": "node --env-file-if-exists=.env.local scripts/buildPublic.ts",
+    "dev": "npm run build && node scripts/previewPublic.ts",
+    "start": "node scripts/previewPublic.ts"
+  }
+}

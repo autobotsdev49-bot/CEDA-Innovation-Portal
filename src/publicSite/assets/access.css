@@ -1,0 +1,43 @@
+@media (prefers-reduced-motion: no-preference) {
+  ::view-transition-group(root) {
+    animation-duration: 230ms;
+  }
+}
+
+@media (width > 800px) and (prefers-reduced-motion: no-preference) {
+  .access-workspace { view-transition-name: access-workspace; }
+  .access-story { view-transition-name: access-story; }
+
+  ::view-transition-group(access-workspace),
+  ::view-transition-group(access-story) {
+    animation-duration: 640ms;
+    animation-timing-function: cubic-bezier(.4, 0, .2, 1);
+  }
+
+  ::view-transition-group(access-story) { z-index: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*) { animation-duration: 0s; }
+}
+
+.verification-success-icon {
+  color: var(--teal);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .verification-success:not([hidden]) {
+    animation: verification-arrive 450ms ease-out both;
+  }
+  .verification-success:not([hidden]) .verification-success-icon {
+    animation: verification-check 550ms cubic-bezier(.2, .7, .3, 1) both;
+  }
+  @keyframes verification-arrive {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes verification-check {
+    from { opacity: 0; transform: scale(.8); }
+    to { opacity: 1; transform: scale(1); }
+  }
+}
+
