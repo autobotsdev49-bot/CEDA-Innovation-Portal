@@ -79,9 +79,10 @@ These are proposed team checkpoints. The full screen catalogue is a substantial 
 
 ### Remaining frontend and backend
 
-- [ ] Complete administrator account creation. Local setup script exists at scripts/createAdministrator.ts.
-- [ ] Verify bootstrap result and shared login using admin@ceda.co.bw. Keep credentials out of source and documentation.
-- [ ] Introduce Support Officer, Assessor and scoped lead permissions through reviewed migrations.
+- [x] Establish the first Administrator by promoting the existing confirmed, active `autobotsdev49@gmail.com` account. The bootstrap action is audited; no separate account was created.
+- [x] Verify the initial Administrator profile has role `admin` and status `active` in Supabase.
+- [ ] Verify shared sign-in redirects `autobotsdev49@gmail.com` to the Admin workspace in a deployed browser, then enroll and test the authenticator. Keep credentials out of source and documentation.
+- [x] Introduce Support Officer, Assessor and scoped lead permissions through reviewed migrations.
 - [ ] Implement shared authenticated web shell, navigation, account menu and accessible error/loading/empty states.
 - [ ] Complete the chosen Next.js web runtime migration, preserving working public routes and auth behavior.
 - [ ] Add account recovery, password-reset completion and expired-link screens.
@@ -106,28 +107,33 @@ Admin creation is currently blocked by unavailable server credentials in the loc
 
 ### Screens
 
-- [ ] First-access security setup and Admin overview with genuine service state.
-- [ ] User directory, search/filter/pagination and permitted account details.
-- [ ] Create User screen with name, email, initial role, account status and applicable sector scope.
-- [ ] Allow Admin to create Innovator, Support Officer, Assessor and authorized Admin accounts. Assign lead-Assessor powers as an explicit scoped capability.
-- [ ] Staff invitation, invitation acceptance and expired-invitation recovery.
-- [ ] Role and sector grants, lead capability and access-change confirmation.
+- [x] Responsive Admin web shell and overview with section navigation, verified identity, account actions and explicit not-connected states for AI, website and portal monitoring; live service telemetry remains pending.
+- [ ] First-access security setup and Admin overview wired to genuine service state.
+- [ ] Add the Optimus Prime Admin guidance editor, approved knowledge sources, draft preview/testing, publish/rollback, version history and audit. See [Optimus Prime Administration](<Optimus Prime Administration.md>).
+- [x] User directory, search/filter/pagination and permitted account details.
+- [x] Create User screen with name, email, role and applicable sector scope; account creation uses a secure invitation rather than setting a password on behalf of the user.
+- [x] Allow Admin to create Innovator, Support Officer, Assessor and authorized Admin accounts. Assign lead-Assessor powers as an explicit scoped capability.
+- [x] Staff invitation endpoint and activation screen. Expired-invitation recovery and real controlled-inbox acceptance remain pending.
+- [x] Role and sector grants, lead capability and access-change confirmation.
 - [ ] Account suspension/restoration, active sessions and revocation controls.
 - [ ] Credential recovery action that sends provider-managed reset instructions.
-- [ ] Sector directory, create/edit, publish/archive and history.
+- [x] Sector directory, create/edit and publish/archive implementation.
+- [ ] Sector history viewer and real Admin acceptance.
 - [ ] Audit list/detail and permission-denied states.
 
 ### Database and backend
 
-- [ ] Add staff grants, sector definitions, sector membership and grant history.
-- [ ] Add invitation lifecycle and audit records without storing plaintext credentials.
-- [ ] Add scoped user listing, invite, access-change, suspension, restore and reset actions.
-- [ ] Implement an Admin-authorized create-user action through the trusted backend. Create the Auth identity and protected profile/grants, handle duplicate emails and recover safely from partial failures or retries.
-- [ ] Send a secure account activation/password-setup link after creation and record delivery state. The new user completes credential setup before normal access.
-- [ ] Audit who created the user and who assigned or changed each role, including old/new grants, sector scope, time and reason.
+- [x] Add staff grants, sector definitions, sector membership and grant history.
+- [x] Add trusted invitation reservation and audit records without storing plaintext credentials.
+- [x] Add scoped user listing, invite and access-change actions. Suspension, restore and reset actions remain pending.
+- [x] Implement an Admin-authorized create-user action through the trusted backend. The Auth invitation and protected profile/grants flow is in place; controlled-inbox, partial-failure and retry acceptance remains pending.
+- [x] Send a secure account activation/password-setup link after creation. Provider delivery confirmation and activation acceptance remain pending.
+- [x] Audit user creation and role/scope changes with actor, target, reason and relevant before/after information.
 - [ ] Enforce valid role/scope combinations and prevent accidental removal of the final administrator.
 - [ ] Preserve historical sector references when a sector is archived.
 - [ ] Use privileged credentials only in trusted server operations.
+
+Implementation checkpoint on 20 November is recorded in [Administration Implementation](<Administration Implementation.md>). Admin UI, authenticator setup, protected role/sector actions, invitation endpoint and activation page exist. Hosted authorization tests were previously recorded as passing. Controlled-inbox and real authenticator acceptance, status management and invitation recovery remain pending.
 
 ### Security and acceptance
 
@@ -270,7 +276,9 @@ Admin creation is currently blocked by unavailable server credentials in the loc
 - [ ] Add integration health and notification delivery status/retry screens.
 - [ ] Add aggregate assessment/support reports, workload and scoped CSV exports.
 - [ ] Add privacy/retention handling, incident workflow and audited settings.
-- [ ] Configure EmailJS and Firebase Cloud Messaging (FCM) with safe server-side delivery and opt-in rules.
+- [x] Register the CEDA Innovation Android application under Firebase project `bw-gov-schools-2026`, configure the local Firebase project binding and link the Android Google services file in Expo.
+- [ ] Configure Firebase Cloud Messaging (FCM) server credentials, native token registration, permission/opt-in handling and a protected server-side sender. The Firebase registration alone does not deliver notifications.
+- [ ] Configure EmailJS with safe server-side delivery and opt-in rules.
 - [ ] Verify a real delivery on each required channel and record quota/provider blockers.
 - [ ] Add redacted error tracking, correlation IDs, workflow timings and aggregate page visits.
 - [ ] Document what the requested activity Pixel tracks. Exclude auth fields, credentials, application evidence and private chat from analytics.

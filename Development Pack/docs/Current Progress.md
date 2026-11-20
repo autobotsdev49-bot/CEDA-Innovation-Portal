@@ -4,6 +4,12 @@ The [End To End Development Plan](<End To End Development Plan.md>) is the activ
 
 Updated 20 November 2026.
 
+The web Admin foundation now includes the directory, role/lead/sector assignment, sector editing, MFA interaction, invitation endpoint and activation page. The corresponding migrations and protected endpoint are deployed. The confirmed, active account `autobotsdev49@gmail.com` is the initial Administrator. See [Administration Implementation](<Administration Implementation.md>) for source locations, security, testing and remaining acceptance. The table below preserves the preceding baseline.
+
+The Admin web portal now has a responsive CEDA-styled shell, desktop sidebar, compact mobile section navigation, overview, user and sector management surfaces, Optimus Prime placeholder and account security section. The overview labels unavailable AI, website and portal monitoring as not connected. This is the Admin website navigation, not the separate role-specific bottom navigation planned for native mobile. See [Administration Implementation](<Administration Implementation.md>) for the current code map and acceptance gaps. Optimus Prime's planned Admin controls and safety boundaries are in [Optimus Prime Administration](<Optimus Prime Administration.md>).
+
+Assessor sector assignment is now optional. `tomsonntebang@gmail.com` (Gorata Thomas) is an active Lead Assessor with Creative Industries assigned as an initial sector; see [Administration Implementation](<Administration Implementation.md>).
+
 ## Frontend
 
 | Area | Delivered | Remaining |
@@ -22,9 +28,9 @@ Updated 20 November 2026.
 | Profiles | Profiles table with owner reference, display name, active/suspended/closed status, role and timestamps. | Profile editing through scoped APIs and account lifecycle administration. |
 | Access control | Row Level Security (RLS) restricts profile reads to the active owner. Clients cannot update roles or status. Allowed roles currently include innovator and admin. | Add database authorization for each new admin operation. A route redirect does not grant database privileges. |
 | Security | Client input validation, guarded auth requests, rate-limit feedback, token checks, session expiry and sign-out. | Multi-Factor Authentication (MFA) for privileged access, recovery acceptance and further abuse controls. |
-| Administrator bootstrap | Hosted role constraint updated. Trusted local setup script prepared. | Account creation is blocked until a server secret is available locally. No admin account has been created yet. |
+| Administrator bootstrap | The existing confirmed account `autobotsdev49@gmail.com` was promoted to active Admin on 20 November 2026 and the bootstrap was recorded in `admin_audit`. | Complete real sign-in, authenticator enrollment and Admin route acceptance. |
 | Innovation workflow | Domain logic and synthetic fixtures exist for assessment, guidance and experiment allocation. | Submission tables, private attachments, persistence, reviewer assignment, messages and workflow integration. |
-| Services | Stack decisions recorded for Gemini, EmailJS and Firebase Cloud Messaging (FCM). | Configure and verify integrations within free tier limits. |
+| Services | Stack decisions recorded for Gemini and EmailJS. The CEDA Android app is registered in Firebase project `bw-gov-schools-2026`; Expo references its Google services configuration and local Firebase binding is present. | Configure protected FCM sender, device token/permission handling and real-device delivery; configure EmailJS and Gemini within free tier limits. |
 
 ## Role-Based Access Control
 
@@ -36,7 +42,7 @@ Web rechecks the owner profile on /account/ and /admin/ and redirects to the mat
 
 ## Administrator account setup
 
-Requested account email is admin@ceda.co.bw. Credentials are excluded from documentation and source.
+The project owner selected the existing confirmed account `autobotsdev49@gmail.com` as the initial Administrator. Credentials are excluded from documentation and source. The previously proposed `admin@ceda.co.bw` account was not created.
 
 Automatic approval review rejected a temporary privileged account-creation endpoint. The repository includes scripts/createAdministrator.ts for execution in a trusted terminal using the supported Supabase Admin API.
 

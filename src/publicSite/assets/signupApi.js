@@ -65,12 +65,12 @@ export async function verifiedAccountProfile(config, accessToken, send = fetch) 
   if (!user.email_confirmed_at || user.is_anonymous !== false || !user.id) return false;
 
   const profileUrl = new URL("/rest/v1/profiles", config.url);
-  profileUrl.searchParams.set("select", "full_name,account_role,account_status");
+  profileUrl.searchParams.set("select", "full_name,account_role,account_status,lead_assessor");
   profileUrl.searchParams.set("id", `eq.${user.id}`);
   const profileResponse = await send(profileUrl, { headers, cache: "no-store", credentials: "omit", redirect: "error" });
   if (!profileResponse.ok) return false;
   const profiles = await profileResponse.json();
-  return Array.isArray(profiles) && profiles.length === 1 && ["innovator", "admin"].includes(profiles[0].account_role) && profiles[0].account_status === "active" ? { ...profiles[0], email: user.email } : null;
+  return Array.isArray(profiles) && profiles.length === 1 && ["innovator", "admin", "assessor", "support"].includes(profiles[0].account_role) && profiles[0].account_status === "active" ? { ...profiles[0], email: user.email } : null;
 }
 export function validApplicantName(name) {
   const trimmed = typeof name === "string" ? name.trim() : "";

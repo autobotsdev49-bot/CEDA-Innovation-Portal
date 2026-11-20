@@ -4,7 +4,7 @@ import { pages, renderPage } from "../src/publicSite/pages.ts";
 const output = new URL("../dist/", import.meta.url);
 const assets = new URL("assets/", output);
 await mkdir(assets, { recursive: true });
-for (const filename of ["site.css", "access.css", "access.js", "signup.js", "signin.js", "signupApi.js", "verificationSession.js", "verificationCooldown.js", "verificationScreen.js", "verifiedAccount.js", "site.js", "innovation-hero.webp"]) {
+for (const filename of ["ceda.png", "site.css", "admin.css", "admin.js", "activate.js", "access.css", "access.js", "signup.js", "signin.js", "signupApi.js", "verificationSession.js", "verificationCooldown.js", "verificationScreen.js", "verifiedAccount.js", "site.js", "innovation-hero.webp"]) {
   await copyFile(new URL(`../src/publicSite/assets/${filename}`, import.meta.url), new URL(filename, assets));
 }
 let signupConfig: { url: string; key: string } | null = null;
@@ -49,7 +49,7 @@ const authHeaders = [
 
 await writeFile(new URL("vercel.json", output), JSON.stringify({
   trailingSlash: true,
-  headers: ["/signin", "/register", "/verify-email", "/account", "/admin"].flatMap(path => [path, path + "/", path + "/index.html"]).map(source => ({
+  headers: ["/signin", "/register", "/verify-email", "/activate", "/account", "/admin", "/assessor", "/support"].flatMap(path => [path, path + "/", path + "/index.html"]).map(source => ({
     source,
     headers: authHeaders,
   })),

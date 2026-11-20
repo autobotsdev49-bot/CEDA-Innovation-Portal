@@ -1,5 +1,7 @@
 # Database design
 
+For the implemented administration tables, private RPC boundary, invitation grants and audit records, see [Administration Implementation](<Administration Implementation.md>). The versioned migrations are the source of truth for the deployed schema.
+
 Proposed logical schema for Supabase PostgreSQL. UUID primary keys unless specified. Use timestamptz, explicit foreign keys, named checks and restrictive deletion for business records. Publishing and security-sensitive changes write audit events. Record actor and timestamps on stateful rows.
 
 ```mermaid

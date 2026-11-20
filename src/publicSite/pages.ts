@@ -2,6 +2,7 @@ import { evidenceChecklist, examples, faqs, reviewTopics, sectors, stages, steps
 import { buttonLink, contactDetails, disclosure, icon, siteFooter, siteHeader, textLink } from "./components.ts";
 import { ceda, collaborators, impact, stories } from "./ceda.ts";
 import { accessScreen, accountScreen, verificationScreen } from "./access.ts";
+import { adminScreen } from "./admin.ts";
 
 const stepsList = (extraClass = "") => `<ol class="steps ${extraClass}">${steps.map((step, index) =>
   `<li><span class="step-number" aria-hidden="true">0${index + 1}</span><h3>${step.label}</h3><p>${step.text}</p></li>`).join("")}</ol>`;
@@ -146,17 +147,20 @@ export const pages: Record<string, { title: string; description: string; body: s
     body: verificationScreen(),
   },
   "/account/": { title: "Innovator home", description: "Open your CEDA Innovator home screen.", body: accountScreen() },
-  "/admin/": { title: "Administrator home", description: "Open your CEDA administration workspace.", body: accountScreen() },
+  "/admin/": { title: "Administration", description: "Manage CEDA users, roles and sectors.", body: adminScreen() },
+  "/assessor/": { title: "Assessor home", description: "Open your assessment workspace.", body: accountScreen() },
+  "/support/": { title: "Support Officer home", description: "Open your support workspace.", body: accountScreen() },
+  "/activate/": { title: "Set up your account", description: "Accept your CEDA invitation.", body: `<section class="wrap block"><h1>Set up your account</h1><p data-activation-status role="status"></p><form data-activation class="access-form"><label>New password<input type="password" name="password" minlength="8" required autocomplete="new-password"></label><label>Confirm password<input type="password" name="confirmation" minlength="8" required autocomplete="new-password"></label><button type="submit" class="button primary" disabled>Set password and continue</button></form><a href="/signin/">Sign in</a></section>` },
 };
 
 export function renderPage(path: string, page: typeof pages[string]) {
   const title = path === "/" ? page.title : `${page.title} | CEDA Innovation Portal`;
   const isAccessPage = path === "/signin/" || path === "/register/";
-  const accountScript = path === "/verify-email/" ? "verificationScreen.js" : ["/account/", "/admin/"].includes(path) ? "verifiedAccount.js" : null;
+  const accountScript = path === "/verify-email/" ? "verificationScreen.js" : path === "/activate/" ? "activate.js" : path === "/admin/" ? "admin.js" : ["/account/", "/assessor/", "/support/"].includes(path) ? "verifiedAccount.js" : null;
   const pageAssets = isAccessPage
     ? '<link rel="stylesheet" href="/assets/access.css"><script type="module" src="/assets/access.js"></script><script type="module" src="/assets/signup.js"></script><script type="module" src="/assets/signin.js"></script>'
     : accountScript
-      ? `<meta name="referrer" content="no-referrer"><link rel="stylesheet" href="/assets/access.css"><script type="module" src="/assets/${accountScript}"></script>`
+      ? `<meta name="referrer" content="no-referrer"><link rel="stylesheet" href="/assets/access.css">${path === "/admin/" ? '<link rel="stylesheet" href="/assets/admin.css">' : ""}<script type="module" src="/assets/${accountScript}"></script>`
       : '<script type="module" src="/assets/site.js"></script>';
   return `<!doctype html>
 <html lang="en-BW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">

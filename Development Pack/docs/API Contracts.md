@@ -1,5 +1,7 @@
 # API contracts
 
+The implemented Admin RPC inputs, authorization rules and invitation endpoint are recorded in [Administration Implementation](<Administration Implementation.md>).
+
 Proposed contracts for `/api/v1`. Use same-origin JSON over HTTPS, opaque IDs, UTC timestamps and validated bodies. Provider callbacks use separately verified signatures or the Auth exchange contract. Protect all writes against cross-site requests and validate explicit request origin. Every request receives a correlation ID. Add an OpenAPI definition in the first API PR and validate canonical examples in contract checks.
 
 | Method and path | Authorization and contract |

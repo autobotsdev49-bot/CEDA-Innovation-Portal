@@ -19,13 +19,13 @@ async function loadAccount() {
       status.textContent = "Your account session is unavailable or expired.";
       return;
     }
-    const destination = profile.account_role === "admin" ? "/admin/" : "/account/";
+    const destination = { admin: "/admin/", innovator: "/account/", assessor: "/assessor/", support: "/support/" }[profile.account_role];
     if (location.pathname !== destination) {
       location.replace(destination);
       return;
     }
-    document.querySelector("#access-title").textContent = profile.account_role === "admin" ? "Administrator home" : "Innovator home";
-    document.querySelector(".eyebrow").textContent = profile.account_role === "admin" ? "Administration" : "Innovator access";
+    document.querySelector("#access-title").textContent = { admin: "Administrator home", innovator: "Innovator home", assessor: profile.lead_assessor ? "Lead Assessor home" : "Assessor home", support: "Support Officer home" }[profile.account_role];
+    document.querySelector(".eyebrow").textContent = profile.account_role === "innovator" ? "Innovator access" : "Staff workspace";
     details.querySelector("[data-account-name]").textContent = profile.full_name;
     details.hidden = false;
     close.hidden = false;

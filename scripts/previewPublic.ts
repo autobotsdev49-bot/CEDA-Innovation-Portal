@@ -6,13 +6,14 @@ const port = Number(process.env.PORT ?? 3000);
 const output = new URL("../dist/", import.meta.url);
 const files = new Map(Object.keys(pages).map((path) =>
   [path, { path: `${path.slice(1)}index.html`, type: "text/html; charset=utf-8" }]));
-for (const filename of ["site.css", "access.css"]) {
+for (const filename of ["site.css", "access.css", "admin.css"]) {
   files.set(`/assets/${filename}`, { path: `assets/${filename}`, type: "text/css; charset=utf-8" });
 }
-for (const filename of ["site.js", "access.js", "signup.js", "signin.js", "signupApi.js", "signupConfig.js", "verificationSession.js", "verificationCooldown.js", "verificationScreen.js", "verifiedAccount.js"]) {
+for (const filename of ["site.js", "admin.js", "activate.js", "access.js", "signup.js", "signin.js", "signupApi.js", "signupConfig.js", "verificationSession.js", "verificationCooldown.js", "verificationScreen.js", "verifiedAccount.js"]) {
   files.set(`/assets/${filename}`, { path: `assets/${filename}`, type: "text/javascript; charset=utf-8" });
 }
 files.set("/assets/innovation-hero.webp", { path: "assets/innovation-hero.webp", type: "image/webp" });
+files.set("/assets/ceda.png", { path: "assets/ceda.png", type: "image/png" });
 
 createServer(async (request, response) => {
   if (request.method !== "GET" && request.method !== "HEAD") {

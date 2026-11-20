@@ -10,6 +10,11 @@ test("shared web login reads protected roles and public verification remains Inn
     : Response.json([{ account_role: role, account_status: "active", full_name: "Test" }]);
   assert.equal((await verifiedAccountProfile(config, "token", send)).account_role, "admin");
   assert.equal(await verifySignup(config, "token", send), false);
+  for (const staffRole of ["assessor", "support"]) {
+    role = staffRole;
+    assert.equal((await verifiedAccountProfile(config, "token", send)).account_role, staffRole);
+    assert.equal(await verifySignup(config, "token", send), false);
+  }
   role = "unknown";
   assert.equal(await verifiedAccountProfile(config, "token", send), null);
 });
