@@ -7,3 +7,6 @@ export const palette = {
   amberTint: "#fff0cc",
   paper: "#f7f2eb",
 };
+
+// Fully rounded action buttons throughout the native app.
+export const buttonCornerRadius = 999;

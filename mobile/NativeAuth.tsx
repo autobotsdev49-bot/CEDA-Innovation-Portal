@@ -6,10 +6,11 @@ import {
   ScrollView, StyleSheet, Text, TextInput, View, useWindowDimensions, type LayoutChangeEvent, type TextInputProps,
 } from "react-native";
 import { authConfigured, checkEmailVerification, registerInnovator, signInInnovator, signOutInnovator, type Account } from "./auth";
-import { palette } from "./theme";
+import { palette, buttonCornerRadius } from "./theme";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { VerifyEmail } from "./VerifyEmail";
 import { VerificationSuccess } from "./VerificationSuccess";
+import { AdminWorkspace } from "./AdminWorkspace";
 
 export type AuthMode = "signin" | "signup";
 const verificationWindow = 15 * 60_000;
@@ -196,6 +197,7 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
 
   useEffect(() => {
     const listener = BackHandler.addEventListener("hardwareBackPress", () => {
+      if (account?.role === "admin") return false;
       if (showVerificationSuccess) openHome();
       else leave();
       return true;
@@ -274,6 +276,10 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
     return <VerifyEmail email={pendingEmail} checkVerification={completeVerification} onSignIn={() => onSwitch("signin")} />;
   }
 
+  if (account?.role === "admin") {
+    return <AdminWorkspace account={account} onSignOut={leave} onAccountChange={setAccount} />;
+  }
+
   return (
     <KeyboardAvoidingView style={styles.screen} behavior="padding">
       <ScrollView
@@ -308,7 +314,16 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
           </BlurTargetView>
 
           <View style={styles.header}>
-            <Image source={require("./assets/ceda.png")} resizeMode="contain" style={styles.logo} accessibilityLabel="CEDA" />
+            {!account && (
+              <Pressable accessibilityRole="button" accessibilityLabel="Back to welcome" onPress={leave} style={styles.backPill}>
+                <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
+                <Text style={styles.backLabel}>‹ Back</Text>
+              </Pressable>
+            )}
+            <View style={styles.brandBadge}>
+              <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
+              <Image source={require("./assets/ceda.png")} resizeMode="contain" style={styles.logo} accessibilityLabel="CEDA" />
+            </View>
           </View>
 
           <View style={[styles.panel, reduceTransparency && styles.solidPanel, { marginTop: panelTop - 62, paddingBottom: 16 + bottom }]}>
@@ -337,13 +352,20 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
             <Text accessibilityRole="header" style={styles.title}>{title}</Text>
             <Text style={styles.description}>{description}</Text>
             {account ? (
-              <Pressable
-                accessibilityRole="button"
-                style={styles.primary}
-                onPress={leave}
-              >
-                <Text style={styles.primaryLabel}>Sign out</Text>
-              </Pressable>
+              <>
+                <View style={styles.accountCard}>
+                  <BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />
+                  <Text style={styles.label}>Account status</Text>
+                  <Text style={styles.description}>Signed in as {account.name} · Active {account.role} session</Text>
+                </View>
+                <Pressable
+                  accessibilityRole="button"
+                  style={styles.primary}
+                  onPress={leave}
+                >
+                  <Text style={styles.primaryLabel}>Sign out</Text>
+                </Pressable>
+              </>
             ) : (
               <>
                 {signup && <Field label="Full name" value={name} onChangeText={setName} onFocus={revealFocusedField} autoComplete="name" maxLength={120} editable={!busy} />}
@@ -378,8 +400,12 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.paper },
   scroll: { flexGrow: 1 },
-  header: { minHeight: 62, paddingHorizontal: 22, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
-  logo: { width: 72, height: 45 },
+  header: { minHeight: 62, paddingHorizontal: 22, paddingTop: 6, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
+  backPill: { minHeight: 42, paddingHorizontal: 16, borderRadius: buttonCornerRadius, backgroundColor: "rgba(255,255,255,0.74)", borderWidth: 1, borderColor: "rgba(255,255,255,0.88)", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  backLabel: { color: palette.ink, fontSize: 14, fontWeight: "700" },
+  brandBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: buttonCornerRadius, backgroundColor: "rgba(255,255,255,0.74)", borderWidth: 1, borderColor: "rgba(255,255,255,0.88)", overflow: "hidden" },
+  logo: { width: 64, height: 38 },
+  accountCard: { padding: 16, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.68)", borderWidth: 1, borderColor: "rgba(255,255,255,0.88)", gap: 4, overflow: "hidden" },
   panel: { flexGrow: 1, width: "100%", maxWidth: 580, alignSelf: "center", paddingHorizontal: 22, paddingTop: 24, gap: 12, borderTopLeftRadius: 36, borderTopRightRadius: 36, borderTopWidth: 1, borderColor: "rgba(255,255,255,0.85)", overflow: "hidden" },
   panelCorners: { borderTopLeftRadius: 36, borderTopRightRadius: 36 },
   solidPanel: { backgroundColor: "#fffaf4" },
@@ -390,7 +416,7 @@ const styles = StyleSheet.create({
   inputShell: { flexDirection: "row", alignItems: "center", borderWidth: 1, borderColor: "#cab9a9", borderRadius: 17, backgroundColor: "rgba(255,255,255,0.62)" },
   input: { flex: 1, minHeight: 49, paddingHorizontal: 13, paddingVertical: 10, color: palette.ink, fontSize: 16 },
   reveal: { minHeight: 48, minWidth: 50, paddingHorizontal: 12, justifyContent: "center", alignItems: "center" },
-  primary: { minHeight: 52, padding: 12, alignItems: "center", justifyContent: "center", borderRadius: 28, backgroundColor: palette.accent },
+  primary: { minHeight: 52, padding: 12, alignItems: "center", justifyContent: "center", borderRadius: buttonCornerRadius, backgroundColor: palette.accent },
   primaryPressed: { backgroundColor: palette.accentPressed },
   primaryLabel: { fontSize: 17, fontWeight: "700", color: palette.white, textAlign: "center" },
   link: { color: palette.accent, fontWeight: "700", fontSize: 15 },

@@ -124,6 +124,111 @@ export async function signOutInnovator(token: string) {
   await request("/auth/v1/logout?scope=local", {}, token);
 }
 
+export type AdminUser = { id: string; full_name: string; email: string; account_role: string; account_status: string; lead_assessor: boolean; sector_ids?: string[] };
+export type AdminSector = { id: string; name: string; status: string };
+
+/** The database rechecks active Admin and live-session authorization on every call. */
+export async function readAdminRecords(account: Account, kind: "users", search: string, page: number): Promise<AdminUser[]>;
+export async function readAdminRecords(account: Account, kind: "sectors"): Promise<AdminSector[]>;
+export async function readAdminRecords(account: Account, kind: "users" | "sectors", search = "", page = 0): Promise<AdminUser[] | AdminSector[]> {
+  if (account.role !== "admin" || account.expiresAt <= Date.now()) throw new Error("Your administrator session has expired. Sign in again.");
+  const { response, data } = await request("/rest/v1/rpc/" + (kind === "users" ? "admin_directory" : "admin_sectors"),
+    kind === "users" ? { search_text: search.trim(), page_number: page } : {}, account.token);
+  if (!response.ok || !Array.isArray(data)) {
+    throw new Error(response.status === 401 || response.status === 403
+      ? "Administrator access could not be verified. Sign in again or contact CEDA support."
+      : "We couldn't load these records. Check your connection and retry.");
+  }
+  return data;
+}
+
+export type AdminAccess = { new_role: "innovator" | "admin" | "assessor" | "support"; lead: boolean; sectors: string[]; reason: string };
+export type AdminInvitation = AdminAccess & { address: string; display_name: string };
+export type AdminCreation = AdminInvitation & { password: string };
+
+export function validAdminPassword(password: string) {
+  let bytes = 0;
+  for (const character of password) {
+    const point = character.codePointAt(0) ?? 0;
+    bytes += point <= 127 ? 1 : point <= 2047 ? 2 : point <= 65535 ? 3 : 4;
+  }
+  return password.length >= 8 && bytes <= 72;
+}
+
+function requireAdminSession(account: Account) {
+  if (account.role !== "admin" || account.expiresAt <= Date.now()) throw new Error("Your administrator session has expired. Sign in again.");
+}
+
+async function adminAction(account: Account, path: string, body?: object) {
+  requireAdminSession(account);
+  const { response, data } = await request(path, body, account.token);
+  if (!response.ok) {
+    if (response.status === 429) throw new Error("Too many requests. Wait a moment before trying again.");
+    if (path === "/functions/v1/admincreate" && response.status >= 500) throw new Error("Account creation could not be confirmed. Review the directory before retrying.");
+    if (path === "/functions/v1/admininvite" && response.status >= 500) throw new Error("Invitation delivery could not be confirmed. Check the provider or web portal before retrying.");
+    if (response.status === 401) throw new Error("Your session could not be verified. Sign in again.");
+    if (response.status === 403 || data?.code === "42501") throw new Error("This action requires active administrator access and authenticator verification. Self-changes and changes to the last administrator may be blocked.");
+    if (path.includes("/factors/")) throw new Error("The authenticator code could not be verified. Enter a fresh six-digit code.");
+    if (path === "/functions/v1/admincreate") throw new Error("Account creation was rejected. Check the name, email, password policy and any existing account or pending invitation.");
+    throw new Error("The change was not accepted. Check the account, role, sectors and reason before trying again.");
+  }
+  return data;
+}
+
+export async function verifyAdminAuthenticator(account: Account, code: string): Promise<Account> {
+  requireAdminSession(account);
+  if (!/^\d{6}$/.test(code)) throw new Error("Enter the six-digit code from your authenticator.");
+  const identity = await adminAction(account, "/auth/v1/user");
+  const factor = Array.isArray(identity?.factors) && identity.factors.find((item: { id?: string; factor_type?: string; status?: string }) => item.factor_type === "totp" && item.status === "verified" && typeof item.id === "string");
+  if (!factor) throw new Error("Set up your authenticator in the web Account security screen first, then return here to verify a code.");
+  const path = "/auth/v1/factors/" + encodeURIComponent(factor.id);
+  const challenge = await adminAction(account, path + "/challenge", {});
+  if (typeof challenge?.id !== "string" || !challenge.id) throw new Error("Authenticator verification could not start. Try again.");
+  const startedAt = Date.now();
+  const verified = await adminAction(account, path + "/verify", { challenge_id: challenge.id, code });
+  if (typeof verified?.access_token !== "string" || !verified.access_token || typeof verified.expires_in !== "number" || !Number.isFinite(verified.expires_in) || verified.expires_in <= 0) throw new Error("Your verified session could not be established. Sign in again.");
+  return { ...account, token: verified.access_token, expiresAt: Math.min(account.expiresAt, startedAt + verified.expires_in * 1000) };
+}
+
+function validateAccess(input: AdminAccess) {
+  if (!["innovator", "admin", "assessor", "support"].includes(input.new_role) || (input.lead && input.new_role !== "assessor") || !Array.isArray(input.sectors) || input.sectors.some(id => typeof id !== "string" || !id) || input.reason.trim().length < 5 || input.reason.trim().length > 500) throw new Error("Choose a valid role and enter a reason of 5 to 500 characters.");
+}
+
+export async function inviteAdminUser(account: Account, input: AdminInvitation) {
+  requireAdminSession(account); validateAccess(input);
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.address.trim()) || input.address.length > 254 || !input.display_name.trim() || input.display_name.trim().length > 120 || /[<>\p{Cc}\p{Bidi_Control}]/u.test(input.display_name)) throw new Error("Enter a valid full name and email address.");
+  try {
+    const result = await adminAction(account, "/functions/v1/admininvite", { ...input, address: input.address.trim().toLowerCase(), display_name: input.display_name.trim(), reason: input.reason.trim() });
+    if (result?.status !== "sent") throw new Error("Invitation delivery could not be confirmed. Check the provider before retrying.");
+  } catch (error) {
+    if (error instanceof Error && error.message !== "Failed to fetch" && error.name !== "AbortError" && !(error instanceof TypeError)) throw error;
+    throw new Error("Invitation delivery could not be confirmed. Check the provider or web portal before retrying.");
+  }
+}
+
+export async function createAdminUser(account: Account, input: AdminCreation) {
+  requireAdminSession(account); validateAccess(input);
+  if (!validAdminPassword(input.password)) throw new Error("Use at least 8 characters and at most 72 UTF-8 bytes for the password.");
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.address.trim()) || input.address.length > 254 || !input.display_name.trim() || input.display_name.trim().length > 120 || /[<>\p{Cc}\p{Bidi_Control}]/u.test(input.display_name)) throw new Error("Enter a valid full name and email address.");
+  try {
+    const result = await adminAction(account, "/functions/v1/admincreate", { ...input, address: input.address.trim().toLowerCase(), display_name: input.display_name.trim(), reason: input.reason.trim() });
+    if (result?.status !== "created" || typeof result.id !== "string" || !result.id) throw new Error("Account creation could not be confirmed. Review the directory before retrying.");
+  } catch (error) {
+    if (error instanceof Error && error.name !== "AbortError" && !(error instanceof TypeError)) throw error;
+    throw new Error("Account creation could not be confirmed. Review the directory before retrying.");
+  }
+}
+
+export async function updateAdminUserAccess(account: Account, targetId: string, input: AdminAccess) {
+  requireAdminSession(account); validateAccess(input);
+  if (!targetId) throw new Error("Select an account to edit.");
+  try { await adminAction(account, "/rest/v1/rpc/admin_assign_role", { target_id: targetId, ...input, reason: input.reason.trim() }); }
+  catch (error) {
+    if (error instanceof Error && error.name !== "AbortError" && !(error instanceof TypeError)) throw error;
+    throw new Error("The save could not be confirmed. Reload the directory before retrying.");
+  }
+}
+
 export async function checkEmailVerification(email: string, password: string) {
   const result = await signInInnovator(email, password);
   if (result.status === "error" && result.unconfirmed) {

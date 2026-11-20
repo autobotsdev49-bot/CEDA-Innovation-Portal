@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from "react";
+import { BlurView } from "expo-blur";
+import { LinearGradient } from "expo-linear-gradient";
 import { AppState, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { resendVerificationEmail, type checkEmailVerification } from "./auth";
-import { palette } from "./theme";
+import { palette, buttonCornerRadius } from "./theme";
 
 const resendCooldown = 60_000;
 
@@ -83,53 +85,58 @@ export function VerifyEmail({ email, checkVerification, onSignIn }: Verification
   const resendDisabled = busy !== null || resendSeconds > 0;
 
   return (
-    <ScrollView style={styles.screen} contentContainerStyle={styles.content}>
-      <View style={styles.card}>
-        <Image source={require("./assets/ceda.png")} style={styles.logo} resizeMode="contain" accessible={false} />
-        <Text accessibilityRole="header" style={styles.title}>Verify your email</Text>
-        <Text style={styles.description}>
-          Open the verification link sent to <Text style={styles.email}>{email}</Text>. Then come back here and tap I have verified my email.
-        </Text>
-        {notice ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text> : null}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: checkDisabled, busy: busy === "check" }}
-          disabled={checkDisabled}
-          onPress={() => void verify()}
-          style={[styles.primary, checkDisabled && styles.disabled]}
-        >
-          <Text style={styles.primaryLabel}>{busy === "check" ? "Checking your email" : "I have verified my email"}</Text>
-        </Pressable>
-        {retrySeconds > 0 && <Text style={styles.detail}>Check again in {retrySeconds}s.</Text>}
-        <Pressable
-          accessibilityRole="button"
-          accessibilityState={{ disabled: resendDisabled, busy: busy === "resend" }}
-          disabled={resendDisabled}
-          onPress={() => void resend()}
-          style={styles.secondary}
-        >
-          <Text style={[styles.link, resendDisabled && styles.detail]}>
-            {busy === "resend" ? "Sending verification email" : resendSeconds > 0 ? "Resend verification email in " + resendSeconds + "s" : "Resend verification email"}
+    <View style={styles.screen}>
+      <LinearGradient colors={["#F2EAE0", "#F7F2EB", "#EFE6DC"]} locations={[0, 0.5, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+        <View style={styles.card}>
+          <BlurView intensity={45} tint="light" style={StyleSheet.absoluteFill} />
+          <Image source={require("./assets/ceda.png")} style={styles.logo} resizeMode="contain" accessible={false} />
+          <Text accessibilityRole="header" style={styles.title}>Verify your email</Text>
+          <Text style={styles.description}>
+            Open the verification link sent to <Text style={styles.email}>{email}</Text>. Then come back here and tap I have verified my email.
           </Text>
-        </Pressable>
-        <Pressable accessibilityRole="button" disabled={busy !== null} onPress={onSignIn} style={styles.secondary}>
-          <Text style={styles.link}>Sign in instead</Text>
-        </Pressable>
-      </View>
-    </ScrollView>
+          {notice ? <Text accessibilityRole="alert" accessibilityLiveRegion="polite" style={styles.notice}>{notice}</Text> : null}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: checkDisabled, busy: busy === "check" }}
+            disabled={checkDisabled}
+            onPress={() => void verify()}
+            style={[styles.primary, checkDisabled && styles.disabled]}
+          >
+            <Text style={styles.primaryLabel}>{busy === "check" ? "Checking your email" : "I have verified my email"}</Text>
+          </Pressable>
+          {retrySeconds > 0 && <Text style={styles.detail}>Check again in {retrySeconds}s.</Text>}
+          <Pressable
+            accessibilityRole="button"
+            accessibilityState={{ disabled: resendDisabled, busy: busy === "resend" }}
+            disabled={resendDisabled}
+            onPress={() => void resend()}
+            style={styles.secondary}
+          >
+            <Text style={[styles.link, resendDisabled && styles.detail]}>
+              {busy === "resend" ? "Sending verification email" : resendSeconds > 0 ? "Resend verification email in " + resendSeconds + "s" : "Resend verification email"}
+            </Text>
+          </Pressable>
+          <Pressable accessibilityRole="button" disabled={busy !== null} onPress={onSignIn} style={styles.secondary}>
+            <Text style={styles.link}>Sign in instead</Text>
+          </Pressable>
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.paper },
+  scroll: { flex: 1 },
   content: { flexGrow: 1, justifyContent: "center", padding: 24 },
-  card: { width: "100%", maxWidth: 460, alignSelf: "center", gap: 14, padding: 22, borderRadius: 28, backgroundColor: palette.white },
+  card: { width: "100%", maxWidth: 460, alignSelf: "center", gap: 14, padding: 24, borderRadius: 28, backgroundColor: "rgba(255, 255, 255, 0.84)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.94)", overflow: "hidden" },
   logo: { width: 86, height: 56 },
   title: { fontSize: 30, fontWeight: "800", color: palette.ink },
   description: { fontSize: 16, lineHeight: 24, color: palette.muted },
   email: { color: palette.ink, fontWeight: "700" },
   notice: { fontSize: 15, lineHeight: 22, color: palette.ink, backgroundColor: palette.amberTint, borderRadius: 14, padding: 12 },
-  primary: { minHeight: 52, justifyContent: "center", alignItems: "center", padding: 12, borderRadius: 28, backgroundColor: palette.accent },
+  primary: { minHeight: 52, justifyContent: "center", alignItems: "center", padding: 12, borderRadius: buttonCornerRadius, backgroundColor: palette.accent },
   primaryLabel: { color: palette.white, fontSize: 16, fontWeight: "700", textAlign: "center" },
   disabled: { opacity: 0.65 },
   secondary: { minHeight: 48, justifyContent: "center", alignItems: "center" },

@@ -1,4 +1,4 @@
-import { signupConfig } from "./signupConfig.js";
+import { signupConfig, signupEnabled } from "./signupConfig.js";
 import { requestSignup, signupFieldsReady, validApplicantName } from "./signupApi.js";
 import { startPendingSignup } from "./verificationSession.js";
 import { cooldownFor, cooldownMessage, formatRetryWait, recordCooldown, secondsRemaining } from "./verificationCooldown.js";
@@ -7,7 +7,7 @@ const verificationUrl = new URL("/verify-email/", location.origin).href;
 const register = document.querySelector("[data-signup]") ??
   document.getElementById("alternate-access-form")?.content.querySelector("[data-signup]");
 
-if (register && signupConfig) {
+if (register && signupConfig && signupEnabled) {
   const fieldset = register.querySelector("fieldset");
   const submit = register.querySelector('button[type="submit"]');
   const status = register.parentElement.querySelector("[role=status]");
@@ -96,4 +96,6 @@ if (register && signupConfig) {
     }
   });
   updateSubmit();
+} else if (register && !signupEnabled) {
+  register.parentElement.querySelector("[role=status]").textContent = "Account creation is currently unavailable. Please contact support for assistance.";
 }

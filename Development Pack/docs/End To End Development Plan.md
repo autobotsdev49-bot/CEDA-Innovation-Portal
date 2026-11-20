@@ -575,3 +575,31 @@ Use these reference sets alongside the native workflow checklist above. Track co
 - [ ] Adapt and accept SOM 02 from [Support Officer Screens](<../Support Officer Screens/SOM 02.png>).
 - [ ] Adapt and accept SOM 03 from [Support Officer Screens](<../Support Officer Screens/SOM 03.png>).
 - [ ] Adapt and accept SOM 04 from [Support Officer Screens](<../Support Officer Screens/SOM 04.png>).
+
+
+## Admin interface preview progress, 20 November 2026
+
+- [x] Independent Applications tab with fictional sample records, filters and read-only detail modal.
+- [x] Independent Assessment teams tab with fictional workloads and assignment detail modals.
+- [x] New operations module included in static build and local preview routing.
+- [ ] Browser acceptance of filters, navigation, keyboard and modal interactions.
+- [ ] Build submission persistence and assessment authorization before replacing sample data with scoped real reads.
+- [ ] Deploy the latest Admin interface changes; no production deployment performed for this slice.
+
+These interface tasks do not complete the Innovator, assessment or Admin workflow acceptance gates above. See Administration Implementation for source locations and limitations.
+
+
+## Revised application authority, 20 November 2026
+
+This decision supersedes earlier manual-assignment requirements: every active Assessor receives access to each submitted application by default, unless excluded by a Lead Assessor for that application. Sector membership does not restrict this access. Admins inspect scores/votes/comments read-only and handle technical issues. Admins may correct submitted information and intervene on status (In review, Approved, Rejected). Admins do not edit assessor scores or manage assessment exclusions.
+
+Completed in the sample interface: removed unassigned queue and manual reviewer-assignment wording; added included/excluded assessor visibility, Admin correction/status forms, required reasons, status confirmation, preserved original submission, version checks, revision before/after snapshots, intervention provenance and technical issue draft. Changes affect this tab only and reset on reload. Overview counts update from the shared sample records. No notifications or support tickets are sent. No real submission records or database permissions are changed.
+
+Rules live in `src/publicSite/assets/applicationAdministration.js`, with focused tests in `tests/applicationAdministration.test.js`. The browser passes a sample actor/role for demonstration only; this is not authentication or production authorization. Production services must derive actor, role and assurance from the verified session; enforce access/exclusions in database policies and evidence storage; atomically preserve original, revision/status change, audit and notification outbox; reject stale versions; flag affected assessments for review; and notify Innovator and assessors of interventions. Exclusion changes must be Lead-only, reasoned and audited. Active/new assessor access should follow the default rule without a manual assignment backlog.
+
+The existing Ceda Innovation connection remains unavailable through the current linked database accounts; no hosted submission migration or API deployment has been performed. Real submission persistence, assessment authorization, private evidence, notification delivery and end-to-end acceptance remain open. Build and focused domain tests pass. These changes are local and not deployed.
+
+
+## Lead Assessor workspace ownership, 20 November 2026
+
+Removed Assessment teams from the Admin web navigation, section markup and initialization code. This supersedes the earlier standalone Admin assessment-team preview. Team coordination, workloads and application exclusions belong in the future Lead Assessor workspace. Admin still inspects included/excluded assessors through Application details > Assessment and manages staff accounts/Lead grants through Users and access. No Lead workflow or permission was added by this navigation removal. Old #teams links safely fall back to Overview using the existing allowed-section check. Build passed; local change, not deployed.
