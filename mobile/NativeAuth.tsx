@@ -314,16 +314,7 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
           </BlurTargetView>
 
           <View style={styles.header}>
-            {!account && (
-              <Pressable accessibilityRole="button" accessibilityLabel="Back to welcome" onPress={leave} style={styles.backPill}>
-                <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
-                <Text style={styles.backLabel}>‹ Back</Text>
-              </Pressable>
-            )}
-            <View style={styles.brandBadge}>
-              <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
-              <Image source={require("./assets/ceda.png")} resizeMode="contain" style={styles.logo} accessibilityLabel="CEDA" />
-            </View>
+            <Image source={require("./assets/ceda.png")} resizeMode="contain" style={styles.logo} accessibilityLabel="CEDA" />
           </View>
 
           <View style={[styles.panel, reduceTransparency && styles.solidPanel, { marginTop: panelTop - 62, paddingBottom: 16 + bottom }]}>
@@ -400,11 +391,8 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.paper },
   scroll: { flexGrow: 1 },
-  header: { minHeight: 62, paddingHorizontal: 22, paddingTop: 6, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  backPill: { minHeight: 42, paddingHorizontal: 16, borderRadius: buttonCornerRadius, backgroundColor: "rgba(255,255,255,0.74)", borderWidth: 1, borderColor: "rgba(255,255,255,0.88)", alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  backLabel: { color: palette.ink, fontSize: 14, fontWeight: "700" },
-  brandBadge: { paddingHorizontal: 12, paddingVertical: 5, borderRadius: buttonCornerRadius, backgroundColor: "rgba(255,255,255,0.74)", borderWidth: 1, borderColor: "rgba(255,255,255,0.88)", overflow: "hidden" },
-  logo: { width: 64, height: 38 },
+  header: { minHeight: 62, paddingHorizontal: 22, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
+  logo: { width: 72, height: 45 },
   accountCard: { padding: 16, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.68)", borderWidth: 1, borderColor: "rgba(255,255,255,0.88)", gap: 4, overflow: "hidden" },
   panel: { flexGrow: 1, width: "100%", maxWidth: 580, alignSelf: "center", paddingHorizontal: 22, paddingTop: 24, gap: 12, borderTopLeftRadius: 36, borderTopRightRadius: 36, borderTopWidth: 1, borderColor: "rgba(255,255,255,0.85)", overflow: "hidden" },
   panelCorners: { borderTopLeftRadius: 36, borderTopRightRadius: 36 },
