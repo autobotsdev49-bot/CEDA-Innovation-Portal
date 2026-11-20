@@ -26,3 +26,31 @@ for (const [path, page] of Object.entries(pages)) {
   await writeFile(new URL("index.html", directory), renderPage(path, page), "utf8");
 }
 console.log(`Built ${Object.keys(pages).length} pages in dist/.`);
+
+const authHeaders = [
+  {
+    key: "Content-Security-Policy",
+    value: [
+      "default-src 'none'",
+      "script-src 'self'",
+      "style-src 'self'",
+      "img-src 'self' data:",
+      "font-src 'self'",
+      signupConfig ? `connect-src ${signupConfig.url}` : "connect-src 'none'",
+      "frame-ancestors 'none'",
+      "base-uri 'none'",
+      "form-action 'none'",
+    ].join("; "),
+  },
+  { key: "Cache-Control", value: "no-store" },
+  { key: "Referrer-Policy", value: "no-referrer" },
+  { key: "X-Content-Type-Options", value: "nosniff" },
+];
+
+await writeFile(new URL("vercel.json", output), JSON.stringify({
+  trailingSlash: true,
+  headers: ["/signin", "/register", "/verify-email", "/account", "/admin"].flatMap(path => [path, path + "/", path + "/index.html"]).map(source => ({
+    source,
+    headers: authHeaders,
+  })),
+}, null, 2) + "\n", "utf8");

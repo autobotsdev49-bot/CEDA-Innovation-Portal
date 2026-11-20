@@ -10,7 +10,7 @@ const portalBenefits = [
 
 function accessForm(mode: AccessMode) {
   const isRegistration = mode === "register";
-  const name = '<label>Full legal name<input name="fullName" type="text" autocomplete="name" required maxlength="120"></label>';
+  const name = '<label>Full legal name<input name="fullName" type="text" autocomplete="name" required maxlength="120" aria-describedby="applicant-name-error"><small id="applicant-name-error" data-signup-name-error role="status" hidden>Enter your name without angle brackets or control characters.</small></label>';
   const email = '<label>Email address<input name="email" type="email" autocomplete="email" required maxlength="254"></label>';
   const passwordField = (label: string, name: string, autocomplete: string, revealLabel: string) =>
     `<div class="access-password"><label>${label}<input name="${name}" type="password" autocomplete="${autocomplete}" required${isRegistration ? ' minlength="8" maxlength="72"' : ""}></label>

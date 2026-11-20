@@ -1,4 +1,5 @@
 export async function requestSignup(config, { email, password, fullName }, returnUrl, send = fetch) {
+  if (!validApplicantName(fullName)) return { status: "invalid-name" };
   return requestVerificationEmail(config, "signup", { email, password, data: { full_name: fullName } }, returnUrl, send);
 }
 
@@ -11,8 +12,11 @@ async function requestVerificationEmail(config, action, body, returnUrl, send) {
   url.searchParams.set("redirect_to", returnUrl);
   const response = await send(url, {
     method: "POST",
+    credentials: "omit",
+    redirect: "error",
     headers: { apikey: config.key, "Content-Type": "application/json" },
     body: JSON.stringify(body),
+    cache: "no-store",
   });
   const result = await response.json().catch(() => ({}));
   if (response.ok && result.access_token) return { status: "confirmation-disabled" };
@@ -49,8 +53,13 @@ export async function verifySignup(config, accessToken, send = fetch) {
 }
 
 export async function verifiedInnovatorProfile(config, accessToken, send = fetch) {
+  const profile = await verifiedAccountProfile(config, accessToken, send);
+  return profile?.account_role === "innovator" ? profile : null;
+}
+
+export async function verifiedAccountProfile(config, accessToken, send = fetch) {
   const headers = { apikey: config.key, Authorization: `Bearer ${accessToken}` };
-  const response = await send(new URL("/auth/v1/user", config.url), { headers, cache: "no-store" });
+  const response = await send(new URL("/auth/v1/user", config.url), { headers, cache: "no-store", credentials: "omit", redirect: "error" });
   if (!response.ok) return false;
   const user = await response.json();
   if (!user.email_confirmed_at || user.is_anonymous !== false || !user.id) return false;
@@ -58,13 +67,19 @@ export async function verifiedInnovatorProfile(config, accessToken, send = fetch
   const profileUrl = new URL("/rest/v1/profiles", config.url);
   profileUrl.searchParams.set("select", "full_name,account_role,account_status");
   profileUrl.searchParams.set("id", `eq.${user.id}`);
-  const profileResponse = await send(profileUrl, { headers, cache: "no-store" });
+  const profileResponse = await send(profileUrl, { headers, cache: "no-store", credentials: "omit", redirect: "error" });
   if (!profileResponse.ok) return false;
   const profiles = await profileResponse.json();
-  return profiles.length === 1 && profiles[0].account_role === "innovator" && profiles[0].account_status === "active" ? { ...profiles[0], email: user.email } : null;
+  return Array.isArray(profiles) && profiles.length === 1 && ["innovator", "admin"].includes(profiles[0].account_role) && profiles[0].account_status === "active" ? { ...profiles[0], email: user.email } : null;
 }
+export function validApplicantName(name) {
+  const trimmed = typeof name === "string" ? name.trim() : "";
+  return trimmed.length > 0 && trimmed.length <= 120 &&
+    !/[<>\p{Cc}\p{Bidi_Control}]/u.test(name);
+}
+
 export function signupFieldsReady(fullName, validEmail, password, confirmation) {
-  return fullName.trim().length > 0 && fullName.trim().length <= 120 &&
+  return validApplicantName(fullName) &&
     validEmail && password.length >= 8 && new TextEncoder().encode(password).length <= 72 &&
     password === confirmation;
 }
@@ -73,6 +88,8 @@ export async function logoutSignup(config, token, send = fetch) {
   const url = new URL("/auth/v1/logout?scope=local", config.url);
   const response = await send(url, {
     method: "POST",
+    credentials: "omit",
+    redirect: "error",
     headers: { apikey: config.key, Authorization: `Bearer ${token}` },
   });
   return response.ok || response.status === 401 || response.status === 404;
@@ -81,6 +98,8 @@ export async function logoutSignup(config, token, send = fetch) {
 export async function signInInnovator(config, email, password, send = fetch) {
   const response = await send(new URL("/auth/v1/token?grant_type=password", config.url), {
     method: "POST",
+    credentials: "omit",
+    redirect: "error",
     headers: { apikey: config.key, "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
     cache: "no-store",
@@ -98,7 +117,7 @@ export async function signInInnovator(config, email, password, send = fetch) {
 
   const token = result.access_token;
   if (typeof token !== "string" || !token) return { status: "unavailable" };
-  if (!await verifiedInnovatorProfile(config, token, send)) return { status: "no-access" };
+  if (!await verifiedAccountProfile(config, token, send)) return { status: "no-access" };
   return { status: "signed-in", token };
 }
 

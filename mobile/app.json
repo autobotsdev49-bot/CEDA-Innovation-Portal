@@ -1,0 +1,21 @@
+{
+  "expo": {
+    "name": "CEDA Innovation",
+    "slug": "ceda-innovation-portal",
+    "version": "0.1.0",
+    "userInterfaceStyle": "light",
+    "ios": { "bundleIdentifier": "com.autobotsdev.cedainnovation", "supportsTablet": true },
+    "android": {
+      "package": "com.autobotsdev.cedainnovation",
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "plugins": [
+      ["expo-splash-screen", {
+        "backgroundColor": "#ffffff",
+        "image": "./assets/ceda.png",
+        "imageWidth": 160,
+        "resizeMode": "contain"
+      }]
+    ]
+  }
+}

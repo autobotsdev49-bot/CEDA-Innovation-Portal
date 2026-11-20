@@ -1,5 +1,7 @@
 # CEDA Innovation Portal delivery plan
 
+The active delivery checklist and 22 November 2026 target are in [End To End Development Plan](<End To End Development Plan.md>). Its user-by-user sequence supersedes the earlier milestone dates below. Keep this document for the original backlog and acceptance rationale.
+
 19 November 2026 · Working baseline for Autobots Dev
 
 ## Scope and priorities

@@ -1,5 +1,5 @@
 import { signupConfig } from "./signupConfig.js";
-import { requestSignup, signupFieldsReady } from "./signupApi.js";
+import { requestSignup, signupFieldsReady, validApplicantName } from "./signupApi.js";
 import { startPendingSignup } from "./verificationSession.js";
 import { cooldownFor, cooldownMessage, formatRetryWait, recordCooldown, secondsRemaining } from "./verificationCooldown.js";
 
@@ -13,12 +13,16 @@ if (register && signupConfig) {
   const status = register.parentElement.querySelector("[role=status]");
   const countdown = register.querySelector("[data-signup-countdown]");
   const instructions = "Use an email you can access and enter the same password in both fields. Use at least 8 characters.";
+  const nameError = register.querySelector("[data-signup-name-error]");
   const { fullName, email, password, confirmPassword } = register.elements;
   let displayedCooldown;
   let timer;
   status.textContent = instructions;
 
   function updateSubmit() {
+    nameError.hidden = !fullName.value || validApplicantName(fullName.value);
+    if (nameError.hidden) fullName.removeAttribute("aria-invalid");
+    else fullName.setAttribute("aria-invalid", "true");
     const cooldown = cooldownFor(email.value);
     const seconds = secondsRemaining(cooldown);
     submit.disabled = fieldset.disabled || seconds > 0 ||
@@ -75,6 +79,7 @@ if (register && signupConfig) {
       }
       status.textContent = {
         "email-not-authorized": "Email verification is unavailable for this address. Contact support for help.",
+        "invalid-name": "Enter a valid name.",
         "weak-password": "Choose a stronger password and try again.",
         "confirmation-disabled": "Verification is temporarily unavailable. Contact support.",
         unavailable: "We couldn’t start email verification. Try again or contact support.",

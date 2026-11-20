@@ -1,6 +1,18 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { logoutSignup, requestSignup, resendSignup, signInInnovator, signupFieldsReady, verifySignup } from "../src/publicSite/assets/signupApi.js";
+import { logoutSignup, requestSignup, resendSignup, signInInnovator, signupFieldsReady, verifiedAccountProfile, verifySignup } from "../src/publicSite/assets/signupApi.js";
+
+test("shared web login reads protected roles and public verification remains Innovator scoped", async () => {
+  const config = { url: "https://example.supabase.co", key: "sb_publishable_test" };
+  let role = "admin";
+  const send = async (url) => url.pathname === "/auth/v1/user"
+    ? Response.json({ id: "user-id", email_confirmed_at: "2026-11-20", is_anonymous: false })
+    : Response.json([{ account_role: role, account_status: "active", full_name: "Test" }]);
+  assert.equal((await verifiedAccountProfile(config, "token", send)).account_role, "admin");
+  assert.equal(await verifySignup(config, "token", send), false);
+  role = "unknown";
+  assert.equal(await verifiedAccountProfile(config, "token", send), null);
+});
 
 test("resend uses the signup confirmation flow and the same callback", async () => {
   const email = "innovator@example.invalid";
@@ -149,5 +161,18 @@ test("sign-in distinguishes unconfirmed credentials and throttled requests", asy
   assert.deepEqual(await attempt("over_request_rate_limit", 429, { "Retry-After": "45" }), {
     status: "limited", scope: "shared", retryAfterSeconds: 45, estimated: false,
   });
+});
+
+
+test("signup accepts ordinary name punctuation and blocks display controls before sending", async () => {
+  const fields = { email: "test@example.invalid", password: "test-password" };
+  assert.equal(signupFieldsReady("Mma O’Neil-Lekgowe", true, fields.password, fields.password), true);
+  for (const fullName of ["<name>", "Name\tSuffix", "Name\u202e", "a".repeat(121)]) {
+    assert.equal(signupFieldsReady(fullName, true, fields.password, fields.password), false);
+    const result = await requestSignup(config, { ...fields, fullName }, callback, () => {
+      assert.fail("Rejected name reached Supabase");
+    });
+    assert.deepEqual(result, { status: "invalid-name" });
+  }
 });
 

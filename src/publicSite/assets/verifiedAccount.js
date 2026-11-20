@@ -1,5 +1,5 @@
 import { signupConfig } from "./signupConfig.js";
-import { logoutSignup, verifiedInnovatorProfile } from "./signupApi.js";
+import { logoutSignup, verifiedAccountProfile } from "./signupApi.js";
 import { accountToken, clearAccountToken } from "./verificationSession.js";
 
 const status = document.querySelector("[data-account-status]");
@@ -12,13 +12,20 @@ async function loadAccount() {
   status.textContent = "Checking your account.";
   try {
     const token = accountToken();
-    const profile = signupConfig && token && await verifiedInnovatorProfile(signupConfig, token);
+    const profile = signupConfig && token && await verifiedAccountProfile(signupConfig, token);
     if (token !== accountToken()) return;
     if (!profile) {
       clearAccountToken();
       status.textContent = "Your account session is unavailable or expired.";
       return;
     }
+    const destination = profile.account_role === "admin" ? "/admin/" : "/account/";
+    if (location.pathname !== destination) {
+      location.replace(destination);
+      return;
+    }
+    document.querySelector("#access-title").textContent = profile.account_role === "admin" ? "Administrator home" : "Innovator home";
+    document.querySelector(".eyebrow").textContent = profile.account_role === "admin" ? "Administration" : "Innovator access";
     details.querySelector("[data-account-name]").textContent = profile.full_name;
     details.hidden = false;
     close.hidden = false;

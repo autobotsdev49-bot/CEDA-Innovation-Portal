@@ -4,12 +4,17 @@
 
 ## Read this first
 
-The working root is `CEDA INNOVATION HACKATHON`. The `Development Pack` holds the team guide and reference material. Its role specs, original plans and numbered screen references remain the design inputs. The [live Vercel preview](https://ceda-innovation-portal-nine.vercel.app/) serves nine static routes. The assessment, support and experiment modules run with synthetic data and await backend integration.
+Follow [End To End Development Plan](<End To End Development Plan.md>) for the four user groups, lead-Assessor capability, complete screen inventory, database/backend/security tasks and mobile acceptance toward 22 November 2026.
+
+See [Current progress and next steps](<Current Progress.md>) for the frontend/backend checklist, shared-login role routing and administrator setup status as of 20 November 2026.
+
+The working root is `CEDA INNOVATION HACKATHON`. The `Development Pack` holds the team guide and reference material. Its role specs, original plans and numbered screen references remain the design inputs. The [live Vercel preview](https://ceda-innovation-portal-nine.vercel.app/) serves eleven static routes. The assessment, support and experiment modules run with synthetic data and await backend integration.
 
 | Work item | State | Handover |
 | --- | --- | --- |
-| CEDA-02 · Public web | Preview deployed | Public guidance, About and contact pages, shared hero images and layout, mail draft for suggestions, Sign in and Sign up previews with same-page switching. Mobile shows the active form. The latest responsive visual changes were verified in the deployed markup and stylesheet. |
-| CEDA-03 · Backend foundation | Profiles and signup provisioning deployed | Email confirmation is required in Supabase. Verified email accounts receive an innovator profile through the database. Public form wiring and email delivery testing are pending. |
+| CEDA-02 · Public web | Preview deployed | Public guidance, About and contact pages, shared hero images and layout, mail draft for suggestions, Sign in and Sign up with same-page switching. Mobile shows the active form. The latest responsive visual changes were verified in the deployed markup and stylesheet. |
+| Mobile public app | Implemented | Expo splash screen, three illustrated first-launch onboarding screens, a public overview with the CEDA frosted-glass theme, and browser links to sign-in, sign-up and eligibility. TypeScript, Android and iOS bundle exports, and the live link destinations were checked. A native device smoke test is pending. The next milestone is the signed-in Innovator workspace. [Mobile setup](../../mobile/README.md) |
+| CEDA-03 · Backend foundation | Profiles and signup provisioning deployed | Email confirmation is required in Supabase. Verified email accounts receive an innovator profile through the database. Sign-in and sign-up are wired to Supabase Auth. Live email delivery testing is pending. |
 | CEDA-01 · Platform | Started | Root manifest, pinned Node and repeatable scripts. Registry DNS unavailable during initial attempt. Next.js scaffold, TypeScript compiler, CI and hosting pending. |
 | AUTOBOTS-01 · Decision provenance | Domain ready | Pinned versions, cleared assignments, six-criterion scorecards, vote validation and candidate release outputs. DB transactions, RLS, state authorization, UI and decision storage pending. |
 | AUTOBOTS-02 · Governed guidance | Domain ready | Published version selection, sector precedence and fallback signal. Knowledge publication storage, human handoff queue and approvals pending. |
@@ -27,9 +32,10 @@ The working root is `CEDA INNOVATION HACKATHON`. The `Development Pack` holds th
 
 ### Current checkpoint
 
+- **Mobile authentication:** the native Expo forms connect to Supabase Auth, require email confirmation, and open the account screen only after finding an active Innovator profile. Password clearing, session expiry and retry countdowns are implemented. See [Mobile authentication security](../../mobile/README.md#mobile-authentication-security) for the implementation and test steps. Real-device inbox verification is pending before the Innovator workspace.
 - **Completed and deployed:** Supabase migrations `20261119112830` and `20261119181502` establish owner-only profiles and provision an active Innovator profile when Auth confirms the applicant's email. The rollback-only SQL test passed on the hosted schema. Security, performance and health advisors returned zero findings after the grant fix.
 - **Implemented, pending live email acceptance:** the hosted signup form calls Supabase Auth once the fields are valid, and the verification return page checks the confirmed identity and active Innovator profile. See [Signup integration](<Signup Integration.md>). Verify delivery and the return URL with a controlled inbox.
-- **Following step:** connect sign-in and the authenticated application workspace after registration acceptance.
+- **Following step:** build the full authenticated application workspace after registration acceptance.
 
 1. Take the existing issue or open the platform issue. Confirm app workspace and enable approved package access. Install and pin Next.js, React and TypeScript, add CI and record green setup and build outputs.
 2. Configure and verify Vercel, Supabase, EmailJS, FCM and Gemini within the $0 boundary. Scaffold the Expo Android client and test native push on a test device. See [Platform Setup](<Platform Setup.md>) for the exact acceptance steps.
@@ -44,6 +50,9 @@ Add date in CAT, completed work, changed paths, test commands and evidence, deci
 
 | Date (CAT) | Change | Repeatable evidence | Remaining |
 | --- | --- | --- | --- |
+| 20 November 2026 | Added the mobile Verify your email screen, the resend countdown, and an account-created celebration before signed-in Home. | `node --test tests/mobileAuth.test.ts` checks pending and confirmed results and the signup resend request. | Run the end-to-end flow with a controlled inbox. Check the resend countdown, confetti, and Reduce Motion behavior on a device. |
+| 20 November 2026 | Added a visible CEDA splash to the Expo app for both first and returning launches. | From `mobile`, run `npm run typecheck`. See [first launch onboarding](../../mobile/README.md#first-launch-onboarding) for the startup behavior. | Check a cold launch on a device and confirm the handoff from the native splash in a release build. |
+| 20 November 2026 | Hardened native sign-up, sign-in and session handling in `mobile/auth.ts`, `mobile/NativeAuth.tsx` and `mobile/App.tsx`. | `node --test tests/mobileAuth.test.ts` covers sign-up confirmation, session rejection and provider retry deadlines. Checked owner-only profile access on the hosted Supabase project. | Test the inbox handoff and sign-out on devices. The latest hosted security advisor check reports leaked-password protection disabled. |
 | 19 November 2026 | Added web signup, verification return and build-time public configuration. Updated local preview asset routing. | `npm test` covers request shape, rate limiting, accidental auto-confirmation, and verified owner profile checks. `npm run build` generates the verification page and preview-safe defaults. | Configure or verify SMTP and the allowed callback. Run one real signup end to end, then enable signup on the public build. |
 | 19 November 2026 | Deployed migration `20261119181502` for post-confirmation innovator provisioning and restricted execution grants on the existing RLS helper. | `supabase/tests/innovatorSignup.sql` verifies pending and confirmed account states, server-assigned roles and safe repeat confirmation. | Confirm SMTP and verification return URL, then connect the public form and test a complete signup with a controlled inbox. |
 | 19 November 2026 | Applied the first identity migration to Ceda Innovation after a rollback-only policy preflight. Matched the local migration filename to the hosted ledger. | `supabase/tests/profiles.sql` covers owner, other account, anonymous and write-denial cases. Post-deploy query confirmed row-level security and zero profile records. | Review the advisor warning for the existing `rls_auto_enable()` helper, then connect Auth and profile provisioning. |

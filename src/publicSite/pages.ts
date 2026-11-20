@@ -146,12 +146,13 @@ export const pages: Record<string, { title: string; description: string; body: s
     body: verificationScreen(),
   },
   "/account/": { title: "Innovator home", description: "Open your CEDA Innovator home screen.", body: accountScreen() },
+  "/admin/": { title: "Administrator home", description: "Open your CEDA administration workspace.", body: accountScreen() },
 };
 
 export function renderPage(path: string, page: typeof pages[string]) {
   const title = path === "/" ? page.title : `${page.title} | CEDA Innovation Portal`;
   const isAccessPage = path === "/signin/" || path === "/register/";
-  const accountScript = path === "/verify-email/" ? "verificationScreen.js" : path === "/account/" ? "verifiedAccount.js" : null;
+  const accountScript = path === "/verify-email/" ? "verificationScreen.js" : ["/account/", "/admin/"].includes(path) ? "verifiedAccount.js" : null;
   const pageAssets = isAccessPage
     ? '<link rel="stylesheet" href="/assets/access.css"><script type="module" src="/assets/access.js"></script><script type="module" src="/assets/signup.js"></script><script type="module" src="/assets/signin.js"></script>'
     : accountScript

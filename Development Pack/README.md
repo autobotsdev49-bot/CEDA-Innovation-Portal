@@ -4,6 +4,7 @@ This folder is the team guide for the CEDA Innovation Portal. It contains plans,
 
 | Start here | What you will find |
 | --- | --- |
+| [End To End Development Plan](<docs/End To End Development Plan.md>) | Active user-by-user checklist, screen inventory, web/backend/database/security sequence and mobile delivery target for 22 November |
 | [Autobots Dev](<docs/Autobots Dev.md>) | What makes the product more valuable over time and where those rules are implemented |
 | [Platform Setup](<docs/Platform Setup.md>) | Web and mobile stacks, zero-cost limits and provider smoke tests |
 | [Admin Analytics and Monitoring](<docs/Admin Analytics and Monitoring.md>) | Visit counts, app performance, error triage and CEDA Pixel |

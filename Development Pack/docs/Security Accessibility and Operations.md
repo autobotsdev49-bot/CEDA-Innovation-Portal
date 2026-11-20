@@ -1,5 +1,9 @@
 # Security, accessibility and operations
 
+The [mobile and web accessibility test plan](../../mobile/README.md#visual-theme-and-accessibility-testing) covers TalkBack, VoiceOver, voice controls, text enlargement and the mobile browser handoff.
+
+For the deployed sign-in and sign-up protections, rate limiting and verification status, see [Sign-in and sign-up security](<Signup Integration.md>).
+
 Use a selected OWASP ASVS 5.0 control checklist to review the demo and a WCAG 2.2 AA target across public and signed-in journeys. Record evidence for each check. Use synthetic data before any production decision.
 
 ## Threats and controls
