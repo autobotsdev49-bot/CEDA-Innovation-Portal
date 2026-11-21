@@ -1,9 +1,8 @@
-import { buttonCornerRadius } from "./theme";
+import { buttonCornerRadius, fontSizes } from "./theme";
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from "react";
 import { ActivityIndicator, BackHandler, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { BlurView } from "expo-blur";
-import { LinearGradient } from "expo-linear-gradient";
+import { FrostedModalBackdrop, FrostedScreenBackdrop, FrostedSurface } from "./FrostedGlass";
 import { AdminOverview, InsightCard, MobileIcon, PreviewLabel, type InsightScreen, type MobileIconName } from "./AdminOverview";
 import { AdminInnovations } from "./AdminInnovations";
 import { AdminUserEditor } from "./AdminUserEditor";
@@ -12,7 +11,7 @@ import { AdminInsights } from "./AdminInsights";
 import { previewApplications, previewMatters, type ReportingPeriod } from "./adminPreview";
 import { portalUrl, readAdminRecords, type Account, type AdminSector, type AdminUser } from "./auth";
 
-const colors = { navy: "#192C40", rust: "#9A3D2B", teal: "#278477", blue: "#28599B", muted: "#66717E", subtle: "#7C8590", line: "#E8ECF2", canvas: "#F2F5F9" };
+const colors = { navy: "#192C40", rust: "#9A3D2B", teal: "#278477", blue: "#28599B", muted: "#66717E", subtle: "#7C8590", line: "#E5DDD3", canvas: "#F7F2EB" };
 const tabs = ["Overview", "Users", "Innovations", "Follow-ups", "More"] as const;
 const extras = ["Sectors", "Support", "Optimus Prime", "Feedback & insights", "Audit logs", "Account security", "Portal analytics", "Website health", "Activity log"] as const;
 type Screen = typeof tabs[number] | typeof extras[number];
@@ -61,13 +60,13 @@ function Badge({ value, label }: { value: string; label?: string }) {
   return <View style={[s.badge, { backgroundColor }]}><View style={[s.badgeDot, { backgroundColor: color }]} /><Text style={[s.badgeText, { color }]}>{label ?? value}</Text></View>;
 }
 function GlassCard({ children }: { children: ReactNode }) {
-  return <View style={s.card}><BlurView intensity={30} tint="light" style={StyleSheet.absoluteFill} />{children}</View>;
+  return <View style={s.card}><FrostedSurface variant="card" borderRadius={20} />{children}</View>;
 }
 function Heading({ children }: { children: ReactNode }) { return <Text accessibilityRole="header" style={s.heading}>{children}</Text>; }
 function Note({ children }: { children: ReactNode }) { return <Text style={s.note}>{children}</Text>; }
 function MetricTiles({ entries }: { entries: { label: string; value: string; caption: string; icon: MobileIconName; color: string }[] }) {
   return <View style={s.stats}>{entries.map(item => <View style={s.stat} key={item.label}>
-    <BlurView intensity={28} tint="light" style={StyleSheet.absoluteFill} />
+    <FrostedSurface variant="card" borderRadius={18} />
     <View style={[s.statIcon, { backgroundColor: item.color + "16" }]}><MobileIcon name={item.icon} color={item.color} /></View>
     <Text style={s.statValue}>{item.value}</Text>
     <Text style={s.statLabel}>{item.label}</Text>
@@ -192,9 +191,9 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
   const matchingScreens = [...tabs, ...extras].filter(item => item.toLowerCase().includes(workspaceSearch.trim().toLowerCase()));
 
   return <View style={s.screen}>
-    <LinearGradient colors={["#EBF0F7", "#F3F5F9", "#F7F4EF"]} locations={[0, 0.55, 1]} style={StyleSheet.absoluteFill} pointerEvents="none" />
+    <FrostedScreenBackdrop image={require("./assets/innovation.webp")} imageHeight={320}>
     <View style={s.header}>
-      <BlurView intensity={45} tint="light" style={StyleSheet.absoluteFill} />
+      <FrostedSurface variant="bar" />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={nested ? "Back to " + parentScreen : "Open administration menu"}
@@ -231,7 +230,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
     <ScrollView ref={scroll} style={s.content} contentContainerStyle={s.contentInner} keyboardShouldPersistTaps="handled">
       {(screen === "Overview" || screen === "More") && <>
         <View style={s.workspaceSearch}>
-          <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} />
+          <FrostedSurface variant="bar" borderRadius={24} />
           <MobileIcon name="search" color="#8B929C" />
           <TextInput
             accessibilityLabel="Search admin screens"
@@ -265,7 +264,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
 
       {nested && activeMeta && (
         <View style={s.subscreenHero}>
-          <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
+          <FrostedSurface variant="card" borderRadius={22} />
           <View style={s.subscreenTop}>
             <View style={[s.subscreenIcon, { backgroundColor: activeMeta.tint }]}>
               <MobileIcon name={activeMeta.icon} color={activeMeta.color} />
@@ -295,7 +294,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
 
       {screen === "More" && <>
         <View style={s.profileCard}>
-          <BlurView intensity={38} tint="light" style={StyleSheet.absoluteFill} />
+          <FrostedSurface variant="sheet" borderRadius={22} />
           <View style={s.profileTop}>
             <View style={s.profileAvatar}><Text style={s.profileInitials}>{adminInitials}</Text></View>
             <View style={{ flex: 1, gap: 4 }}>
@@ -345,7 +344,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
       {screen === "Sectors" && <>
         <View style={s.toolbar}>
           <View style={s.pillSearch}>
-            <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} />
+            <FrostedSurface variant="bar" borderRadius={24} />
             <MobileIcon name="search" color="#8B929C" />
             <TextInput
               accessibilityLabel="Search sectors"
@@ -359,7 +358,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
             {!!query && <Pressable accessibilityRole="button" accessibilityLabel="Clear sector search" onPress={() => setQuery("")} style={s.clearSearch}><Text style={s.clearText}>×</Text></Pressable>}
           </View>
           <Pressable accessibilityRole="button" accessibilityLabel="Manage sectors on web" onPress={() => void openWeb("sectors")} style={s.webPillButton}>
-            <BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} />
+            <FrostedSurface variant="bar" borderRadius={23} />
             <MobileIcon name="globe" color={colors.blue} />
           </Pressable>
         </View>
@@ -564,7 +563,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
 
     {!nested && (
       <View accessibilityRole="tablist" style={[s.tabBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
-        <BlurView intensity={45} tint="light" style={StyleSheet.absoluteFill} />
+        <FrostedSurface variant="bar" />
         {tabs.map((tab, index) => {
           const selected = screen === tab;
           return <Pressable key={tab} accessibilityRole="tab" accessibilityState={{ selected }} onPress={() => navigate(tab)} style={[s.tab, selected && s.tabSelected]}>
@@ -578,157 +577,162 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
     {userEditor !== null && <AdminUserEditor account={account} user={userEditor === "create" ? null : userEditor} onClose={() => setUserEditor(null)} onVerified={onAccountChange} onSaved={message => { setUserEditor(null); setUserNotice(message); setAttempt(value => value + 1); }} />}
 
     <Modal visible={menuOpen} transparent statusBarTranslucent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
-      <View style={s.drawerBackdrop}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close administration menu" onPress={() => setMenuOpen(false)} style={StyleSheet.absoluteFill} />
-        <View accessibilityViewIsModal style={[s.drawer, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 18) }]}>
-          <BlurView intensity={55} tint="light" style={StyleSheet.absoluteFill} />
-          <View style={s.drawerHeading}>
-            <View style={s.brand}>
-              <Image source={require("./assets/ceda.png")} resizeMode="contain" style={s.logo} accessibilityLabel="CEDA Innovation" />
-              <View style={{ flex: 1 }}>
-                <Text accessibilityRole="header" style={s.heading}>Administration</Text>
-                <Text style={s.brandSubtitle}>Quick navigation</Text>
+      <FrostedModalBackdrop>
+        <View style={s.drawerBackdrop}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close administration menu" onPress={() => setMenuOpen(false)} style={StyleSheet.absoluteFill} />
+          <View accessibilityViewIsModal style={[s.drawer, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 18) }]}>
+            <FrostedSurface variant="sheet" />
+            <View style={s.drawerHeading}>
+              <View style={s.brand}>
+                <Image source={require("./assets/ceda.png")} resizeMode="contain" style={s.logo} accessibilityLabel="CEDA Innovation" />
+                <View style={{ flex: 1 }}>
+                  <Text accessibilityRole="header" style={s.heading}>Administration</Text>
+                  <Text style={s.brandSubtitle}>Quick navigation</Text>
+                </View>
               </View>
-            </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Close administration menu" onPress={() => setMenuOpen(false)} style={s.closeCircle}>
-              <MobileIcon name="close" color="#52606E" />
-            </Pressable>
-          </View>
-          <ScrollView contentContainerStyle={s.drawerContent}>
-            <Text style={s.drawerSectionLabel}>MAIN WORKSPACE</Text>
-            {tabs.map(item => (
-              <Pressable accessibilityRole="button" accessibilityState={{ selected: screen === item }} key={item} style={[s.drawerLink, screen === item && s.drawerLinkActive]} onPress={() => navigate(item)}>
-                <Text style={[s.rowTitle, screen === item && { color: colors.rust }]}>{item}</Text>
-                <Text style={s.chevron} accessible={false}>›</Text>
+              <Pressable accessibilityRole="button" accessibilityLabel="Close administration menu" onPress={() => setMenuOpen(false)} style={s.closeCircle}>
+                <MobileIcon name="close" color="#52606E" />
               </Pressable>
-            ))}
-            <Text style={[s.drawerSectionLabel, { marginTop: 10 }]}>MORE SUB-SCREENS</Text>
-            {extras.map(item => {
-              const meta = extraMeta[item];
-              return <Pressable accessibilityRole="button" accessibilityState={{ selected: screen === item }} key={item} style={[s.drawerLink, screen === item && s.drawerLinkActive]} onPress={() => navigate(item, "More")}>
-                <View style={[s.drawerIcon, { backgroundColor: meta.tint }]}><MobileIcon name={meta.icon} color={meta.color} /></View>
-                <View style={{ flex: 1 }}><Text style={[s.rowTitle, screen === item && { color: colors.rust }]}>{item}</Text><Text numberOfLines={1} style={s.drawerSub}>{meta.detail}</Text></View>
-              </Pressable>;
-            })}
-          </ScrollView>
-          <View style={s.drawerAccount}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.rowTitle}>{account.name}</Text>
-              <Text style={s.drawerSub}>Administrator · Expires {sessionExpiry}</Text>
             </View>
-            <Button title="Sign out" onPress={onSignOut} secondary />
+            <ScrollView contentContainerStyle={s.drawerContent}>
+              <Text style={s.drawerSectionLabel}>MAIN WORKSPACE</Text>
+              {tabs.map(item => (
+                <Pressable accessibilityRole="button" accessibilityState={{ selected: screen === item }} key={item} style={[s.drawerLink, screen === item && s.drawerLinkActive]} onPress={() => navigate(item)}>
+                  <Text style={[s.rowTitle, screen === item && { color: colors.rust }]}>{item}</Text>
+                  <Text style={s.chevron} accessible={false}>›</Text>
+                </Pressable>
+              ))}
+              <Text style={[s.drawerSectionLabel, { marginTop: 10 }]}>MORE SUB-SCREENS</Text>
+              {extras.map(item => {
+                const meta = extraMeta[item];
+                return <Pressable accessibilityRole="button" accessibilityState={{ selected: screen === item }} key={item} style={[s.drawerLink, screen === item && s.drawerLinkActive]} onPress={() => navigate(item, "More")}>
+                  <View style={[s.drawerIcon, { backgroundColor: meta.tint }]}><MobileIcon name={meta.icon} color={meta.color} /></View>
+                  <View style={{ flex: 1 }}><Text style={[s.rowTitle, screen === item && { color: colors.rust }]}>{item}</Text><Text numberOfLines={1} style={s.drawerSub}>{meta.detail}</Text></View>
+                </Pressable>;
+              })}
+            </ScrollView>
+            <View style={s.drawerAccount}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.rowTitle}>{account.name}</Text>
+                <Text style={s.drawerSub}>Administrator · Expires {sessionExpiry}</Text>
+              </View>
+              <Button title="Sign out" onPress={onSignOut} secondary />
+            </View>
           </View>
         </View>
-      </View>
+      </FrostedModalBackdrop>
     </Modal>
 
     <Modal visible={!!sheet} transparent statusBarTranslucent animationType="slide" onRequestClose={() => { setSheet(null); setDraftNotice(""); }}>
-      <KeyboardAvoidingView style={s.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : "height"}>
-        <Pressable accessibilityRole="button" accessibilityLabel="Close sheet" onPress={() => { setSheet(null); setDraftNotice(""); }} style={StyleSheet.absoluteFill} />
-        <View accessibilityViewIsModal style={[s.modalSheet, { paddingBottom: Math.max(insets.bottom, 22) }]}>
-          <BlurView intensity={55} tint="light" style={StyleSheet.absoluteFill} />
-          <View style={s.modalHandle} />
-          <View style={s.modalHeader}>
-            <View style={{ flex: 1 }}>
-              <Text style={s.sheetEyebrow}>{sheet?.eyebrow ?? "ADMINISTRATION"}</Text>
-              <Text accessibilityRole="header" style={s.modalTitle}>{sheet?.title}</Text>
+      <FrostedModalBackdrop>
+        <KeyboardAvoidingView style={s.modalOverlay} behavior={Platform.OS === "ios" ? "padding" : "height"}>
+          <Pressable accessibilityRole="button" accessibilityLabel="Close sheet" onPress={() => { setSheet(null); setDraftNotice(""); }} style={StyleSheet.absoluteFill} />
+          <View accessibilityViewIsModal style={[s.modalSheet, { paddingBottom: Math.max(insets.bottom, 22) }]}>
+            <FrostedSurface variant="sheet" />
+            <View style={s.modalHandle} />
+            <View style={s.modalHeader}>
+              <View style={{ flex: 1 }}>
+                <Text style={s.sheetEyebrow}>{sheet?.eyebrow ?? "ADMINISTRATION"}</Text>
+                <Text accessibilityRole="header" style={s.modalTitle}>{sheet?.title}</Text>
+              </View>
+              <Pressable accessibilityRole="button" accessibilityLabel="Close modal" onPress={() => { setSheet(null); setDraftNotice(""); }} style={s.closeCircle}>
+                <MobileIcon name="close" color="#52606E" />
+              </Pressable>
             </View>
-            <Pressable accessibilityRole="button" accessibilityLabel="Close modal" onPress={() => { setSheet(null); setDraftNotice(""); }} style={s.closeCircle}>
-              <MobileIcon name="close" color="#52606E" />
-            </Pressable>
+            <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={s.modalContent} keyboardShouldPersistTaps="handled">
+              {sheet?.kind === "notifications" && <>
+                <PreviewLabel />
+                <View style={s.modalCard}>
+                  <Heading>Attention required</Heading>
+                  <Note>Live notifications are not connected. These sample alerts show matters that need administrator attention.</Note>
+                  {previewMatters.filter(item => item.state !== "Resolved").map((item, index, list) => (
+                    <IconRow
+                      key={item.id}
+                      title={item.title}
+                      detail={item.kind + " · " + item.priority + " priority · " + item.state}
+                      icon="alert"
+                      color={item.priority === "High" ? colors.rust : colors.blue}
+                      tint={item.priority === "High" ? "#FBEDE8" : "#EAF1FC"}
+                      badge={item.priority}
+                      last={index === list.length - 1}
+                      onPress={() => navigate("Follow-ups")}
+                    />
+                  ))}
+                </View>
+              </>}
+
+              {sheet?.kind === "insight" && <>
+                <PreviewLabel />
+                <View style={s.modalCard}>
+                  {sheet.facts?.map(([label, value], index, list) => <Fact key={label} label={label} value={value} last={index === list.length - 1} />)}
+                </View>
+              </>}
+
+              {sheet?.kind === "sector" && sheet.sector && <>
+                <View style={s.modalCard}>
+                  <View style={s.cardHeaderRow}>
+                    <Heading>{sheet.sector.name}</Heading>
+                    <Badge value={sheet.sector.status} />
+                  </View>
+                  <Note>A dash means unavailable, not zero. Individual applications will appear after the protected submissions API is connected.</Note>
+                </View>
+                <MetricTiles entries={[
+                  { label: "Applications", value: "—", caption: "Total submissions", icon: "application", color: colors.blue },
+                  { label: "Approved", value: "—", caption: "Released outcomes", icon: "check", color: "#236D61" },
+                  { label: "In review", value: "—", caption: "Active assessments", icon: "clock", color: "#94702D" },
+                  { label: "Rejected", value: "—", caption: "Declined outcomes", icon: "alert", color: colors.rust },
+                ]} />
+                <Button title="Open sector management on web" onPress={() => void openWeb("sectors")} secondary />
+              </>}
+
+              {sheet?.kind === "case" && sheet.item && <>
+                <PreviewLabel />
+                <View style={s.modalCard}>
+                  <View style={s.cardHeaderRow}>
+                    <Badge value={sheet.item.status} />
+                    <Text style={s.factLabel}>{sheet.item.id}</Text>
+                  </View>
+                  <Heading>{sheet.item.title}</Heading>
+                  <Note>{sheet.item.summary}</Note>
+                  <Fact label="Reference" value={sheet.item.id} />
+                  <Fact label="Applicant" value={sheet.item.owner} />
+                  <Fact label="Sector" value={sheet.item.sector} />
+                  <Fact label="Assessor" value={sheet.item.assessor} last />
+                </View>
+                <View style={s.modalCard}>
+                  <Heading>Timeline preview</Heading>
+                  <Fact label="Sample event" value="Application submitted" />
+                  <Fact label="Sample current state" value={sheet.item.status} last />
+                  <Note>Attachments, evaluations and messages need a protected application API. This sample does not contain applicant files.</Note>
+                </View>
+              </>}
+
+              {(sheet?.kind === "guidance" || sheet?.kind === "knowledge") && (
+                <View style={s.modalCard}>
+                  <Note>Local draft only. No live settings change and no source URL is fetched.</Note>
+                  {(sheet.kind === "guidance" ? [["tone", "Tone"], ["length", "Answer length"], ["instructions", "Response instructions"], ["handoff", "Human support triggers"]] : [["source", "Approved source URL"], ["notes", "Reviewed knowledge notes"], ["questions", "Example questions"]]).map(([key, label]) => (
+                    <Field key={key} label={label} value={draft[key as keyof typeof draft]} onChange={value => { setDraft(previous => ({ ...previous, [key]: value })); setDraftNotice(""); }} multiline={!["tone", "length", "source"].includes(key)} />
+                  ))}
+                  <Button title="Keep draft in this session" onPress={() => setDraftNotice("Draft kept in memory. The live assistant has not changed.")} />
+                  {!!draftNotice && <Text accessibilityLiveRegion="polite" style={s.noticeText}>{draftNotice}</Text>}
+                </View>
+              )}
+
+              {sheet?.kind === "review" && (
+                <View style={s.modalCard}>
+                  <Note>Draft only · clears when you sign out or close the app.</Note>
+                  {Object.entries(draft).map(([key, value], index, list) => (
+                    <Fact key={key} label={key.charAt(0).toUpperCase() + key.slice(1)} value={value || "Not provided"} last={index === list.length - 1} />
+                  ))}
+                </View>
+              )}
+              {!!linkError && <Text accessibilityRole="alert" style={s.error}>{linkError}</Text>}
+            </ScrollView>
           </View>
-          <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={s.modalContent} keyboardShouldPersistTaps="handled">
-            {sheet?.kind === "notifications" && <>
-              <PreviewLabel />
-              <View style={s.modalCard}>
-                <Heading>Attention required</Heading>
-                <Note>Live notifications are not connected. These sample alerts show matters that need administrator attention.</Note>
-                {previewMatters.filter(item => item.state !== "Resolved").map((item, index, list) => (
-                  <IconRow
-                    key={item.id}
-                    title={item.title}
-                    detail={item.kind + " · " + item.priority + " priority · " + item.state}
-                    icon="alert"
-                    color={item.priority === "High" ? colors.rust : colors.blue}
-                    tint={item.priority === "High" ? "#FBEDE8" : "#EAF1FC"}
-                    badge={item.priority}
-                    last={index === list.length - 1}
-                    onPress={() => navigate("Follow-ups")}
-                  />
-                ))}
-              </View>
-            </>}
-
-            {sheet?.kind === "insight" && <>
-              <PreviewLabel />
-              <View style={s.modalCard}>
-                {sheet.facts?.map(([label, value], index, list) => <Fact key={label} label={label} value={value} last={index === list.length - 1} />)}
-              </View>
-            </>}
-
-            {sheet?.kind === "sector" && sheet.sector && <>
-              <View style={s.modalCard}>
-                <View style={s.cardHeaderRow}>
-                  <Heading>{sheet.sector.name}</Heading>
-                  <Badge value={sheet.sector.status} />
-                </View>
-                <Note>A dash means unavailable, not zero. Individual applications will appear after the protected submissions API is connected.</Note>
-              </View>
-              <MetricTiles entries={[
-                { label: "Applications", value: "—", caption: "Total submissions", icon: "application", color: colors.blue },
-                { label: "Approved", value: "—", caption: "Released outcomes", icon: "check", color: "#236D61" },
-                { label: "In review", value: "—", caption: "Active assessments", icon: "clock", color: "#94702D" },
-                { label: "Rejected", value: "—", caption: "Declined outcomes", icon: "alert", color: colors.rust },
-              ]} />
-              <Button title="Open sector management on web" onPress={() => void openWeb("sectors")} secondary />
-            </>}
-
-            {sheet?.kind === "case" && sheet.item && <>
-              <PreviewLabel />
-              <View style={s.modalCard}>
-                <View style={s.cardHeaderRow}>
-                  <Badge value={sheet.item.status} />
-                  <Text style={s.factLabel}>{sheet.item.id}</Text>
-                </View>
-                <Heading>{sheet.item.title}</Heading>
-                <Note>{sheet.item.summary}</Note>
-                <Fact label="Reference" value={sheet.item.id} />
-                <Fact label="Applicant" value={sheet.item.owner} />
-                <Fact label="Sector" value={sheet.item.sector} />
-                <Fact label="Assessor" value={sheet.item.assessor} last />
-              </View>
-              <View style={s.modalCard}>
-                <Heading>Timeline preview</Heading>
-                <Fact label="Sample event" value="Application submitted" />
-                <Fact label="Sample current state" value={sheet.item.status} last />
-                <Note>Attachments, evaluations and messages need a protected application API. This sample does not contain applicant files.</Note>
-              </View>
-            </>}
-
-            {(sheet?.kind === "guidance" || sheet?.kind === "knowledge") && (
-              <View style={s.modalCard}>
-                <Note>Local draft only. No live settings change and no source URL is fetched.</Note>
-                {(sheet.kind === "guidance" ? [["tone", "Tone"], ["length", "Answer length"], ["instructions", "Response instructions"], ["handoff", "Human support triggers"]] : [["source", "Approved source URL"], ["notes", "Reviewed knowledge notes"], ["questions", "Example questions"]]).map(([key, label]) => (
-                  <Field key={key} label={label} value={draft[key as keyof typeof draft]} onChange={value => { setDraft(previous => ({ ...previous, [key]: value })); setDraftNotice(""); }} multiline={!["tone", "length", "source"].includes(key)} />
-                ))}
-                <Button title="Keep draft in this session" onPress={() => setDraftNotice("Draft kept in memory. The live assistant has not changed.")} />
-                {!!draftNotice && <Text accessibilityLiveRegion="polite" style={s.noticeText}>{draftNotice}</Text>}
-              </View>
-            )}
-
-            {sheet?.kind === "review" && (
-              <View style={s.modalCard}>
-                <Note>Draft only · clears when you sign out or close the app.</Note>
-                {Object.entries(draft).map(([key, value], index, list) => (
-                  <Fact key={key} label={key.charAt(0).toUpperCase() + key.slice(1)} value={value || "Not provided"} last={index === list.length - 1} />
-                ))}
-              </View>
-            )}
-            {!!linkError && <Text accessibilityRole="alert" style={s.error}>{linkError}</Text>}
-          </ScrollView>
-        </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </FrostedModalBackdrop>
     </Modal>
+    </FrostedScreenBackdrop>
   </View>;
 }
 
@@ -736,112 +740,112 @@ const s = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.canvas },
   content: { flex: 1 },
   contentInner: { padding: 18, gap: 16, paddingBottom: 32, maxWidth: 760, width: "100%", alignSelf: "center" },
-  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, gap: 10, backgroundColor: "rgba(255,255,255,0.82)", borderBottomWidth: 1, borderBottomColor: "rgba(232,236,242,0.9)", overflow: "hidden" },
-  headerAction: { width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(241,244,248,0.85)", borderWidth: 1, borderColor: "rgba(255,255,255,0.92)", justifyContent: "center", alignItems: "center" },
-  backButton: { backgroundColor: "rgba(234,241,252,0.9)", borderColor: "#D9E5F7" },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.88)", overflow: "hidden" },
+  headerAction: { width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.82)", borderWidth: 1, borderColor: "#E5DDD3", justifyContent: "center", alignItems: "center" },
+  backButton: { backgroundColor: "#EAF1FC", borderColor: "#D9E5F7" },
   bellDot: { position: "absolute", top: 9, right: 10, width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.rust, borderWidth: 1.2, borderColor: "white" },
   headerCenter: { flex: 1, alignItems: "center", justifyContent: "center" },
-  headerEyebrow: { fontSize: 9, fontWeight: "700", letterSpacing: 1.1, color: colors.subtle },
+  headerEyebrow: { fontSize: fontSizes.caption, fontWeight: "700", letterSpacing: 1.1, color: colors.subtle },
   brand: { flex: 1, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center" },
-  brandTitle: { fontSize: 16, fontWeight: "700", color: colors.navy },
-  brandSubtitle: { fontSize: 10, color: colors.subtle, marginTop: 1 },
+  brandTitle: { fontSize: fontSizes.heading, fontWeight: "700", color: colors.navy },
+  brandSubtitle: { fontSize: fontSizes.caption, color: colors.subtle, marginTop: 1 },
   logo: { width: 40, height: 36 },
-  workspaceSearch: { flexDirection: "row", alignItems: "center", gap: 9, paddingLeft: 13, backgroundColor: "rgba(255,255,255,0.82)", borderRadius: 24, borderWidth: 1, borderColor: "rgba(255,255,255,0.92)", overflow: "hidden" },
-  workspaceSearchInput: { flex: 1, paddingVertical: 12, minHeight: 46, fontSize: 13, color: colors.navy, paddingRight: 12 },
+  workspaceSearch: { flexDirection: "row", alignItems: "center", gap: 9, paddingLeft: 13, borderRadius: 24, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", overflow: "hidden" },
+  workspaceSearchInput: { flex: 1, paddingVertical: 11, minHeight: 46, fontSize: fontSizes.body, color: colors.navy, paddingRight: 12 },
   clearSearch: { width: 44, minHeight: 44, alignItems: "center", justifyContent: "center" },
   clearText: { color: colors.subtle, fontSize: 22 },
-  sectionEyebrow: { fontSize: 10, fontWeight: "700", letterSpacing: 1.2, color: colors.subtle },
-  subscreenHero: { backgroundColor: "rgba(255,255,255,0.84)", borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,255,255,0.94)", padding: 18, gap: 10, overflow: "hidden" },
+  sectionEyebrow: { fontSize: fontSizes.caption, fontWeight: "700", letterSpacing: 1.1, color: colors.subtle },
+  subscreenHero: { borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", padding: 18, gap: 10, overflow: "hidden" },
   subscreenTop: { flexDirection: "row", alignItems: "center", gap: 12 },
   subscreenIcon: { width: 46, height: 46, borderRadius: 15, alignItems: "center", justifyContent: "center" },
-  subscreenEyebrow: { fontSize: 9, fontWeight: "700", letterSpacing: 1.2, color: colors.subtle },
-  subscreenTitle: { fontSize: 22, fontWeight: "700", letterSpacing: -0.6, color: colors.navy },
-  profileCard: { backgroundColor: "rgba(255,255,255,0.86)", borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,255,255,0.95)", padding: 18, gap: 14, overflow: "hidden" },
+  subscreenEyebrow: { fontSize: fontSizes.caption, fontWeight: "700", letterSpacing: 1.1, color: colors.subtle },
+  subscreenTitle: { fontSize: fontSizes.title, fontWeight: "700", letterSpacing: -0.6, color: colors.navy },
+  profileCard: { borderRadius: 22, borderWidth: 1, borderColor: "rgba(255,255,255,0.92)", padding: 18, gap: 14, overflow: "hidden" },
   profileTop: { flexDirection: "row", alignItems: "center", gap: 14 },
   profileAvatar: { width: 54, height: 54, borderRadius: 18, backgroundColor: "#FBEDE8", borderWidth: 1, borderColor: "#F3D5CB", alignItems: "center", justifyContent: "center" },
-  profileInitials: { fontSize: 18, fontWeight: "700", color: colors.rust },
-  profileName: { fontSize: 20, fontWeight: "700", color: colors.navy, letterSpacing: -0.4 },
+  profileInitials: { fontSize: fontSizes.heading, fontWeight: "700", color: colors.rust },
+  profileName: { fontSize: fontSizes.title, fontWeight: "700", color: colors.navy, letterSpacing: -0.4 },
   profileActions: { flexDirection: "row", flexWrap: "wrap", gap: 10, paddingTop: 4 },
-  profileQuickButton: { flex: 1, minHeight: 44, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 14, borderRadius: buttonCornerRadius, backgroundColor: "#E4F4F0" },
-  profileQuickText: { color: "#236D61", fontSize: 12, fontWeight: "700" },
-  profileSignOutButton: { minHeight: 44, alignItems: "center", justifyContent: "center", paddingHorizontal: 18, borderRadius: buttonCornerRadius, backgroundColor: "#EEF1F5" },
-  profileSignOutText: { color: colors.navy, fontSize: 12, fontWeight: "600" },
+  profileQuickButton: { flex: 1, minHeight: 46, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, paddingHorizontal: 14, borderRadius: buttonCornerRadius, backgroundColor: "#E4F4F0" },
+  profileQuickText: { color: "#236D61", fontSize: fontSizes.subbody, fontWeight: "700" },
+  profileSignOutButton: { minHeight: 46, alignItems: "center", justifyContent: "center", paddingHorizontal: 18, borderRadius: buttonCornerRadius, backgroundColor: "rgba(243,239,234,0.95)" },
+  profileSignOutText: { color: colors.navy, fontSize: fontSizes.subbody, fontWeight: "600" },
   sectionBlock: { gap: 8 },
-  sectionHeaderLabel: { fontSize: 11, fontWeight: "700", letterSpacing: 1.2, color: colors.subtle, paddingHorizontal: 4 },
-  eyebrow: { fontSize: 10, fontWeight: "700", letterSpacing: 1.3, color: colors.subtle },
-  card: { backgroundColor: "rgba(255,255,255,0.84)", borderRadius: 20, padding: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.92)", gap: 12, overflow: "hidden" },
+  sectionHeaderLabel: { fontSize: fontSizes.caption, fontWeight: "700", letterSpacing: 1.1, color: colors.subtle, paddingHorizontal: 4 },
+  eyebrow: { fontSize: fontSizes.caption, fontWeight: "700", letterSpacing: 1.2, color: colors.subtle },
+  card: { borderRadius: 20, padding: 16, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", gap: 12, overflow: "hidden" },
   cardHeaderRow: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 10 },
-  heading: { color: colors.navy, fontSize: 16, fontWeight: "700", letterSpacing: -0.3 },
-  note: { fontSize: 12, lineHeight: 19, color: colors.subtle },
-  inlineLink: { color: "#417AC5", fontSize: 12, fontWeight: "600" },
+  heading: { color: colors.navy, fontSize: fontSizes.heading, fontWeight: "700", letterSpacing: -0.3 },
+  note: { fontSize: fontSizes.subbody, lineHeight: 19, color: colors.subtle },
+  inlineLink: { color: "#417AC5", fontSize: fontSizes.subbody, fontWeight: "600" },
   stats: { flexDirection: "row", flexWrap: "wrap", gap: 12 },
-  stat: { flexBasis: "46%", flexGrow: 1, backgroundColor: "rgba(255,255,255,0.82)", padding: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.92)", borderRadius: 18, gap: 5, overflow: "hidden" },
-  statIcon: { width: 32, height: 32, borderRadius: 10, alignItems: "center", justifyContent: "center", marginBottom: 2 },
-  statValue: { color: colors.navy, fontWeight: "700", fontSize: 22, letterSpacing: -0.6 },
-  statLabel: { color: "#445364", fontSize: 12, fontWeight: "600" },
-  statCaption: { color: colors.subtle, fontSize: 10 },
-  row: { flexDirection: "row", alignItems: "center", minHeight: 62, paddingVertical: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: "#EEF1F5" },
-  rowIcon: { width: 40, height: 40, borderRadius: 14, alignItems: "center", justifyContent: "center", alignSelf: "flex-start", marginTop: 2 },
+  stat: { flexBasis: "46%", flexGrow: 1, padding: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", borderRadius: 18, gap: 5, overflow: "hidden" },
+  statIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center", marginBottom: 2 },
+  statValue: { color: colors.navy, fontWeight: "700", fontSize: fontSizes.title, letterSpacing: -0.6 },
+  statLabel: { color: "#445364", fontSize: fontSizes.subbody, fontWeight: "600" },
+  statCaption: { color: colors.subtle, fontSize: fontSizes.caption },
+  row: { flexDirection: "row", alignItems: "center", minHeight: 62, paddingVertical: 12, gap: 12, borderBottomWidth: 1, borderBottomColor: "rgba(218,208,198,0.45)" },
+  rowIcon: { width: 42, height: 42, borderRadius: 14, alignItems: "center", justifyContent: "center", alignSelf: "flex-start", marginTop: 2 },
   rowBody: { flex: 1, gap: 4 },
   rowTop: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 8 },
-  rowTitle: { color: colors.navy, fontWeight: "600", fontSize: 14, flexShrink: 1 },
+  rowTitle: { color: colors.navy, fontWeight: "600", fontSize: fontSizes.body, flexShrink: 1 },
   rowBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
-  rowBadgeText: { fontSize: 10, fontWeight: "700" },
+  rowBadgeText: { fontSize: fontSizes.caption, fontWeight: "700" },
   chevron: { color: "#A1A8B1", fontSize: 22 },
   tags: { flexDirection: "row", gap: 6, flexWrap: "wrap", marginTop: 2 },
   badge: { alignSelf: "flex-start", flexDirection: "row", alignItems: "center", gap: 5, borderRadius: 8, paddingHorizontal: 9, paddingVertical: 4 },
-  badgeDot: { width: 5, height: 5, borderRadius: 2.5 },
-  badgeText: { fontSize: 10, fontWeight: "700" },
-  button: { backgroundColor: colors.rust, paddingHorizontal: 16, paddingVertical: 13, minHeight: 46, borderRadius: buttonCornerRadius, alignItems: "center", justifyContent: "center" },
-  buttonText: { color: "white", fontSize: 13, fontWeight: "600", textAlign: "center" },
-  secondary: { backgroundColor: "rgba(234,240,246,0.9)" },
+  badgeDot: { width: 6, height: 6, borderRadius: 3 },
+  badgeText: { fontSize: fontSizes.caption, fontWeight: "700" },
+  button: { backgroundColor: colors.rust, paddingHorizontal: 16, paddingVertical: 13, minHeight: 48, borderRadius: buttonCornerRadius, alignItems: "center", justifyContent: "center" },
+  buttonText: { color: "white", fontSize: fontSizes.body, fontWeight: "600", textAlign: "center" },
+  secondary: { backgroundColor: "rgba(243,239,234,0.92)" },
   toolbar: { flexDirection: "row", alignItems: "center", gap: 10 },
-  pillSearch: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 9, backgroundColor: "rgba(255,255,255,0.82)", paddingLeft: 13, borderRadius: 24, borderWidth: 1, borderColor: "rgba(255,255,255,0.92)", overflow: "hidden" },
-  pillSearchInput: { flex: 1, minWidth: 0, minHeight: 46, color: colors.navy, fontSize: 13, paddingRight: 8 },
-  webPillButton: { width: 46, height: 46, borderRadius: 23, backgroundColor: "rgba(255,255,255,0.82)", borderWidth: 1, borderColor: "rgba(255,255,255,0.92)", alignItems: "center", justifyContent: "center", overflow: "hidden" },
-  input: { backgroundColor: "rgba(255,255,255,0.95)", borderWidth: 1, borderColor: "#D8E0E8", paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12, minHeight: 48, color: colors.navy, fontSize: 14 },
+  pillSearch: { flex: 1, minWidth: 0, flexDirection: "row", alignItems: "center", gap: 9, paddingLeft: 13, borderRadius: 24, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", overflow: "hidden" },
+  pillSearchInput: { flex: 1, minWidth: 0, minHeight: 46, color: colors.navy, fontSize: fontSizes.body, paddingRight: 8 },
+  webPillButton: { width: 46, height: 46, borderRadius: 23, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", alignItems: "center", justifyContent: "center", overflow: "hidden" },
+  input: { backgroundColor: "rgba(255,255,255,0.88)", borderWidth: 1, borderColor: "#CAB9A9", paddingHorizontal: 14, paddingVertical: 12, borderRadius: 14, minHeight: 48, color: colors.navy, fontSize: fontSizes.body },
   field: { gap: 7 },
-  fieldLabel: { fontSize: 13, fontWeight: "600", color: colors.navy },
+  fieldLabel: { fontSize: fontSizes.subbody, fontWeight: "700", color: colors.navy },
   multiline: { minHeight: 110, textAlignVertical: "top" },
   filters: { gap: 7, paddingVertical: 2 },
-  chip: { minHeight: 40, flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center", paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.88)", backgroundColor: "rgba(255,255,255,0.78)", borderRadius: 20 },
-  chipText: { color: colors.muted, fontSize: 12, fontWeight: "500" },
+  chip: { minHeight: 40, flexDirection: "row", alignItems: "center", gap: 6, justifyContent: "center", paddingHorizontal: 14, borderWidth: 1, borderColor: "rgba(255,255,255,0.9)", backgroundColor: "rgba(255,250,244,0.88)", borderRadius: 20 },
+  chipText: { color: colors.muted, fontSize: fontSizes.subbody, fontWeight: "500" },
   chart: { flexDirection: "row", gap: 10, paddingTop: 6 },
   barColumn: { flex: 1, gap: 6, alignItems: "center" },
-  barValue: { fontSize: 9, fontWeight: "600", color: colors.muted },
+  barValue: { fontSize: fontSizes.caption, fontWeight: "600", color: colors.muted },
   barTrack: { height: 110, width: "100%", justifyContent: "flex-end", backgroundColor: "#EEF2F6", borderRadius: 6, overflow: "hidden" },
-  barLabel: { fontSize: 10, color: colors.subtle },
-  fact: { gap: 4, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "#EEF1F5" },
-  factLabel: { fontSize: 11, fontWeight: "600", color: colors.subtle },
-  factValue: { fontSize: 14, lineHeight: 20, color: colors.navy, fontWeight: "500" },
+  barLabel: { fontSize: fontSizes.caption, color: colors.subtle },
+  fact: { gap: 4, paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: "rgba(218,208,198,0.45)" },
+  factLabel: { fontSize: fontSizes.caption, fontWeight: "600", color: colors.subtle },
+  factValue: { fontSize: fontSizes.body, lineHeight: 22, color: colors.navy, fontWeight: "500" },
   statusBanner: { flexDirection: "row", alignItems: "center", gap: 12 },
   emptyBox: { paddingVertical: 20, alignItems: "center", gap: 6 },
-  tabBar: { flexDirection: "row", backgroundColor: "rgba(255,255,255,0.84)", borderTopWidth: 1, borderTopColor: "rgba(232,236,242,0.92)", paddingTop: 8, paddingHorizontal: 6, overflow: "hidden" },
+  tabBar: { flexDirection: "row", borderTopWidth: 1, borderTopColor: "rgba(255,255,255,0.9)", paddingTop: 8, paddingHorizontal: 6, overflow: "hidden" },
   tab: { flex: 1, alignItems: "center", justifyContent: "center", gap: 5, minHeight: 56, paddingVertical: 6 },
-  tabSelected: { backgroundColor: "rgba(251,237,232,0.85)", borderRadius: 14 },
-  tabLabel: { fontSize: 10, color: colors.muted, textAlign: "center" },
+  tabSelected: { backgroundColor: "rgba(251,237,232,0.88)", borderRadius: 14 },
+  tabLabel: { fontSize: fontSizes.caption, color: colors.muted, textAlign: "center" },
   navIcon: { width: 24, height: 24, justifyContent: "center", alignItems: "center" },
   iconBars: { flexDirection: "row", gap: 3, alignItems: "flex-end" },
-  drawerBackdrop: { flex: 1, backgroundColor: "rgba(15,28,42,0.42)" },
-  drawer: { width: "86%", maxWidth: 360, height: "100%", backgroundColor: "rgba(255,255,255,0.92)", borderRightWidth: 1, borderColor: "rgba(255,255,255,0.96)", overflow: "hidden" },
-  drawerHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: "#EEF1F5" },
+  drawerBackdrop: { flex: 1 },
+  drawer: { width: "86%", maxWidth: 360, height: "100%", borderRightWidth: 1, borderColor: "rgba(255,255,255,0.94)", overflow: "hidden" },
+  drawerHeading: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10, paddingHorizontal: 18, paddingBottom: 14, borderBottomWidth: 1, borderBottomColor: "rgba(218,208,198,0.45)" },
   drawerContent: { padding: 14, gap: 4 },
-  drawerSectionLabel: { fontSize: 10, fontWeight: "700", letterSpacing: 1.2, color: colors.subtle, paddingHorizontal: 10, paddingVertical: 6 },
-  drawerLink: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 12, paddingVertical: 10, minHeight: 48, borderRadius: 14 },
-  drawerLinkActive: { backgroundColor: "rgba(251,237,232,0.85)" },
-  drawerIcon: { width: 34, height: 34, borderRadius: 11, alignItems: "center", justifyContent: "center" },
-  drawerSub: { fontSize: 11, color: colors.subtle },
-  drawerAccount: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 18, paddingTop: 14, borderTopColor: "#EEF1F5", borderTopWidth: 1 },
-  modalOverlay: { flex: 1, backgroundColor: "rgba(15,28,42,0.42)", justifyContent: "flex-end" },
-  modalSheet: { backgroundColor: "rgba(255,255,255,0.93)", borderTopLeftRadius: 28, borderTopRightRadius: 28, borderTopWidth: 1, borderColor: "rgba(255,255,255,0.96)", paddingHorizontal: 18, paddingTop: 10, maxHeight: "90%", gap: 14, overflow: "hidden" },
-  modalHandle: { width: 36, height: 4, borderRadius: 2, backgroundColor: "#D8DEE6", alignSelf: "center" },
+  drawerSectionLabel: { fontSize: fontSizes.caption, fontWeight: "700", letterSpacing: 1.1, color: colors.subtle, paddingHorizontal: 10, paddingVertical: 6 },
+  drawerLink: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 12, paddingVertical: 10, minHeight: 50, borderRadius: 14 },
+  drawerLinkActive: { backgroundColor: "rgba(251,237,232,0.88)" },
+  drawerIcon: { width: 36, height: 36, borderRadius: 12, alignItems: "center", justifyContent: "center" },
+  drawerSub: { fontSize: fontSizes.subbody, color: colors.subtle },
+  drawerAccount: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 18, paddingTop: 14, borderTopColor: "rgba(218,208,198,0.45)", borderTopWidth: 1 },
+  modalOverlay: { flex: 1, justifyContent: "flex-end" },
+  modalSheet: { borderTopLeftRadius: 32, borderTopRightRadius: 32, borderTopWidth: 1, borderColor: "rgba(255,255,255,0.92)", paddingHorizontal: 18, paddingTop: 10, maxHeight: "90%", gap: 14, overflow: "hidden" },
+  modalHandle: { width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(101,86,77,0.28)", alignSelf: "center" },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, paddingHorizontal: 2 },
-  sheetEyebrow: { fontSize: 10, fontWeight: "700", letterSpacing: 1.2, color: colors.subtle, marginBottom: 2 },
-  modalTitle: { fontSize: 19, fontWeight: "700", color: colors.navy },
-  closeCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(241,244,248,0.9)", alignItems: "center", justifyContent: "center" },
+  sheetEyebrow: { fontSize: fontSizes.caption, fontWeight: "700", letterSpacing: 1.1, color: colors.subtle, marginBottom: 2 },
+  modalTitle: { fontSize: fontSizes.heading, fontWeight: "700", color: colors.navy },
+  closeCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.82)", borderWidth: 1, borderColor: "#E5DDD3", alignItems: "center", justifyContent: "center" },
   modalContent: { gap: 14, paddingBottom: 8, maxWidth: 720, width: "100%", alignSelf: "center" },
-  modalCard: { backgroundColor: "rgba(255,255,255,0.88)", borderRadius: 20, borderWidth: 1, borderColor: "#E8ECF2", padding: 16, gap: 12 },
-  noticeText: { fontSize: 12, color: "#236D61", fontWeight: "600" },
-  error: { color: "#9A3026", fontSize: 13, lineHeight: 20 },
+  modalCard: { backgroundColor: "rgba(255,255,255,0.82)", borderRadius: 20, borderWidth: 1, borderColor: "#E5DDD3", padding: 16, gap: 12 },
+  noticeText: { fontSize: fontSizes.subbody, color: "#236D61", fontWeight: "600" },
+  error: { color: "#9A3026", fontSize: fontSizes.subbody, lineHeight: 20 },
   loading: { gap: 12, padding: 24, alignItems: "center" },
 });

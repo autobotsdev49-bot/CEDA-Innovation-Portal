@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { VerifyEmail } from "./VerifyEmail";
 import { VerificationSuccess } from "./VerificationSuccess";
 import { AdminWorkspace } from "./AdminWorkspace";
+import { InnovatorWorkspace } from "./InnovatorWorkspace";
 
 export type AuthMode = "signin" | "signup";
 const verificationWindow = 15 * 60_000;
@@ -197,7 +198,7 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
 
   useEffect(() => {
     const listener = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (account?.role === "admin") return false;
+      if (account?.role === "admin" || account?.role === "innovator") return false;
       if (showVerificationSuccess) openHome();
       else leave();
       return true;
@@ -278,6 +279,10 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
 
   if (account?.role === "admin") {
     return <AdminWorkspace account={account} onSignOut={leave} onAccountChange={setAccount} />;
+  }
+
+  if (account?.role === "innovator") {
+    return <InnovatorWorkspace account={account} onSignOut={leave} onAccountChange={setAccount} />;
   }
 
   return (

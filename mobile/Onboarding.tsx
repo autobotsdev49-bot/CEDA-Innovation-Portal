@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from "react";
-import { BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { AccessibilityInfo, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ImageSourcePropType } from "react-native";
-import { palette, buttonCornerRadius } from "./theme";
+import { palette } from "./theme";
 
 const slides = [
   {
@@ -71,7 +70,6 @@ function PortalIntro({ image, title, description, label, headerAction, actions }
           />
           <View style={styles.header} onLayout={({ nativeEvent }) => setHeaderHeight(nativeEvent.layout.height)}>
             <View style={styles.brand}>
-              <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
               <Image source={require("./assets/ceda.png")} style={styles.logo} resizeMode="contain" accessible={false} />
               <Text style={styles.brandText}>CEDA Innovation</Text>
             </View>
@@ -80,13 +78,13 @@ function PortalIntro({ image, title, description, label, headerAction, actions }
         </View>
 
         <View style={styles.copy} onLayout={({ nativeEvent }) => setCopyHeight(nativeEvent.layout.height)}>
-          {label && <View style={styles.progressPill}><BlurView intensity={25} tint="light" style={StyleSheet.absoluteFill} /><Text style={styles.progress}>{label}</Text></View>}
+          {label && <Text style={styles.progress}>{label}</Text>}
           <Text accessibilityRole="header" style={styles.title}>{title}</Text>
           <Text style={styles.description}>{description}</Text>
         </View>
       </ScrollView>
 
-      <View style={styles.footer}><BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />{actions}</View>
+      <View style={styles.footer}>{actions}</View>
     </View>
   );
 }
@@ -111,7 +109,6 @@ export function Onboarding({ onFinish }: { onFinish: () => void }) {
           onPress={onFinish}
           style={({ pressed }) => [styles.skip, pressed && styles.secondaryPressed]}
         >
-          <BlurView intensity={35} tint="light" style={StyleSheet.absoluteFill} />
           <Text style={styles.link}>Skip</Text>
         </Pressable>
       }
@@ -184,32 +181,31 @@ export function PortalWelcome({ onSignIn, onSignUp, onWebsite, error }: PortalWe
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: palette.white },
   header: { width: "100%", maxWidth: 600, alignSelf: "center", paddingHorizontal: 20, flexDirection: "row", flexWrap: "wrap", alignItems: "center", justifyContent: "space-between", gap: 8, minHeight: 58, paddingBottom: 6 },
-  brand: { flexDirection: "row", alignItems: "center", flexShrink: 1, gap: 8, paddingHorizontal: 12, paddingVertical: 6, borderRadius: buttonCornerRadius, backgroundColor: "rgba(255, 255, 255, 0.72)", borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.88)", overflow: "hidden" },
-  logo: { width: 46, height: 30 },
+  brand: { flexDirection: "row", alignItems: "center", flexShrink: 1, gap: 8 },
+  logo: { width: 51, height: 34 },
   brandText: { flexShrink: 1, color: palette.ink, fontSize: 14, fontWeight: "700" },
-  skip: { minHeight: 44, paddingHorizontal: 17, paddingVertical: 8, justifyContent: "center", alignItems: "center", borderRadius: buttonCornerRadius, borderWidth: 1, borderColor: "rgba(255, 255, 255, 0.88)", backgroundColor: "rgba(247, 242, 235, 0.72)", overflow: "hidden" },
+  skip: { minHeight: 48, paddingHorizontal: 17, paddingVertical: 8, justifyContent: "center", alignItems: "center", borderRadius: 24, borderWidth: 1, borderColor: "#d9cec2", backgroundColor: "rgba(247, 242, 235, 0.7)" },
   scroll: { flex: 1 },
   artworkFrame: { width: "100%", overflow: "hidden", backgroundColor: palette.paper },
   artwork: { ...StyleSheet.absoluteFill, width: "100%", height: "100%" },
   headerWash: { position: "absolute", top: 0, left: 0, right: 0 },
   copy: { width: "100%", maxWidth: 600, alignSelf: "center", paddingHorizontal: 20, paddingTop: 3, paddingBottom: 4, gap: 7 },
-  progressPill: { alignSelf: "flex-start", paddingHorizontal: 11, paddingVertical: 5, borderRadius: buttonCornerRadius, backgroundColor: "rgba(251, 237, 232, 0.78)", borderWidth: 1, borderColor: "rgba(154, 61, 43, 0.2)", overflow: "hidden" },
-  progress: { fontSize: 12, fontWeight: "700", color: palette.accent },
+  progress: { fontSize: 13, fontWeight: "700", color: palette.accent },
   title: { fontSize: 34, fontWeight: "800", letterSpacing: -0.8, color: palette.ink },
   description: { fontSize: 16, lineHeight: 23, color: palette.muted },
-  footer: { width: "100%", maxWidth: 600, alignSelf: "center", paddingHorizontal: 20, paddingTop: 8, paddingBottom: 10, backgroundColor: "rgba(255, 255, 255, 0.88)", overflow: "hidden" },
+  footer: { width: "100%", maxWidth: 600, alignSelf: "center", paddingHorizontal: 20, paddingTop: 4, paddingBottom: 10, backgroundColor: palette.white },
   navigation: { flexDirection: "row", alignItems: "stretch", gap: 8 },
   welcomeActions: { gap: 8 },
-  welcomeButton: { minHeight: 52, paddingHorizontal: 14, paddingVertical: 12, borderRadius: buttonCornerRadius, justifyContent: "center", alignItems: "center" },
+  welcomeButton: { minHeight: 52, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 28, justifyContent: "center", alignItems: "center" },
   primaryFill: { backgroundColor: palette.accent },
   outline: { borderWidth: 1, borderColor: palette.accent },
   websiteNote: { color: palette.muted, fontSize: 15, textAlign: "center", paddingVertical: 10 },
   websiteLink: { fontWeight: "700", color: palette.accent },
   error: { color: palette.accent, fontSize: 15 },
-  primary: { flex: 1, minHeight: 52, paddingHorizontal: 14, paddingVertical: 12, borderRadius: buttonCornerRadius, justifyContent: "center", alignItems: "center", backgroundColor: palette.accent },
+  primary: { flex: 1, minHeight: 52, paddingHorizontal: 14, paddingVertical: 12, borderRadius: 28, justifyContent: "center", alignItems: "center", backgroundColor: palette.accent },
   primaryPressed: { backgroundColor: palette.accentPressed },
   primaryLabel: { fontSize: 17, textAlign: "center", fontWeight: "700", color: palette.white },
-  back: { minHeight: 48, maxWidth: "38%", paddingHorizontal: 12, paddingVertical: 9, justifyContent: "center", alignItems: "center", borderRadius: buttonCornerRadius, borderWidth: 1, borderColor: "#d9cec2" },
+  back: { minHeight: 48, maxWidth: "38%", paddingHorizontal: 12, paddingVertical: 9, justifyContent: "center", alignItems: "center", borderRadius: 24, borderWidth: 1, borderColor: "#d9cec2" },
   secondaryPressed: { backgroundColor: palette.amberTint },
   link: { fontSize: 15, fontWeight: "700", textAlign: "center", color: palette.accent },
 });
