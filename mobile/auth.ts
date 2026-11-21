@@ -141,6 +141,18 @@ export async function readAdminRecords(account: Account, kind: "users" | "sector
   }
   return data;
 }
+export type AdminApplication = { id: string; title: string; owner: string; sector: string; status: string; date: string; assessor: string; summary: string };
+
+export async function readAdminApplications(account: Account): Promise<AdminApplication[]> {
+  if (account.role !== "admin" || account.expiresAt <= Date.now()) throw new Error("Your administrator session has expired. Sign in again.");
+  const { response, data } = await request("/rest/v1/rpc/admin_applications", {}, account.token);
+  if (!response.ok || !Array.isArray(data)) throw new Error("Unable to load live applications. Check your connection and retry.");
+  return data.map((record: Record<string, unknown>) => ({
+    id: String(record.id || ""), title: String(record.title || ""), owner: String(record.applicant || ""),
+    sector: String(record.sector || ""), status: String(record.status || ""), date: String(record.date || ""),
+    assessor: "CEDA review", summary: String(record.summary || ""),
+  }));
+}
 
 export type AdminAccess = { new_role: "innovator" | "admin" | "assessor" | "support"; lead: boolean; sectors: string[]; reason: string };
 export type AdminInvitation = AdminAccess & { address: string; display_name: string };

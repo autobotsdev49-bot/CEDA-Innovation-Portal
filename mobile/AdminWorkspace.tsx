@@ -8,8 +8,8 @@ import { AdminInnovations } from "./AdminInnovations";
 import { AdminUserEditor } from "./AdminUserEditor";
 import { AdminUsers } from "./AdminUsers";
 import { AdminInsights } from "./AdminInsights";
-import { previewApplications, previewMatters, type ReportingPeriod } from "./adminPreview";
-import { portalUrl, readAdminRecords, type Account, type AdminSector, type AdminUser } from "./auth";
+import { previewMatters, type ReportingPeriod } from "./adminPreview";
+import { portalUrl, readAdminApplications, readAdminRecords, type Account, type AdminApplication, type AdminSector, type AdminUser } from "./auth";
 
 const colors = { navy: "#192C40", rust: "#9A3D2B", teal: "#278477", blue: "#28599B", muted: "#66717E", subtle: "#7C8590", line: "#E5DDD3", canvas: "#F7F2EB" };
 const tabs = ["Overview", "Users", "Innovations", "Follow-ups", "More"] as const;
@@ -48,8 +48,7 @@ const badgeColors: Record<string, [string, string]> = {
   draft: ["#FCF4E4", "#94702D"], archived: ["#FBEDE8", "#903925"],
   "In review": ["#FFF3D8", "#795B17"], Rejected: ["#FBEDE8", "#903925"], Submitted: ["#EAF1FC", "#28599B"],
 };
-const cases = previewApplications;
-type SampleCase = typeof cases[number];
+type SampleCase = AdminApplication;
 type Sheet = { title: string; eyebrow?: string; kind: "notifications" | "insight" | "sector" | "case" | "guidance" | "knowledge" | "review"; sector?: AdminSector; item?: SampleCase; facts?: [string, string][] };
 
 function Button({ title, onPress, secondary = false, disabled = false }: { title: string; onPress: () => void; secondary?: boolean; disabled?: boolean }) {
@@ -126,6 +125,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
   const [page, setPage] = useState(0);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [sectors, setSectors] = useState<AdminSector[]>([]);
+  const [cases, setCases] = useState<AdminApplication[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -159,6 +159,16 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
     });
     return () => listener.remove();
   });
+
+  useEffect(() => {
+    if (screen !== "Innovations") return;
+    let active = true;
+    setLoading(true); setError("");
+    void readAdminApplications(account).then(records => { if (active) setCases(records); })
+      .catch((reason: unknown) => { if (active) { setCases([]); setError(reason instanceof Error ? reason.message : "Unable to load applications."); } })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [screen, attempt, account]);
 
   useEffect(() => {
     if (screen !== "Users" && screen !== "Sectors") return;
@@ -290,7 +300,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
         onPageChange={next => { setLoading(true); setUsers([]); setPage(next); }}
         onOpenUser={user => { setUserNotice(""); setUserEditor(user); }} onCreate={() => { setUserNotice(""); setUserEditor("create"); }} notice={userNotice}
       />}
-      {screen === "Innovations" && <AdminInnovations items={cases} query={query} onQueryChange={setQuery} status={status} onStatusChange={setStatus} onOpen={item => setSheet({ title: "Innovation details", eyebrow: item.id, kind: "case", item })} />}
+      {screen === "Innovations" && <>{loading && <ActivityIndicator />}{!!error && <Pressable onPress={() => setAttempt(value => value + 1)}><Text>{error} Tap to retry.</Text></Pressable>}<AdminInnovations items={cases} query={query} onQueryChange={setQuery} status={status} onStatusChange={setStatus} onOpen={item => setSheet({ title: "Innovation details", eyebrow: item.id, kind: "case", item })} /></>}
 
       {screen === "More" && <>
         <View style={s.profileCard}>
