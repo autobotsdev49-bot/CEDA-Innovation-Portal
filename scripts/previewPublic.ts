@@ -22,17 +22,82 @@ for (const name of ["story-maggie.png", "story-obakeng.png", "story-tsholefelo.p
 files.set("/assets/ceda.png", { path: "assets/ceda.png", type: "image/png" });
 
 createServer(async (request, response) => {
-  if (request.method !== "GET" && request.method !== "HEAD") {
-    response.writeHead(405, { Allow: "GET, HEAD" }).end();
-    return;
-  }
-  // Browsers percent-encode spaces in asset URLs (for example, %20). Match
-  // those requests against the decoded filenames used by the build output.
   let path: string;
   try {
     path = decodeURIComponent(request.url?.split("?")[0] ?? "/");
   } catch {
     response.writeHead(400, { "Content-Type": "text/plain; charset=utf-8" }).end("Invalid URL");
+    return;
+  }
+
+  // Handle Gemini AI smart assistance endpoint
+  if (request.method === "POST" && path === "/api/gemini-ask") {
+    let bodyText = "";
+    request.on("data", chunk => { bodyText += chunk; });
+    request.on("end", async () => {
+      try {
+        const payload = JSON.parse(bodyText || "{}");
+        const question = String(payload.question || "").trim();
+        const context = String(payload.context || "").trim();
+        const mode = String(payload.mode || "qa").trim();
+
+        if (!question && !context) {
+          response.writeHead(400, { "Content-Type": "application/json" }).end(JSON.stringify({ error: "Question or context required" }));
+          return;
+        }
+
+        const apiKey = process.env.GEMINI_API_KEY || "AQ.Ab8RN6J4Zohj40MS_3soM4NCvfcv4j4kx2CmDGHR0eljYn6bgA";
+        const systemPrompt = "You are the CEDA Botswana Innovation Portal Assistant. Provide concise, friendly, and accessible answers (strictly 2 to 3 sentences maximum) designed for people using TalkBack or voice control. Ground answers in CEDA Botswana policies (innovator grant phases, youth support, eligibility, eligible sectors). Avoid markdown formatting like asterisks or bullet points.";
+
+        const userPrompt = mode === "summary"
+          ? `Summarize this CEDA page content in 2 concise sentences for a screen-reader user:\n\n${context || question}`
+          : `Page context: ${context ? context.slice(0, 500) : "CEDA Innovation Portal"}\n\nUser Question: ${question}`;
+
+        const models = ["gemini-3.1-flash-lite", "gemini-3.8-flash", "gemini-2.5-flash-lite"];
+        let answer = "";
+
+        for (const model of models) {
+          try {
+            const apiRes = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                system_instruction: { parts: [{ text: systemPrompt }] },
+                contents: [{ parts: [{ text: userPrompt }] }]
+              }),
+              signal: AbortSignal.timeout(6000)
+            });
+            if (apiRes.ok) {
+              const data = await apiRes.json();
+              const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (text && text.trim()) {
+                answer = text.trim();
+                break;
+              }
+            }
+          } catch {
+            // Try next model
+          }
+        }
+
+        if (!answer) {
+          answer = "CEDA Botswana provides financial and technical backing for viable innovations across agriculture, technology, manufacturing, and services. Visit the eligibility checker to verify requirements.";
+        }
+
+        response.writeHead(200, {
+          "Content-Type": "application/json; charset=utf-8",
+          "Access-Control-Allow-Origin": "*",
+          "Cache-Control": "no-store"
+        }).end(JSON.stringify({ answer }));
+      } catch (err) {
+        response.writeHead(500, { "Content-Type": "application/json" }).end(JSON.stringify({ error: "Failed to process query" }));
+      }
+    });
+    return;
+  }
+
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    response.writeHead(405, { Allow: "GET, HEAD, POST" }).end();
     return;
   }
   if (!files.has(path) && files.has(`${path}/`)) {
