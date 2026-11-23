@@ -4,7 +4,32 @@ import test from "node:test";
 process.env.EXPO_PUBLIC_SUPABASE_URL = "https://demo.supabase.co";
 process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY = "sb_publishable_test";
 
-const { checkEmailVerification, registerInnovator, resendVerificationEmail, signInInnovator, readAdminRecords, verifyAdminAuthenticator, inviteAdminUser, updateAdminUserAccess, createAdminUser, validAdminPassword } = await import("../mobile/auth.ts");
+const {
+  callAssessorRpc,
+  checkEmailVerification,
+  registerInnovator,
+  resendVerificationEmail,
+  signInInnovator,
+  readAdminRecords,
+  verifyAdminAuthenticator,
+  inviteAdminUser,
+  updateAdminUserAccess,
+  createAdminUser,
+  validAdminPassword,
+  readAdminContent,
+  saveAdminContent,
+  saveAdminNotification,
+  readAdminConfigurations,
+  saveAdminConfiguration,
+  invalidateAdminCache,
+} = await import("../mobile/auth.ts");
+const {
+  isStrongAccountPassword,
+  isTokenAal2,
+  prepareTotpEnrollment,
+  updateAccountPassword,
+  verifyTotpFactorCode,
+} = await import("../mobile/securityApi.ts");
 const email = "test@example.invalid";
 const password = "sample-password";
 const token = "synthetic-token";
@@ -19,9 +44,10 @@ test("native admin creation requires a password and sends it only to the protect
     assert.equal((options.headers as Record<string, string>).Authorization, "Bearer " + token);
     return Response.json({ status: "created", id: "created-test" });
   });
-  assert.equal(validAdminPassword("界".repeat(24)), true);
-  assert.equal(validAdminPassword("界".repeat(25)), false);
-  await assert.rejects(createAdminUser(account, { ...input, password: "short" }), /at least 8/);
+  assert.equal(validAdminPassword("StrongPass1!"), true);
+  assert.equal(validAdminPassword("Strong1!" + "x".repeat(65)), false);
+  assert.equal(validAdminPassword("longbutnocomplexity"), false);
+  await assert.rejects(createAdminUser(account, { ...input, password: "short" }), /12-72/);
   assert.equal(send.mock.callCount(), 0);
   await createAdminUser(account, input);
   assert.equal(send.mock.callCount(), 1);
@@ -185,8 +211,33 @@ test("mobile sign-in requires token expiry, verified identity and an active role
   const admin = await signInInnovator(email, password);
   assert.equal(admin.status, "signed-in");
   if (admin.status === "signed-in") assert.equal(admin.account.role, "admin");
+  role = "assessor";
+  const assessor = await signInInnovator(email, password);
+  assert.equal(assessor.status, "signed-in");
+  if (assessor.status === "signed-in") assert.equal(assessor.account.role, "assessor");
+  role = "support";
+  const support = await signInInnovator(email, password);
+  assert.equal(support.status, "signed-in");
+  if (support.status === "signed-in") assert.equal(support.account.role, "support");
   role = "unknown";
   assert.equal((await signInInnovator(email, password)).status, "error");
+});
+
+test("mobile assessment requests require an active assessor session and carry the current round", async (t) => {
+  const account = { token, name: "Assessor", role: "assessor" as const, expiresAt: Date.now() + 60_000 };
+  const command = { p_case_id: "case-id", p_round_id: "round-id", p_action: "vote", p_data: { choice: "approve" } };
+  const send = t.mock.method(globalThis, "fetch", async (address: string, options: RequestInit) => {
+    assert.equal(new URL(address).pathname, "/rest/v1/rpc/assessor_action");
+    assert.equal(options.method, "POST");
+    assert.equal((options.headers as Record<string, string>).Authorization, `Bearer ${token}`);
+    assert.deepEqual(JSON.parse(String(options.body)), command);
+    return Response.json({ message: "The assessment round changed. Refresh and try again." }, { status: 400 });
+  });
+  await assert.rejects(callAssessorRpc({ ...account, role: "innovator" }, "assessor_action", command), /session has expired/);
+  await assert.rejects(callAssessorRpc({ ...account, expiresAt: Date.now() - 1000 }, "assessor_action", command), /session has expired/);
+  assert.equal(send.mock.callCount(), 0);
+  await assert.rejects(callAssessorRpc(account, "assessor_action", command), /assessment round changed/);
+  assert.equal(send.mock.callCount(), 1);
 });
 
 test("mobile rate limits use the provider retry deadline", async (t) => {
@@ -243,5 +294,129 @@ test("mobile resends only the signup confirmation and handles the provider coold
   const result = await resendVerificationEmail(email);
   assert.equal(result.status, "error");
   if (result.status === "error") assert.ok(result.retryAt && result.retryAt >= started + 120_000);
+});
+
+test("mobile admin creation accepts 6-digit temporary admin_code and rejects malformed codes before network calls", async (t) => {
+  const account = { token, name: "Admin", role: "admin" as const, expiresAt: Date.now() + 60_000 };
+  const base = { address: "staff@example.invalid", display_name: "Synthetic Staff", new_role: "assessor" as const, lead: false, sectors: [], reason: "Test onboarding", password: "Synthetic-password-73!" };
+  const send = t.mock.method(globalThis, "fetch", async (_url: string, options: RequestInit) => {
+    assert.equal(JSON.parse(String(options.body)).admin_code, "230701");
+    return Response.json({ status: "created", id: "created-with-code" });
+  });
+  await assert.rejects(createAdminUser(account, { ...base, admin_code: "123" }), /6-digit/);
+  assert.equal(send.mock.callCount(), 0);
+  await createAdminUser(account, { ...base, admin_code: " 230701 " });
+  assert.equal(send.mock.callCount(), 1);
+});
+
+test("mobile admin governance RPCs use RAM cache with explicit invalidation on saves", async (t) => {
+  invalidateAdminCache();
+  const account = { token, name: "Admin", role: "admin" as const, expiresAt: Date.now() + 60_000 };
+  const calls: string[] = [];
+  t.mock.method(globalThis, "fetch", async (url: string, options: RequestInit) => {
+    const path = new URL(url).pathname;
+    calls.push(path);
+    assert.equal((options.headers as Record<string, string>).Authorization, `Bearer ${token}`);
+    if (path === "/rest/v1/rpc/admin_content_list") {
+      return Response.json([{ id: "c-1", title: "How to apply", summary: "Guide", body: "Full guide text.", kind: "Public pages", audience: "Public website", stage: "Published", updated: "2026-11-22" }]);
+    }
+    if (path === "/rest/v1/rpc/admin_save_content") {
+      const body = JSON.parse(String(options.body));
+      assert.equal(body.content_stage, "Published");
+      return Response.json([{ id: "c-2", title: body.content_title, summary: "New", body: body.content_body, kind: body.content_kind, audience: "Public website", stage: "Published", updated: "2026-11-22" }]);
+    }
+    if (path === "/rest/v1/rpc/admin_save_notification") {
+      return Response.json({ templates: [{ id: "tpl-1", title: "Notice", kind: "Announcement", channel: "In-app + Email", audience: "Innovator", status: "Enabled", message: "Updated template body text" }], inbox: [] });
+    }
+    if (path === "/rest/v1/rpc/admin_get_configurations") {
+      return Response.json({ optimus_guidance: { payload: { tone: "Warm and supportive" }, version: 2 } });
+    }
+    if (path === "/rest/v1/rpc/admin_optimus_overview") {
+      return Response.json({ totalInteractions: 12, escalatedCount: 1, helpfulCount: 10, unhelpfulCount: 2, topics: [] });
+    }
+    assert.equal(path, "/rest/v1/rpc/admin_save_configuration");
+    return Response.json({ portal_policies: { payload: { area: "Submission & evidence rules", proposal: "Test change" }, version: 3 } });
+  });
+
+  const first = await readAdminContent(account);
+  const second = await readAdminContent(account);
+  assert.equal(first.length, 1);
+  assert.equal(second.length, 1);
+  assert.deepEqual(calls, ["/rest/v1/rpc/admin_content_list"]);
+
+  const updated = await saveAdminContent(account, {
+    content_kind: "FAQs",
+    content_title: "FAQ update",
+    content_body: "Detailed approved FAQ body for innovators.",
+    reason: "Reviewed with CEDA team",
+    content_stage: "Published",
+  });
+  assert.equal(updated[0].id, "c-2");
+  const notif = await saveAdminNotification(account, {
+    entry_kind: "Announcement",
+    entry_title: "Cycle open",
+    entry_message: "Submissions are now open across all published sectors.",
+  });
+  assert.equal(notif.templates.length, 1);
+  const cfg = await readAdminConfigurations(account);
+  assert.equal(cfg.configs.optimus_guidance.payload.tone, "Warm and supportive");
+  assert.equal(cfg.optimusOverview?.totalInteractions, 12);
+  const savedCfg = await saveAdminConfiguration(account, "portal_policies", { area: "Submission & evidence rules", proposal: "Test change" }, "Updated policy rule");
+  assert.equal(savedCfg.portal_policies.version, 3);
+  invalidateAdminCache();
+});
+
+test("mobile shared securityApi handles password rules, TOTP cleanup/enrollment, verification, and AAL2 decoding", async (t) => {
+  const aal1Jwt = `hdr.${Buffer.from(JSON.stringify({ aal: "aal1" })).toString("base64url")}.sig`;
+  const aal2Jwt = `hdr.${Buffer.from(JSON.stringify({ aal: "aal2" })).toString("base64url")}.sig`;
+  assert.equal(isTokenAal2(aal1Jwt), false);
+  assert.equal(isTokenAal2(aal2Jwt), true);
+  assert.equal(isStrongAccountPassword("StrongPass1!"), true);
+  assert.equal(isStrongAccountPassword("weak"), false);
+
+  const account = { token: aal1Jwt, name: "Assessor", role: "assessor" as const, expiresAt: Date.now() + 120_000 };
+  const requests: Array<{ method: string; path: string }> = [];
+  t.mock.method(globalThis, "fetch", async (url: string, options: RequestInit) => {
+    const path = new URL(url).pathname;
+    const method = options.method || "GET";
+    requests.push({ method, path });
+    if (path === "/auth/v1/user" && method === "GET") {
+      return Response.json({ factors: [{ id: "stale-unverified", factor_type: "totp", status: "unverified" }] });
+    }
+    if (path === "/auth/v1/factors/stale-unverified" && method === "DELETE") {
+      return new Response(null, { status: 204 });
+    }
+    if (path === "/auth/v1/factors" && method === "POST") {
+      return Response.json({ id: "totp-new", totp: { qr_code: "<svg/>", secret: "ABCDEFGH12345678" } });
+    }
+    if (path === "/auth/v1/factors/totp-new/challenge") {
+      return Response.json({ id: "chal-1" });
+    }
+    if (path === "/auth/v1/factors/totp-new/verify") {
+      return Response.json({ access_token: aal2Jwt, expires_in: 3600 });
+    }
+    assert.equal(path, "/auth/v1/user");
+    assert.equal(method, "PUT");
+    return Response.json({ id: "user-1" });
+  });
+
+  const prep = await prepareTotpEnrollment(account, "CEDA Assessor Mobile");
+  assert.equal(prep.alreadyVerified, false);
+  assert.equal(prep.factorId, "totp-new");
+  assert.equal(prep.formattedSecret, "ABCD EFGH 1234 5678");
+
+  const upgraded = await verifyTotpFactorCode(account, prep.factorId, "654321");
+  assert.equal(isTokenAal2(upgraded.token), true);
+  assert.equal(upgraded.expiresAt, account.expiresAt);
+
+  await updateAccountPassword(upgraded, "StrongPass1!");
+  assert.deepEqual(requests, [
+    { method: "GET", path: "/auth/v1/user" },
+    { method: "DELETE", path: "/auth/v1/factors/stale-unverified" },
+    { method: "POST", path: "/auth/v1/factors" },
+    { method: "POST", path: "/auth/v1/factors/totp-new/challenge" },
+    { method: "POST", path: "/auth/v1/factors/totp-new/verify" },
+    { method: "PUT", path: "/auth/v1/user" },
+  ]);
 });
 

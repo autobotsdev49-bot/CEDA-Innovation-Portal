@@ -1,3 +1,5 @@
+import { validateCustomFormResponses, type ApplicationFormConfig } from "./portalCatalog.ts";
+
 export const BOTSWANA_DISTRICTS = [
   "Gaborone",
   "Francistown",
@@ -359,6 +361,7 @@ export interface WizardFormData {
   permissionToSubmit?: boolean;
   accuracyConfirmed?: boolean;
   privacyConfirmed?: boolean;
+  customResponses?: Record<string, string | boolean>;
   [key: string]: unknown;
 }
 
@@ -414,6 +417,8 @@ export interface InnovatorApplication {
   requestedChanges: RequestedChangeItem[] | RequestedChangeItem | null;
   outcome?: ApplicationOutcome | null;
   outcomeData?: ApplicationOutcome | null;
+  awardData?: Record<string, unknown> | null;
+  awardedAt?: string | null;
   withdrawnReason?: string | null;
   receiptCode?: string | null;
   submittedDate?: string | null;
@@ -648,7 +653,8 @@ export function evaluateStepReadiness(
 
 export function evaluateApplicationReadiness(
   app: Pick<InnovatorApplication, "id" | "formData"> | null | undefined,
-  docs: InnovatorDocument[] = []
+  docs: InnovatorDocument[] = [],
+  formConfig?: Partial<ApplicationFormConfig> | Record<string, unknown> | null
 ) {
   const f = app?.formData || {};
   const appDocs = (docs || []).filter((d) => d.applicationId === app?.id && d.uploadStatus !== "Removed");
@@ -662,6 +668,13 @@ export function evaluateApplicationReadiness(
   if (!evaluateStepReadiness(4, f, appDocs)) blockers.push({ step: 4, label: "Proposed solution (20+ chars) & linked document" });
   if (!evaluateStepReadiness(8, f, appDocs)) blockers.push({ step: 8, label: "Implementation approach (10+ chars) & linked document" });
   if (!evaluateStepReadiness(12, f, appDocs)) blockers.push({ step: 12, label: "All three applicant declarations & consent checks" });
+
+  if (formConfig) {
+    const customCheck = validateCustomFormResponses(formConfig, f as Record<string, unknown>);
+    for (const item of customCheck.missingFields) {
+      blockers.push({ step: item.stepNumber, label: `Step ${item.stepNumber}: ${item.label}` });
+    }
+  }
 
   return {
     completedSections,
@@ -689,13 +702,14 @@ export function applicationRequiredAction(
         : "Submit clarification or extra evidence";
     }
     case "Submitted":
-      return "Submitted — awaiting CEDA triage";
+      return "Submitted, awaiting CEDA triage";
     case "In review":
       return "Under CEDA review";
     case "Completed":
     case "Approved":
+    case "Awarded":
     case "Rejected":
-      return "Outcome available — view letter";
+      return app.status === "Awarded" ? "Award conferred, view notice" : "Outcome available, view letter";
     case "Withdrawn":
       return "Withdrawn by applicant";
     default:
@@ -707,7 +721,7 @@ export function canWithdrawApplication(
   appOrStatus: Pick<InnovatorApplication, "status"> | string | null | undefined
 ): boolean {
   const status = typeof appOrStatus === "string" ? appOrStatus : appOrStatus?.status;
-  return ["Draft", "Submitted", "In review", "Changes requested"].includes(String(status ?? ""));
+  return ["Draft", "Submitted", "Changes requested"].includes(String(status ?? ""));
 }
 
 export function matchesStatusFilter(
@@ -715,7 +729,7 @@ export function matchesStatusFilter(
   filterValue: string | undefined
 ): boolean {
   if (!filterValue || filterValue === "All") return true;
-  if (filterValue === "Completed") return ["Completed", "Approved", "Rejected"].includes(String(status ?? ""));
+  if (filterValue === "Completed") return ["Completed", "Approved", "Awarded", "Rejected"].includes(String(status ?? ""));
   return status === filterValue;
 }
 
@@ -773,7 +787,7 @@ export function collectRequiredActions(
         priority: 1,
         applicationId: app.id,
         reference: app.reference,
-        title: `${app.reference} — ${app.title}`,
+        title: `${app.reference}: ${app.title}`,
         actionLabel: "Submit requested clarification",
         detail: req?.deadline ? `${sectionLabel} due by ${req.deadline}` : sectionLabel,
         buttonText: "Respond",
@@ -785,22 +799,25 @@ export function collectRequiredActions(
         priority: 2,
         applicationId: app.id,
         reference: app.reference,
-        title: `${app.reference} — ${app.title}`,
+        title: `${app.reference}: ${app.title}`,
         actionLabel: `Finish Step ${Number(app.currentStep || 1)} of 12`,
         detail: `${readiness.percentComplete}% ready (${readiness.completedSections.length}/12 steps ready to submit)`,
         buttonText: "Continue draft",
         targetMode: "wizard",
       });
-    } else if (app.status === "Approved" || app.status === "Rejected") {
+    } else if (app.status === "Approved" || app.status === "Awarded" || app.status === "Rejected") {
       const out = (app.outcomeData && Object.keys(app.outcomeData).length ? app.outcomeData : app.outcome) || {};
+      const isAward = app.status === "Awarded";
       actions.push({
         priority: 3,
         applicationId: app.id,
         reference: app.reference,
-        title: `${app.reference} — ${app.title}`,
-        actionLabel: `Outcome available: ${app.status}`,
-        detail: out.outcomeDate ? `Released ${out.outcomeDate}` : "View feedback and outcome letter",
-        buttonText: "View outcome",
+        title: `${app.reference}: ${app.title}`,
+        actionLabel: isAward ? "Award conferred" : `Outcome available: ${app.status}`,
+        detail: isAward
+          ? String(app.awardData?.awardTitle || (out.outcomeDate ? `Conferred ${out.outcomeDate}` : "View award notice and onboarding details"))
+          : (out.outcomeDate ? `Released ${out.outcomeDate}` : "View feedback and outcome letter"),
+        buttonText: isAward ? "View award" : "View outcome",
         targetMode: "summary",
       });
     }
@@ -845,6 +862,8 @@ export function collectRecentActivity(
 
 export function statusTone(status: string): { bg: string; border: string; text: string } {
   switch (status) {
+    case "Awarded":
+      return { bg: "rgba(180, 122, 24, 0.16)", border: "rgba(180, 122, 24, 0.36)", text: "#7C5317" };
     case "Approved":
     case "Completed":
     case "Resolved":
@@ -875,7 +894,7 @@ export function groupMessageThreads(messages: InnovatorMessage[] = []): Innovato
         applicationId: m.applicationId || null,
         applicationRef: m.applicationRef || null,
         threadType: m.threadType || "general",
-        title: m.applicationRef ? `${m.applicationRef} — ${m.subject}` : m.subject || "CEDA Support Desk",
+        title: m.applicationRef ? `${m.applicationRef}: ${m.subject}` : m.subject || "CEDA Support Desk",
         unread: false,
         unreadCount: 0,
         messages: [],
@@ -897,7 +916,7 @@ export function buildReceiptSummaryText(
 ): string {
   const appDocs = docs.filter((d) => d.applicationId === app.id && d.uploadStatus !== "Removed");
   const lines = [
-    "CEDA INNOVATION PORTAL — OFFICIAL SUBMISSION RECEIPT",
+    "CEDA INNOVATION PORTAL: OFFICIAL SUBMISSION RECEIPT",
     `Reference: ${app.reference}`,
     `Receipt code: ${app.receiptCode || "Recorded"}`,
     `Title: ${app.title}`,
@@ -918,20 +937,32 @@ export function buildReceiptSummaryText(
 
 export function buildOutcomeSummaryText(app: InnovatorApplication): string {
   const o = (app.outcomeData && Object.keys(app.outcomeData).length ? app.outcomeData : app.outcome) || {};
+  const award = (app as InnovatorApplication & { awardData?: Record<string, unknown> }).awardData || {};
   const rawSteps = o.recommendedNextSteps ?? o.nextSteps;
   const formattedSteps = Array.isArray(rawSteps)
     ? rawSteps.map((s, idx) => `${idx + 1}. ${s}`).join("\n")
     : rawSteps || "Contact CEDA Innovation Support if clarification or guidance is needed.";
   return [
-    "CEDA INNOVATION PORTAL — OFFICIAL OUTCOME NOTICE",
+    app.status === "Awarded"
+      ? "CEDA INNOVATION PORTAL: OFFICIAL INNOVATION AWARD NOTICE"
+      : "CEDA INNOVATION PORTAL: OFFICIAL OUTCOME NOTICE",
     `Reference: ${app.reference}`,
     `Title: ${app.title}`,
     `Applicant: ${app.applicant}`,
     `Final status: ${o.status || o.decision || app.status}`,
     `Outcome date: ${o.outcomeDate || o.releasedAt || app.updatedAt}`,
+    ...(app.status === "Awarded"
+      ? [
+          "",
+          `Award title: ${String(award.awardTitle || `CEDA Innovation Award: ${app.title}`)}`,
+          `Award category: ${String(award.awardCategory || "Innovation Recognition & Support")}`,
+          ...(award.awardAmount ? [`Award package: ${String(award.awardAmount)}`] : []),
+          `Conferred at: ${String(award.conferredAt || app.updatedAt)}`,
+        ]
+      : []),
     "",
     "Approved feedback:",
-    o.applicantFeedback || o.feedback || o.summary || "Formal feedback has been issued on your application workspace.",
+    o.applicantFeedback || o.feedback || o.summary || String(award.awardSummary || "Formal feedback has been issued on your application workspace."),
     "",
     "Recommended next steps:",
     formattedSteps,

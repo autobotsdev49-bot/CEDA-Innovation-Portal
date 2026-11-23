@@ -152,7 +152,7 @@ test("sign-in uses the password grant and requires an active confirmed Innovator
     assert.equal(url.searchParams.get("id"), "eq.test-id");
     return Response.json([{ account_role: "innovator", account_status: status }]);
   });
-  assert.deepEqual(await signIn(), { status: "signed-in", token });
+  assert.deepEqual(await signIn(), { status: "signed-in", token, profile: { account_role: "innovator", account_status: "active", email } });
   assert.deepEqual(await signIn("suspended"), { status: "no-access" });
   assert.deepEqual(await signIn("active", false), { status: "no-access" });
 });

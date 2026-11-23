@@ -1,6 +1,6 @@
 import { buttonCornerRadius, fontSizes } from "./theme";
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from "react";
-import { ActivityIndicator, BackHandler, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from "react-native";
+import { ActivityIndicator, BackHandler, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FrostedModalBackdrop, FrostedScreenBackdrop, FrostedSurface } from "./FrostedGlass";
 import { AdminOverview, InsightCard, MobileIcon, PreviewLabel, type InsightScreen, type MobileIconName } from "./AdminOverview";
@@ -8,31 +8,62 @@ import { AdminInnovations } from "./AdminInnovations";
 import { AdminUserEditor } from "./AdminUserEditor";
 import { AdminUsers } from "./AdminUsers";
 import { AdminInsights } from "./AdminInsights";
-import { previewMatters, type ReportingPeriod } from "./adminPreview";
-import { portalUrl, readAdminApplications, readAdminRecords, type Account, type AdminApplication, type AdminSector, type AdminUser } from "./auth";
+import { AdminContentScreen, AdminCriteriaScreen, AdminPoliciesScreen, AdminSecurityPanel } from "./AdminGovernanceScreens";
+import { AdminCaseDetailModalContent, AdminMatterDetailModalContent, AdminNotificationsModalContent, AdminSectorEditorModalContent } from "./AdminDetailSheets";
+import { previewApplications, previewMatters, type ReportingPeriod } from "./adminPreview";
+import { buildReportExport, buildReportingSummaryFromRecords } from "./reportingOverview.js";
+import {
+  logAdminReportExport,
+  portalUrl,
+  readAdminApplications,
+  readAdminAssessmentCriteria,
+  readAdminAuditFeed,
+  readAdminConfigurations,
+  readAdminContent,
+  readAdminMatters,
+  readAdminNotifications,
+  readAdminRecords,
+  readAdminReportingSummary,
+  saveAdminConfiguration,
+  type Account,
+  type AdminApplication,
+  type AdminAuditEntry,
+  type AdminConfigurations,
+  type AdminContentItem,
+  type AdminMatter,
+  type AdminNotificationsOverview,
+  type AdminOptimusOverview,
+  type AdminReportingSummary,
+  type AdminSector,
+  type AdminUser,
+  type AssessmentRubricConfig,
+} from "./auth";
 
 const colors = { navy: "#192C40", rust: "#9A3D2B", teal: "#278477", blue: "#28599B", muted: "#66717E", subtle: "#7C8590", line: "#E5DDD3", canvas: "#F7F2EB" };
 const tabs = ["Overview", "Users", "Innovations", "Follow-ups", "More"] as const;
-const extras = ["Sectors", "Support", "Optimus Prime", "Feedback & insights", "Audit logs", "Account security", "Portal analytics", "Website health", "Activity log"] as const;
+const extras = ["Sectors", "Support", "Optimus Prime", "Content management", "Evaluation criteria", "Portal analytics", "Website health", "Feedback & insights", "Activity log", "Audit logs", "Account security", "Portal policies"] as const;
 type Screen = typeof tabs[number] | typeof extras[number];
 type ExtraScreen = typeof extras[number];
 
 const extraMeta: Record<ExtraScreen, { icon: MobileIconName; color: string; tint: string; badge: string; category: string; detail: string; summary: string }> = {
-  Sectors: { icon: "sector", color: "#236D61", tint: "#E4F4F0", badge: "Directory", category: "OPERATIONS & DIRECTORY", detail: "Sector directory and application breakdown", summary: "Protected sector directory · application counts await the submission API." },
-  Support: { icon: "support", color: "#28599B", tint: "#EAF1FC", badge: "Handoffs", category: "OPERATIONS & DIRECTORY", detail: "Human handoffs and conversations", summary: "Human escalation rules, support inbox readiness and role boundaries." },
-  "Optimus Prime": { icon: "ai", color: "#695198", tint: "#F0ECFB", badge: "98.6% reply", category: "OPERATIONS & DIRECTORY", detail: "AI performance and guidance drafts", summary: "Monitor assistant latency and prepare in-memory response guidance drafts." },
-  "Portal analytics": { icon: "traffic", color: "#417AC5", tint: "#EAF1FC", badge: "Traffic", category: "INSIGHTS & MONITORING", detail: "Audience, devices and popular pages", summary: "Illustrative portal traffic, device distribution and page popularity." },
-  "Website health": { icon: "pulse", color: "#278477", tint: "#E4F4F0", badge: "2.1s load", category: "INSIGHTS & MONITORING", detail: "Loading speed, responsiveness and errors", summary: "Core loading speed, responsiveness and stability snapshots." },
-  "Feedback & insights": { icon: "feedback", color: "#94702D", tint: "#FCF4E4", badge: "Service", category: "INSIGHTS & MONITORING", detail: "Feedback trends and service insights", summary: "Service quality dimensions and applicant feedback readiness." },
-  "Activity log": { icon: "clock", color: "#28599B", tint: "#EAF1FC", badge: "Events", category: "GOVERNANCE & SECURITY", detail: "Who did what, and when", summary: "Chronological operational activity across portal roles." },
+  Sectors: { icon: "sector", color: "#236D61", tint: "#E4F4F0", badge: "Directory", category: "OPERATIONS & DIRECTORY", detail: "Sector directory and application breakdown", summary: "Protected sector directory · application counts reflect live database totals." },
+  Support: { icon: "support", color: "#28599B", tint: "#EAF1FC", badge: "Handoffs", category: "OPERATIONS & DIRECTORY", detail: "Human handoffs and support matters", summary: "Escalated support requests, follow-ups and strict role boundaries." },
+  "Optimus Prime": { icon: "ai", color: "#695198", tint: "#F0ECFB", badge: "Live DB", category: "OPERATIONS & DIRECTORY", detail: "AI metrics, guidance and knowledge config", summary: "Live interaction logs and persisted guidance for the Innovator assistant." },
+  "Content management": { icon: "application", color: "#236D61", tint: "#E4F4F0", badge: "CMS", category: "OPERATIONS & DIRECTORY", detail: "Public pages, FAQs, notices and partners", summary: "Edit and publish portal guidance with version history in PostgreSQL." },
+  "Portal analytics": { icon: "traffic", color: "#417AC5", tint: "#EAF1FC", badge: "Live CSV", category: "INSIGHTS & MONITORING", detail: "Live traffic, turnaround SLAs & exports", summary: "Real-time portal views, participation metrics, turnaround SLAs and audited CSV/brief exports." },
+  "Website health": { icon: "pulse", color: "#278477", tint: "#E4F4F0", badge: "Telemetry", category: "INSIGHTS & MONITORING", detail: "Core Web Vitals, TTFB & delivery health", summary: "Live Core Web Vitals, request failures, notification queue and Optimus telemetry." },
+  "Feedback & insights": { icon: "feedback", color: "#94702D", tint: "#FCF4E4", badge: "Feedback", category: "INSIGHTS & MONITORING", detail: "User feedback and Optimus ratings", summary: "Tracked applicant feedback matters and Optimus helpfulness signals." },
+  "Activity log": { icon: "clock", color: "#28599B", tint: "#EAF1FC", badge: "Events", category: "GOVERNANCE & SECURITY", detail: "Who did what, and when", summary: "Chronological activity across live audit events and portal preview." },
   "Audit logs": { icon: "audit", color: "#903925", tint: "#FBEDE8", badge: "Protected", category: "GOVERNANCE & SECURITY", detail: "Privileged changes and event history", summary: "Server-recorded privileged mutations and mandatory audit reasons." },
-  "Account security": { icon: "shield", color: "#236D61", tint: "#E4F4F0", badge: "MFA", category: "GOVERNANCE & SECURITY", detail: "Authenticator and session controls", summary: "In-memory session protection and AAL2 authenticator verification." },
+  "Account security": { icon: "shield", color: "#236D61", tint: "#E4F4F0", badge: "MFA", category: "GOVERNANCE & SECURITY", detail: "Authenticator, password & session controls", summary: "TOTP authenticator setup, password updates and in-memory session protection." },
+  "Evaluation criteria": { icon: "check", color: "#278477", tint: "#E4F4F0", badge: "Rubric", category: "GOVERNANCE & SECURITY", detail: "Configurable criteria, weights & pass mark", summary: "Define active assessment criteria summing to 100% with versioned round snapshots." },
+  "Portal policies": { icon: "check", color: "#94702D", tint: "#FCF4E4", badge: "Rules", category: "GOVERNANCE & SECURITY", detail: "Submission, evidence and assessment rules", summary: "Configure baseline evidence thresholds and portal governance rules." },
 };
 
 const moreSections: { title: string; items: ExtraScreen[] }[] = [
-  { title: "OPERATIONS & DIRECTORY", items: ["Sectors", "Support", "Optimus Prime"] },
+  { title: "OPERATIONS & DIRECTORY", items: ["Sectors", "Support", "Optimus Prime", "Content management"] },
   { title: "INSIGHTS & MONITORING", items: ["Portal analytics", "Website health", "Feedback & insights"] },
-  { title: "GOVERNANCE & SECURITY", items: ["Activity log", "Audit logs", "Account security"] },
+  { title: "GOVERNANCE & SECURITY", items: ["Evaluation criteria", "Activity log", "Audit logs", "Account security", "Portal policies"] },
 ];
 
 const sectorStatuses = [
@@ -43,13 +74,21 @@ const sectorStatuses = [
 ];
 
 const badgeColors: Record<string, [string, string]> = {
-  admin: ["#FBEDE8", "#903925"], innovator: ["#EAF1FC", "#28599B"], assessor: ["#F0ECFB", "#695198"], support: ["#E4F4F0", "#236D61"],
-  Lead: ["#FFF3D8", "#795B17"], active: ["#E4F4F0", "#236D61"], Approved: ["#E4F4F0", "#236D61"], published: ["#E4F4F0", "#236D61"],
+  admin: ["#FBEDE8", "#903925"], innovator: ["#EAF1FC", "#28599B"], assessor: ["#F0ECFB", "#695198"], support: ["#E4F4F0", "#236D61"], committee: ["#E8F1FB", "#245385"],
+  Lead: ["#FFF3D8", "#795B17"], active: ["#E4F4F0", "#236D61"], Approved: ["#E4F4F0", "#236D61"], Awarded: ["#FFF3D8", "#7C5317"], published: ["#E4F4F0", "#236D61"],
   draft: ["#FCF4E4", "#94702D"], archived: ["#FBEDE8", "#903925"],
   "In review": ["#FFF3D8", "#795B17"], Rejected: ["#FBEDE8", "#903925"], Submitted: ["#EAF1FC", "#28599B"],
 };
 type SampleCase = AdminApplication;
-type Sheet = { title: string; eyebrow?: string; kind: "notifications" | "insight" | "sector" | "case" | "guidance" | "knowledge" | "review"; sector?: AdminSector; item?: SampleCase; facts?: [string, string][] };
+type Sheet = {
+  title: string;
+  eyebrow?: string;
+  kind: "notifications" | "insight" | "sector" | "case" | "matter" | "sectorEditor" | "guidance" | "knowledge" | "review";
+  sector?: AdminSector;
+  item?: SampleCase;
+  matter?: AdminMatter;
+  facts?: [string, string][];
+};
 
 function Button({ title, onPress, secondary = false, disabled = false }: { title: string; onPress: () => void; secondary?: boolean; disabled?: boolean }) {
   return <Pressable accessibilityRole="button" accessibilityState={{ disabled }} disabled={disabled} onPress={onPress} style={({ pressed }) => [s.button, secondary && s.secondary, (disabled || pressed) && { opacity: 0.6 }]}><Text style={[s.buttonText, secondary && { color: colors.navy }]}>{title}</Text></Pressable>;
@@ -125,18 +164,38 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
   const [page, setPage] = useState(0);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [sectors, setSectors] = useState<AdminSector[]>([]);
-  const [cases, setCases] = useState<AdminApplication[]>([]);
+  const [liveCases, setLiveCases] = useState<AdminApplication[]>([]);
+  const [liveCasesLoaded, setLiveCasesLoaded] = useState(false);
+  const cases: AdminApplication[] = liveCasesLoaded
+    ? liveCases
+    : [...liveCases, ...previewApplications.filter(item => !liveCases.some(record => record.id === item.id))];
+  const [liveMatters, setLiveMatters] = useState<AdminMatter[]>([]);
+  const [mattersLoaded, setMattersLoaded] = useState(false);
+  const activeMatters: AdminMatter[] = mattersLoaded ? liveMatters : previewMatters.map(m => ({ ...m, reported: "" }));
+  const [liveAudit, setLiveAudit] = useState<AdminAuditEntry[]>([]);
+  const [auditQuery, setAuditQuery] = useState("");
+  const [auditPage, setAuditPage] = useState(0);
+  const [auditLoading, setAuditLoading] = useState(false);
+  const [notificationsOverview, setNotificationsOverview] = useState<AdminNotificationsOverview>({ templates: [], inbox: [] });
+  const [configs, setConfigs] = useState<AdminConfigurations>({});
+  const [criteriaConfig, setCriteriaConfig] = useState<AssessmentRubricConfig | null>(null);
+  const [optimusOverview, setOptimusOverview] = useState<AdminOptimusOverview | null>(null);
+  const [reportingSummary, setReportingSummary] = useState<AdminReportingSummary | null>(null);
+  const [contentItems, setContentItems] = useState<AdminContentItem[]>([]);
+  const [contentLoading, setContentLoading] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
   const [linkError, setLinkError] = useState("");
   const [draftNotice, setDraftNotice] = useState("");
+  const [configReason, setConfigReason] = useState("");
+  const [savingConfig, setSavingConfig] = useState(false);
   const [draft, setDraft] = useState({ tone: "Clear and professional", length: "Balanced", instructions: "", handoff: "", source: "", notes: "", questions: "" });
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const insets = useSafeAreaInsets();
   const nested = extras.includes(screen as ExtraScreen);
   const activeMeta = nested ? extraMeta[screen as ExtraScreen] : null;
-  const openAlertsCount = previewMatters.filter(item => item.state !== "Resolved").length;
+  const openAlertsCount = activeMatters.filter(item => item.state !== "Resolved").length;
   const sessionExpiry = new Intl.DateTimeFormat("en-GB", { hour: "2-digit", minute: "2-digit", timeZone: "Africa/Gaborone" }).format(new Date(account.expiresAt)) + " CAT";
   const adminInitials = (account.name || "Admin").trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
 
@@ -161,14 +220,115 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
   });
 
   useEffect(() => {
-    if (screen !== "Innovations") return;
     let active = true;
-    setLoading(true); setError("");
-    void readAdminApplications(account).then(records => { if (active) setCases(records); })
-      .catch((reason: unknown) => { if (active) { setCases([]); setError(reason instanceof Error ? reason.message : "Unable to load applications."); } })
-      .finally(() => { if (active) setLoading(false); });
+    const isInnovations = screen === "Innovations";
+    if (isInnovations) {
+      setLoading(true);
+      setError("");
+    }
+    void Promise.allSettled([
+      readAdminApplications(account),
+      readAdminMatters(account),
+      readAdminNotifications(account),
+      readAdminConfigurations(account),
+      readAdminRecords(account, "sectors"),
+    ]).then(([appsRes, mattersRes, notifRes, cfgRes, sectorsRes]) => {
+      if (!active) return;
+      if (appsRes.status === "fulfilled") {
+        setLiveCases(appsRes.value);
+        setLiveCasesLoaded(true);
+      } else if (isInnovations) {
+        setError(appsRes.reason instanceof Error ? appsRes.reason.message : "Unable to load applications.");
+      }
+      if (mattersRes.status === "fulfilled") {
+        setLiveMatters(mattersRes.value);
+        setMattersLoaded(true);
+      }
+      if (notifRes.status === "fulfilled") {
+        setNotificationsOverview(notifRes.value);
+      }
+      if (cfgRes.status === "fulfilled") {
+        setConfigs(cfgRes.value.configs);
+        setOptimusOverview(cfgRes.value.optimusOverview);
+        const guidance = (cfgRes.value.configs.optimus_guidance?.payload ?? {}) as Record<string, string>;
+        const knowledge = (cfgRes.value.configs.optimus_knowledge?.payload ?? {}) as Record<string, string>;
+        setDraft(prev => ({ ...prev, ...guidance, ...knowledge }));
+      }
+      if (sectorsRes.status === "fulfilled") {
+        setSectors(sectorsRes.value as AdminSector[]);
+      }
+    }).finally(() => {
+      if (active && isInnovations) setLoading(false);
+    });
     return () => { active = false; };
   }, [screen, attempt, account]);
+
+  useEffect(() => {
+    let active = true;
+    void readAdminReportingSummary(account, period)
+      .then((res) => {
+        if (active) setReportingSummary(res);
+      })
+      .catch(() => {
+        // Fallback derives from live records without blocking UI
+      });
+    return () => { active = false; };
+  }, [account, period, attempt]);
+
+  async function handleExportReport(reportKey: string, format: "csv" | "share") {
+    const activeSummary = reportingSummary?.loaded
+      ? reportingSummary
+      : buildReportingSummaryFromRecords({
+          periodDays: period,
+          applications: liveCases,
+          matters: liveMatters,
+          optimus: optimusOverview,
+        });
+    const exp = buildReportExport(reportKey, activeSummary);
+    try {
+      await Share.share({
+        title: exp.title,
+        message: format === "csv" ? exp.csv : `${exp.title}\nWindow: ${activeSummary.windowStart} to ${activeSummary.windowEnd}\n\n${exp.csv}`,
+      });
+      await logAdminReportExport(account, reportKey, format, period).catch(() => undefined);
+    } catch (err) {
+      setLinkError(err instanceof Error ? err.message : "Could not share exported report.");
+    }
+  }
+
+  useEffect(() => {
+    if (screen !== "Content management" && screen !== "Portal policies" && screen !== "Evaluation criteria") return;
+    let active = true;
+    setContentLoading(true);
+    void Promise.allSettled([
+      screen === "Content management" ? readAdminContent(account) : Promise.resolve(null),
+      readAdminConfigurations(account),
+      screen === "Evaluation criteria" ? readAdminAssessmentCriteria(account) : Promise.resolve(null),
+    ]).then(([contentRes, cfgRes, criteriaRes]) => {
+      if (!active) return;
+      if (contentRes.status === "fulfilled" && contentRes.value) {
+        setContentItems(contentRes.value);
+      }
+      if (cfgRes.status === "fulfilled") {
+        setConfigs(cfgRes.value.configs);
+      }
+      if (criteriaRes.status === "fulfilled" && criteriaRes.value) {
+        setCriteriaConfig(criteriaRes.value);
+      }
+    }).finally(() => { if (active) setContentLoading(false); });
+    return () => { active = false; };
+  }, [screen, attempt, account]);
+
+  useEffect(() => {
+    if (screen !== "Overview" && screen !== "Activity log" && screen !== "Audit logs") return;
+    let active = true;
+    setAuditLoading(true);
+    void readAdminAuditFeed(account, screen === "Audit logs" ? auditQuery : "", screen === "Audit logs" ? auditPage : 0)
+      .then(entries => { if (active) setLiveAudit(entries); })
+      .catch(() => undefined)
+      .finally(() => { if (active) setAuditLoading(false); });
+    return () => { active = false; };
+  }, [screen, auditQuery, auditPage, attempt, account]);
 
   useEffect(() => {
     if (screen !== "Users" && screen !== "Sectors") return;
@@ -292,15 +452,15 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
       )}
 
       {!!linkError && <Text accessibilityRole="alert" style={s.error}>{linkError}</Text>}
-      {screen === "Overview" && <AdminOverview period={period} onPeriodChange={setPeriod} onNavigate={next => navigate(next, "Overview")} />}
-      {(["Portal analytics", "Website health", "Follow-ups", "Activity log"] as string[]).includes(screen) && <AdminInsights key={screen} screen={screen as InsightScreen} period={period} onPeriodChange={setPeriod} inspect={(title, facts) => setSheet({ title, eyebrow: screen.toUpperCase(), kind: "insight", facts })} />}
+      {screen === "Overview" && <AdminOverview period={period} onPeriodChange={setPeriod} onNavigate={next => navigate(next, "Overview")} liveApplications={liveCases} liveMatters={liveMatters} liveAudit={liveAudit} liveOptimus={optimusOverview} reportingSummary={reportingSummary} onExportExecutive={() => void handleExportReport("executive", "csv")} />}
+      {(["Portal analytics", "Website health", "Follow-ups", "Activity log"] as string[]).includes(screen) && <AdminInsights key={screen} screen={screen as InsightScreen} period={period} onPeriodChange={setPeriod} inspect={(title, facts) => setSheet({ title, eyebrow: screen.toUpperCase(), kind: "insight", facts })} liveMatters={liveMatters} liveAudit={liveAudit} reportingSummary={reportingSummary} onExportReport={(reportKey, format) => void handleExportReport(reportKey, format)} onOpenMatter={matter => setSheet({ title: matter.id, eyebrow: `${matter.kind.toUpperCase()} · ${matter.state.toUpperCase()}`, kind: "matter", matter })} />}
       {screen === "Users" && <AdminUsers
         users={users} query={query} onQueryChange={setQuery} role={role} onRoleChange={setRole} status={status} onStatusChange={setStatus}
         loading={loading || query.trim() !== search} error={!!error} page={page}
         onPageChange={next => { setLoading(true); setUsers([]); setPage(next); }}
         onOpenUser={user => { setUserNotice(""); setUserEditor(user); }} onCreate={() => { setUserNotice(""); setUserEditor("create"); }} notice={userNotice}
       />}
-      {screen === "Innovations" && <>{loading && <ActivityIndicator />}{!!error && <Pressable onPress={() => setAttempt(value => value + 1)}><Text>{error} Tap to retry.</Text></Pressable>}<AdminInnovations items={cases} query={query} onQueryChange={setQuery} status={status} onStatusChange={setStatus} onOpen={item => setSheet({ title: "Innovation details", eyebrow: item.id, kind: "case", item })} /></>}
+      {screen === "Innovations" && <>{loading && <ActivityIndicator />}{!!error && <Pressable onPress={() => setAttempt(value => value + 1)}><Text>{error} Tap to retry.</Text></Pressable>}<AdminInnovations items={cases} isLive={liveCasesLoaded} query={query} onQueryChange={setQuery} status={status} onStatusChange={setStatus} onOpen={item => setSheet({ title: "Innovation details", eyebrow: item.id, kind: "case", item })} /></>}
 
       {screen === "More" && <>
         <View style={s.profileCard}>
@@ -391,8 +551,9 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
             { label: "Total sectors", value: String(sectors.length), caption: "Protected directory", icon: "sector", color: colors.teal },
             { label: "Published", value: String(publishedSectors), caption: "Open to innovators", icon: "check", color: "#236D61" },
             { label: "Draft / archived", value: String(otherSectors), caption: "Non-public statuses", icon: "audit", color: "#94702D" },
-            { label: "Applications", value: "—", caption: "Awaiting submission API", icon: "application", color: colors.blue },
+            { label: "Applications", value: String(sectors.reduce((sum, sec) => sum + (sec.applications_count ?? 0), 0)), caption: "Across all sectors", icon: "application", color: colors.blue },
           ]} />
+          <Button title="+ Add new sector" onPress={() => setSheet({ title: "Add new sector", eyebrow: "SECTOR MANAGEMENT", kind: "sectorEditor", sector: undefined })} />
           <GlassCard>
             <View style={s.cardHeaderRow}>
               <Heading>Sector directory</Heading>
@@ -400,10 +561,15 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
             </View>
             {visibleSectors.length ? visibleSectors.map((sector, index) => {
               const appearance = sectorStatuses.find(item => item.value === sector.status) ?? sectorStatuses[0];
+              const totalApps = sector.applications_count ?? 0;
+              const approvedApps = sector.approved_count ?? 0;
+              const awardedApps = sector.awarded_count ?? 0;
+              const reviewApps = sector.in_review_count ?? 0;
+              const rejectedApps = sector.rejected_count ?? 0;
               return <IconRow
                 key={sector.id}
                 title={sector.name}
-                detail="Applications — · Approved — · In review — · Rejected —"
+                detail={`Applications ${totalApps} · Approved ${approvedApps}${awardedApps ? ` · Awarded ${awardedApps}` : ""} · In review ${reviewApps} · Rejected ${rejectedApps}`}
                 icon="sector"
                 color={appearance.color}
                 tint={appearance.tint}
@@ -419,20 +585,22 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
       </>}
 
       {screen === "Optimus Prime" && <>
-        <PreviewLabel />
         <MetricTiles entries={[
-          { label: "Successful responses", value: "98.6%", caption: "7-day sample completion", icon: "ai", color: "#695198" },
-          { label: "Average response", value: "1.8s", caption: "Sample reply latency", icon: "clock", color: colors.teal },
-          { label: "Human handoff", value: "Active", caption: "Escalation triggers ready", icon: "support", color: colors.blue },
-          { label: "Session drafts", value: Object.values(draft).some(v => v.trim() && v !== "Clear and professional" && v !== "Balanced") ? "Edited" : "Default", caption: "In-memory configuration", icon: "application", color: colors.rust },
+          { label: "Total interactions", value: String(optimusOverview?.totalInteractions ?? 0), caption: "Logged in PostgreSQL", icon: "ai", color: "#695198" },
+          { label: "Helpful ratings", value: String(optimusOverview?.helpfulCount ?? 0), caption: "Applicant feedback", icon: "check", color: colors.teal },
+          { label: "Support escalations", value: String(optimusOverview?.escalatedCount ?? 0), caption: "Handed off to support", icon: "support", color: colors.blue },
+          { label: "Saved guidance", value: configs.optimus_guidance?.version ? `v${configs.optimus_guidance.version}` : "Default", caption: "Persisted in PostgreSQL", icon: "application", color: colors.rust },
         ]} />
-        <InsightCard title="Response time · sample week">
-          <Note>Sample latency in seconds · successful responses do not measure answer accuracy.</Note>
-          <Bars values={[2100, 1800, 2000, 1600, 1800, 1500, 1800]} labels={["M", "T", "W", "Th", "F", "Sa", "Su"]} color={colors.teal} />
+        <InsightCard title="Top innovator topics">
+          {(optimusOverview?.topics?.length ?? 0) > 0
+            ? optimusOverview?.topics.slice(0, 5).map((entry, idx, arr) => (
+                <Fact key={entry.topic} label={entry.topic || "General"} value={`${entry.count} questions`} last={idx === arr.length - 1} />
+              ))
+            : <Note>Topic analytics appear as applicants ask Optimus Prime questions.</Note>}
         </InsightCard>
         <GlassCard>
-          <Heading>Assistant workspace</Heading>
-          <Note>Prepare response instructions and approved knowledge notes in this session before integration.</Note>
+          <Heading>Live guidance &amp; knowledge settings</Heading>
+          <Note>Guidance and reviewed knowledge notes save directly to PostgreSQL and apply immediately to Innovator portal replies.</Note>
           <IconRow
             title="Response guidance"
             detail="Tone, answer length, instructions and escalation triggers"
@@ -440,108 +608,178 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
             color="#695198"
             tint="#F0ECFB"
             badge={draft.tone}
-            onPress={() => setSheet({ title: "Response guidance draft", eyebrow: "OPTIMUS PRIME", kind: "guidance" })}
+            onPress={() => { setDraftNotice(""); setConfigReason(""); setSheet({ title: "Response guidance config", eyebrow: "OPTIMUS PRIME", kind: "guidance" }); }}
           />
           <IconRow
-            title="Knowledge & training preparation"
+            title="Knowledge & training notes"
             detail="Approved sources, reviewed notes and example questions"
             icon="application"
             color={colors.blue}
             tint="#EAF1FC"
-            badge="Sources"
-            onPress={() => setSheet({ title: "Knowledge draft", eyebrow: "OPTIMUS PRIME", kind: "knowledge" })}
+            badge={configs.optimus_knowledge?.version ? `v${configs.optimus_knowledge.version}` : "Configure"}
+            onPress={() => { setDraftNotice(""); setConfigReason(""); setSheet({ title: "Knowledge config", eyebrow: "OPTIMUS PRIME", kind: "knowledge" }); }}
           />
           <IconRow
-            title="Review draft"
-            detail="Inspect your in-memory changes before integration"
+            title="Inspect saved configuration"
+            detail="Review current tone, instructions and knowledge values"
             icon="check"
             color="#236D61"
             tint="#E4F4F0"
             badge="Inspect"
             last
-            onPress={() => setSheet({ title: "Review AI draft", eyebrow: "OPTIMUS PRIME", kind: "review" })}
+            onPress={() => setSheet({ title: "Saved Optimus configuration", eyebrow: "OPTIMUS PRIME", kind: "review" })}
           />
         </GlassCard>
-        <Note>Drafts stay in memory until sign-out or app close. Publishing, model training and knowledge ingestion are not connected.</Note>
       </>}
+
+      {screen === "Content management" && (
+        <AdminContentScreen
+          account={account}
+          items={contentItems}
+          loading={contentLoading}
+          onUpdated={items => setContentItems(items)}
+          configs={configs}
+          onConfigsUpdated={next => setConfigs(next)}
+        />
+      )}
+
+      {screen === "Evaluation criteria" && (
+        <AdminCriteriaScreen
+          account={account}
+          config={criteriaConfig}
+          loading={contentLoading}
+          onUpdated={next => setCriteriaConfig(next)}
+        />
+      )}
+
+      {screen === "Portal policies" && (
+        <AdminPoliciesScreen
+          account={account}
+          configs={configs}
+          onConfigsUpdated={next => setConfigs(next)}
+          onOpenCriteria={() => navigate("Evaluation criteria")}
+        />
+      )}
 
       {screen === "Support" && <>
         <MetricTiles entries={[
-          { label: "Support inbox", value: "Standby", caption: "Awaits protected API", icon: "support", color: colors.blue },
+          { label: "Support queue", value: String(activeMatters.filter(m => m.kind === "Support" || m.kind === "Bug").length), caption: mattersLoaded ? "Live reported matters" : "Sample matters", icon: "support", color: colors.blue },
           { label: "Handoff mode", value: "Human", caption: "Sensitive enquiries escalate", icon: "people", color: colors.teal },
           { label: "Role boundary", value: "Strict", caption: "No assessment powers", icon: "shield", color: "#236D61" },
-          { label: "Support follow-ups", value: "1 open", caption: "Tracked in Follow-ups", icon: "alert", color: colors.rust },
+          { label: "Open support items", value: String(activeMatters.filter(m => m.state !== "Resolved").length), caption: "Open / Investigating / Waiting", icon: "alert", color: colors.rust },
         ]} />
         <GlassCard>
-          <View style={s.statusBanner}>
-            <View style={[s.subscreenIcon, { backgroundColor: "#EAF1FC" }]}><MobileIcon name="support" color={colors.blue} /></View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Heading>Support inbox unavailable</Heading>
-              <Badge value="Submitted" label="Awaiting live support API" />
-            </View>
-          </View>
-          <Note>Escalated conversations, unread messages and response timers will appear when the protected support API is connected. No live conversations are loaded.</Note>
+          <Heading>Live support &amp; delivery queue</Heading>
+          {activeMatters.filter(m => m.kind === "Support" || m.kind === "Bug" || m.kind === "Delivery").slice(0, 6).map((item, idx, arr) => (
+            <IconRow
+              key={item.id}
+              title={`${item.id} · ${item.title}`}
+              detail={`${item.kind} · ${item.reporter} · Owner: ${item.owner} · ${item.state}`}
+              icon="support"
+              color={item.priority === "High" ? colors.rust : colors.blue}
+              tint={item.priority === "High" ? "#FBEDE8" : "#EAF1FC"}
+              badge={item.state}
+              last={idx === arr.length - 1}
+              onPress={() => setSheet({ title: item.id, eyebrow: `${item.kind.toUpperCase()} · ${item.state.toUpperCase()}`, kind: "matter", matter: item })}
+            />
+          ))}
+          {activeMatters.length === 0 && <Note>No escalated support matters are queued right now.</Note>}
+          <Button title="Open full Follow-ups queue" onPress={() => navigate("Follow-ups")} secondary />
         </GlassCard>
         <GlassCard>
-          <Heading>Human handoff & governance</Heading>
+          <Heading>Human handoff &amp; governance</Heading>
           <IconRow title="Mandatory escalation" detail="Optimus Prime must escalate unresolved, ambiguous or sensitive questions to authorized support staff." icon="ai" color="#695198" tint="#F0ECFB" />
           <IconRow title="Consented context only" detail="Only approved field context and applicant-consented messages pass into support handoffs." icon="check" color="#236D61" tint="#E4F4F0" />
           <IconRow title="Strict role separation" detail="Support access does not grant assessment scoring, voting or decision release powers." icon="shield" color={colors.rust} tint="#FBEDE8" last />
-        </GlassCard>
-        <GlassCard>
-          <Heading>Escalated support matters</Heading>
-          <Note>Review reported support issues and email verification escalations in Follow-ups.</Note>
-          <Button title="Open Follow-ups queue" onPress={() => navigate("Follow-ups")} secondary />
         </GlassCard>
       </>}
 
       {screen === "Feedback & insights" && <>
         <MetricTiles entries={[
-          { label: "Satisfaction", value: "—", caption: "Awaiting feedback API", icon: "feedback", color: "#94702D" },
-          { label: "Responses", value: "—", caption: "No live survey records", icon: "people", color: colors.blue },
-          { label: "Service pillars", value: "3", caption: "Tracked dimensions", icon: "check", color: colors.teal },
-          { label: "Portal health", value: "2.1s", caption: "Sample load benchmark", icon: "pulse", color: "#236D61" },
+          { label: "Feedback matters", value: String(activeMatters.filter(m => m.kind === "Feedback").length), caption: "Submitted via portal", icon: "feedback", color: "#94702D" },
+          { label: "Helpful ratings", value: String(optimusOverview?.helpfulCount ?? 0), caption: "Optimus helpful responses", icon: "check", color: colors.teal },
+          { label: "Unhelpful ratings", value: String(optimusOverview?.unhelpfulCount ?? 0), caption: "Needs guidance review", icon: "alert", color: colors.rust },
+          { label: "Total AI queries", value: String(optimusOverview?.totalInteractions ?? 0), caption: "Logged interactions", icon: "ai", color: colors.blue },
         ]} />
         <GlassCard>
-          <View style={s.statusBanner}>
-            <View style={[s.subscreenIcon, { backgroundColor: "#FCF4E4" }]}><MobileIcon name="feedback" color="#94702D" /></View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Heading>Insights await real feedback</Heading>
-              <Badge value="In review" label="Collection API not connected" />
-            </View>
-          </View>
-          <Note>Satisfaction, common questions and service trends require a connected feedback collection and reporting API.</Note>
+          <Heading>Applicant feedback items</Heading>
+          {activeMatters.filter(m => m.kind === "Feedback").length ? activeMatters.filter(m => m.kind === "Feedback").map((item, idx, arr) => (
+            <IconRow
+              key={item.id}
+              title={item.title}
+              detail={`${item.reporter} · ${item.state} · ${item.detail}`}
+              icon="feedback"
+              color="#94702D"
+              tint="#FCF4E4"
+              badge={item.state}
+              last={idx === arr.length - 1}
+              onPress={() => setSheet({ title: item.id, eyebrow: `FEEDBACK · ${item.state.toUpperCase()}`, kind: "matter", matter: item })}
+            />
+          )) : <Note>No applicant feedback matters logged yet.</Note>}
         </GlassCard>
         <GlassCard>
           <Heading>Tracked service dimensions</Heading>
-          <IconRow title="Application guidance clarity" detail="Measures how clearly innovators understand eligibility and evidence requirements." icon="application" color={colors.blue} tint="#EAF1FC" badge="— / 5" />
-          <IconRow title="Assistant & support helpfulness" detail="Tracks resolution quality across Optimus Prime guidance and human handoffs." icon="ai" color="#695198" tint="#F0ECFB" badge="— / 5" />
+          <IconRow title="Application guidance clarity" detail="Measures how clearly innovators understand eligibility and evidence requirements." icon="application" color={colors.blue} tint="#EAF1FC" badge="Active" />
+          <IconRow title="Assistant & support helpfulness" detail="Tracks resolution quality across Optimus Prime guidance and human handoffs." icon="ai" color="#695198" tint="#F0ECFB" badge={`${optimusOverview?.helpfulCount ?? 0} helpful`} />
           <IconRow title="Portal speed & reliability" detail="Correlates user experience with page load and interaction stability." icon="pulse" color={colors.teal} tint="#E4F4F0" badge="Sample" last onPress={() => navigate("Website health", "More")} />
         </GlassCard>
       </>}
 
       {screen === "Audit logs" && <>
         <MetricTiles entries={[
-          { label: "Server auditing", value: "Active", caption: "Recorded on mutation", icon: "audit", color: colors.rust },
-          { label: "Audit reason", value: "5+ chars", caption: "Required on every change", icon: "check", color: "#236D61" },
-          { label: "MFA enforcement", value: "AAL2", caption: "TOTP verified sessions", icon: "shield", color: colors.blue },
-          { label: "Audit explorer", value: "Standby", caption: "Awaits paginated API", icon: "clock", color: "#94702D" },
+          { label: "Server auditing", value: "Active", caption: "Append-only ledger", icon: "audit", color: colors.rust },
+          { label: "Audit page", value: String(auditPage + 1), caption: `${liveAudit.length} records loaded`, icon: "clock", color: colors.blue },
+          { label: "MFA enforcement", value: "AAL2", caption: "Role changes verified", icon: "shield", color: "#236D61" },
+          { label: "Audit policy", value: "5+ chars", caption: "Mandatory reason", icon: "check", color: colors.teal },
         ]} />
-        <GlassCard>
-          <View style={s.statusBanner}>
-            <View style={[s.subscreenIcon, { backgroundColor: "#FBEDE8" }]}><MobileIcon name="audit" color={colors.rust} /></View>
-            <View style={{ flex: 1, gap: 4 }}>
-              <Heading>Audit explorer not connected</Heading>
-              <Badge value="admin" label="Protected server records" />
-            </View>
+        <View style={s.toolbar}>
+          <View style={s.pillSearch}>
+            <FrostedSurface variant="bar" borderRadius={24} />
+            <MobileIcon name="search" color="#8B929C" />
+            <TextInput
+              accessibilityLabel="Search audit logs"
+              placeholder="Search actor, action or target"
+              placeholderTextColor="#8B929C"
+              value={auditQuery}
+              onChangeText={val => { setAuditPage(0); setAuditQuery(val); }}
+              returnKeyType="search"
+              style={s.pillSearchInput}
+            />
+            {!!auditQuery && <Pressable accessibilityRole="button" accessibilityLabel="Clear audit search" onPress={() => { setAuditPage(0); setAuditQuery(""); }} style={s.clearSearch}><Text style={s.clearText}>×</Text></Pressable>}
           </View>
-          <Note>Privileged actions are recorded by the server. This screen needs a protected paginated audit API before it can display actor, action, time and reason.</Note>
-        </GlassCard>
+          <Button title="Refresh" onPress={() => setAttempt(v => v + 1)} secondary />
+        </View>
         <GlassCard>
-          <Heading>Server-recorded privileged actions</Heading>
-          <IconRow title="Account creation & initial password" detail="Audits administrator actor, target role, sector scope and creation reason." icon="people" color={colors.blue} tint="#EAF1FC" badge="Audited" onPress={() => navigate("Users")} />
-          <IconRow title="Role & Lead Assessor assignments" detail="Records previous role, new role, lead status and mandatory justification." icon="shield" color="#695198" tint="#F0ECFB" badge="Audited" onPress={() => navigate("Users")} />
-          <IconRow title="Sample operational activity" detail="Inspect illustrative chronological events in the Activity log preview." icon="clock" color={colors.teal} tint="#E4F4F0" badge="Preview" last onPress={() => navigate("Activity log", "More")} />
+          <Heading>Protected administrator audit feed</Heading>
+          {auditLoading && <ActivityIndicator color={colors.rust} />}
+          {liveAudit.length ? liveAudit.map((entry, idx) => (
+            <IconRow
+              key={String(entry.id)}
+              title={`${entry.action} · ${entry.target}`}
+              detail={`${entry.actor} · ${entry.created_at.slice(0, 16).replace("T", " ")} · ${entry.reason || "Recorded"}`}
+              icon="audit"
+              color={colors.rust}
+              tint="#FBEDE8"
+              last={idx === liveAudit.length - 1}
+              onPress={() => setSheet({
+                title: entry.action,
+                eyebrow: "AUDIT ENTRY",
+                kind: "insight",
+                facts: [
+                  ["Actor", entry.actor],
+                  ["Action", entry.action],
+                  ["Target", entry.target],
+                  ["When", entry.created_at.slice(0, 16).replace("T", " ")],
+                  ["Reason", entry.reason || "Recorded"],
+                ],
+              })}
+            />
+          )) : !auditLoading && <Note>No protected audit records match your current search.</Note>}
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingTop: 6 }}>
+            <Button title="Previous" secondary disabled={auditPage === 0 || auditLoading} onPress={() => setAuditPage(p => Math.max(0, p - 1))} />
+            <Text style={s.note}>Page {auditPage + 1}</Text>
+            <Button title="Next" secondary disabled={liveAudit.length < 25 || auditLoading} onPress={() => setAuditPage(p => p + 1)} />
+          </View>
         </GlassCard>
       </>}
 
@@ -559,12 +797,8 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
           <Fact label="Session expires" value={sessionExpiry} />
           <Fact label="Device storage policy" value="In-memory session only · cleared on sign-out" last />
         </GlassCard>
-        <GlassCard>
-          <Heading>Authenticator enrollment & verification</Heading>
-          <Note>Use the web workspace to enroll or verify your authenticator. It opens a separate browser session and requires sign-in. Tokens are never passed in the link.</Note>
-          <Button title="Open authenticator settings on web" onPress={() => void openWeb("security")} />
-          <Button title="Sign out of this app" onPress={onSignOut} secondary />
-        </GlassCard>
+        <AdminSecurityPanel account={account} onAccountChange={onAccountChange} />
+        <Button title="Sign out of this app" onPress={onSignOut} secondary />
       </>}
 
       {(screen === "Users" || screen === "Sectors") && loading && <View accessibilityLiveRegion="polite" style={s.loading}><ActivityIndicator color={colors.rust} /><Text style={s.note}>Loading protected records…</Text></View>}
@@ -650,29 +884,18 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
               </Pressable>
             </View>
             <ScrollView style={{ flexShrink: 1 }} contentContainerStyle={s.modalContent} keyboardShouldPersistTaps="handled">
-              {sheet?.kind === "notifications" && <>
-                <PreviewLabel />
-                <View style={s.modalCard}>
-                  <Heading>Attention required</Heading>
-                  <Note>Live notifications are not connected. These sample alerts show matters that need administrator attention.</Note>
-                  {previewMatters.filter(item => item.state !== "Resolved").map((item, index, list) => (
-                    <IconRow
-                      key={item.id}
-                      title={item.title}
-                      detail={item.kind + " · " + item.priority + " priority · " + item.state}
-                      icon="alert"
-                      color={item.priority === "High" ? colors.rust : colors.blue}
-                      tint={item.priority === "High" ? "#FBEDE8" : "#EAF1FC"}
-                      badge={item.priority}
-                      last={index === list.length - 1}
-                      onPress={() => navigate("Follow-ups")}
-                    />
-                  ))}
-                </View>
-              </>}
+              {sheet?.kind === "notifications" && (
+                <AdminNotificationsModalContent
+                  account={account}
+                  overview={notificationsOverview}
+                  matters={activeMatters}
+                  onUpdated={next => setNotificationsOverview(next)}
+                  onNavigateFollowups={() => navigate("Follow-ups")}
+                  onNavigateSecurity={() => navigate("Account security", "More")}
+                />
+              )}
 
               {sheet?.kind === "insight" && <>
-                <PreviewLabel />
                 <View style={s.modalCard}>
                   {sheet.facts?.map(([label, value], index, list) => <Fact key={label} label={label} value={value} last={index === list.length - 1} />)}
                 </View>
@@ -684,53 +907,119 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
                     <Heading>{sheet.sector.name}</Heading>
                     <Badge value={sheet.sector.status} />
                   </View>
-                  <Note>A dash means unavailable, not zero. Individual applications will appear after the protected submissions API is connected.</Note>
+                  <Note>Per-sector application counts aggregated directly from submitted and reviewed applications.</Note>
                 </View>
                 <MetricTiles entries={[
-                  { label: "Applications", value: "—", caption: "Total submissions", icon: "application", color: colors.blue },
-                  { label: "Approved", value: "—", caption: "Released outcomes", icon: "check", color: "#236D61" },
-                  { label: "In review", value: "—", caption: "Active assessments", icon: "clock", color: "#94702D" },
-                  { label: "Rejected", value: "—", caption: "Declined outcomes", icon: "alert", color: colors.rust },
+                  { label: "Applications", value: String(sheet.sector.applications_count ?? 0), caption: "Total submissions", icon: "application", color: colors.blue },
+                  { label: "Approved", value: String(sheet.sector.approved_count ?? 0), caption: "Released outcomes", icon: "check", color: "#236D61" },
+                  { label: "In review", value: String(sheet.sector.in_review_count ?? 0), caption: "Active assessments", icon: "clock", color: "#94702D" },
+                  { label: "Rejected", value: String(sheet.sector.rejected_count ?? 0), caption: "Declined outcomes", icon: "alert", color: colors.rust },
                 ]} />
+                <View style={s.modalCard}>
+                  <Heading>Applications in this sector</Heading>
+                  {cases.filter(c => c.sector === sheet.sector?.name).length
+                    ? cases.filter(c => c.sector === sheet.sector?.name).map((app, idx, arr) => (
+                        <IconRow
+                          key={app.id}
+                          title={`${app.id} · ${app.title}`}
+                          detail={`${app.owner} · ${app.status}`}
+                          icon="application"
+                          color={colors.blue}
+                          tint="#EAF1FC"
+                          badge={app.status}
+                          last={idx === arr.length - 1}
+                          onPress={() => setSheet({ title: "Innovation details", eyebrow: app.id, kind: "case", item: app })}
+                        />
+                      ))
+                    : <Note>No matching applications found in the current view.</Note>}
+                </View>
+                <Button title="Edit sector" onPress={() => setSheet({ title: `Edit ${sheet.sector?.name}`, eyebrow: "SECTOR MANAGEMENT", kind: "sectorEditor", sector: sheet.sector })} />
                 <Button title="Open sector management on web" onPress={() => void openWeb("sectors")} secondary />
               </>}
 
-              {sheet?.kind === "case" && sheet.item && <>
-                <PreviewLabel />
-                <View style={s.modalCard}>
-                  <View style={s.cardHeaderRow}>
-                    <Badge value={sheet.item.status} />
-                    <Text style={s.factLabel}>{sheet.item.id}</Text>
-                  </View>
-                  <Heading>{sheet.item.title}</Heading>
-                  <Note>{sheet.item.summary}</Note>
-                  <Fact label="Reference" value={sheet.item.id} />
-                  <Fact label="Applicant" value={sheet.item.owner} />
-                  <Fact label="Sector" value={sheet.item.sector} />
-                  <Fact label="Assessor" value={sheet.item.assessor} last />
-                </View>
-                <View style={s.modalCard}>
-                  <Heading>Timeline preview</Heading>
-                  <Fact label="Sample event" value="Application submitted" />
-                  <Fact label="Sample current state" value={sheet.item.status} last />
-                  <Note>Attachments, evaluations and messages need a protected application API. This sample does not contain applicant files.</Note>
-                </View>
-              </>}
+              {sheet?.kind === "sectorEditor" && (
+                <AdminSectorEditorModalContent
+                  account={account}
+                  sector={sheet.sector ?? null}
+                  onSaved={updated => {
+                    setSectors(updated);
+                    setSheet(null);
+                    setAttempt(v => v + 1);
+                  }}
+                />
+              )}
+
+              {sheet?.kind === "case" && sheet.item && (
+                <AdminCaseDetailModalContent
+                  account={account}
+                  item={sheet.item}
+                  sectors={sectors}
+                  matters={activeMatters}
+                  onApplicationsUpdated={updated => {
+                    setLiveCases(updated);
+                    setLiveCasesLoaded(true);
+                    const refreshed = updated.find(r => r.id === sheet.item?.id);
+                    if (refreshed) {
+                      setSheet(prev => prev ? { ...prev, item: refreshed } : prev);
+                    }
+                  }}
+                  onOpenMatter={matter => setSheet({ title: matter.id, eyebrow: `${matter.kind.toUpperCase()} · ${matter.state.toUpperCase()}`, kind: "matter", matter })}
+                />
+              )}
+
+              {sheet?.kind === "matter" && sheet.matter && (
+                <AdminMatterDetailModalContent
+                  account={account}
+                  matter={sheet.matter}
+                  onMattersUpdated={updated => {
+                    setLiveMatters(updated);
+                    setMattersLoaded(true);
+                    const refreshed = updated.find(m => m.id === sheet.matter?.id);
+                    if (refreshed) {
+                      setSheet(prev => prev ? { ...prev, matter: refreshed } : prev);
+                    }
+                  }}
+                />
+              )}
 
               {(sheet?.kind === "guidance" || sheet?.kind === "knowledge") && (
                 <View style={s.modalCard}>
-                  <Note>Local draft only. No live settings change and no source URL is fetched.</Note>
+                  <Note>Persisted in PostgreSQL (`admin_configurations`) and logged in the audit trail.</Note>
                   {(sheet.kind === "guidance" ? [["tone", "Tone"], ["length", "Answer length"], ["instructions", "Response instructions"], ["handoff", "Human support triggers"]] : [["source", "Approved source URL"], ["notes", "Reviewed knowledge notes"], ["questions", "Example questions"]]).map(([key, label]) => (
                     <Field key={key} label={label} value={draft[key as keyof typeof draft]} onChange={value => { setDraft(previous => ({ ...previous, [key]: value })); setDraftNotice(""); }} multiline={!["tone", "length", "source"].includes(key)} />
                   ))}
-                  <Button title="Keep draft in this session" onPress={() => setDraftNotice("Draft kept in memory. The live assistant has not changed.")} />
+                  <Field label="Audit reason (5+ characters)" value={configReason} onChange={value => { setConfigReason(value); setDraftNotice(""); }} multiline />
+                  <Button
+                    title={savingConfig ? "Saving..." : "Save to PostgreSQL"}
+                    disabled={savingConfig}
+                    onPress={() => {
+                      if (configReason.trim().length < 5) {
+                        setDraftNotice("Enter an audit reason of at least 5 characters before saving.");
+                        return;
+                      }
+                      const targetKey = sheet.kind === "guidance" ? "optimus_guidance" : "optimus_knowledge";
+                      const payload: Record<string, string> = sheet.kind === "guidance"
+                        ? { tone: draft.tone, length: draft.length, instructions: draft.instructions, handoff: draft.handoff }
+                        : { source: draft.source, notes: draft.notes, questions: draft.questions };
+                      setSavingConfig(true);
+                      void saveAdminConfiguration(account, targetKey, payload, configReason)
+                        .then(next => {
+                          setConfigs(next);
+                          setConfigReason("");
+                          setDraftNotice("Saved to PostgreSQL and applied for Innovator portal replies.");
+                          setAttempt(v => v + 1);
+                        })
+                        .catch(err => setDraftNotice(err instanceof Error ? err.message : "Could not save configuration."))
+                        .finally(() => setSavingConfig(false));
+                    }}
+                  />
                   {!!draftNotice && <Text accessibilityLiveRegion="polite" style={s.noticeText}>{draftNotice}</Text>}
                 </View>
               )}
 
               {sheet?.kind === "review" && (
                 <View style={s.modalCard}>
-                  <Note>Draft only · clears when you sign out or close the app.</Note>
+                  <Note>Active Optimus Prime configuration ({configs.optimus_guidance?.version ? `guidance v${configs.optimus_guidance.version}` : "default"} · {configs.optimus_knowledge?.version ? `knowledge v${configs.optimus_knowledge.version}` : "default"}).</Note>
                   {Object.entries(draft).map(([key, value], index, list) => (
                     <Fact key={key} label={key.charAt(0).toUpperCase() + key.slice(1)} value={value || "Not provided"} last={index === list.length - 1} />
                   ))}
@@ -847,14 +1136,14 @@ const s = StyleSheet.create({
   drawerSub: { fontSize: fontSizes.subbody, color: colors.subtle },
   drawerAccount: { flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 18, paddingTop: 14, borderTopColor: "rgba(218,208,198,0.45)", borderTopWidth: 1 },
   modalOverlay: { flex: 1, justifyContent: "flex-end" },
-  modalSheet: { borderTopLeftRadius: 32, borderTopRightRadius: 32, borderTopWidth: 1, borderColor: "rgba(255,255,255,0.92)", paddingHorizontal: 18, paddingTop: 10, maxHeight: "90%", gap: 14, overflow: "hidden" },
+  modalSheet: { backgroundColor: "#FFFFFF", borderTopLeftRadius: 32, borderTopRightRadius: 32, borderTopWidth: 1, borderColor: "rgba(255,255,255,0.96)", paddingHorizontal: 18, paddingTop: 10, maxHeight: "90%", gap: 14, overflow: "hidden" },
   modalHandle: { width: 38, height: 4, borderRadius: 2, backgroundColor: "rgba(101,86,77,0.28)", alignSelf: "center" },
   modalHeader: { flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12, paddingHorizontal: 2 },
-  sheetEyebrow: { fontSize: fontSizes.caption, fontWeight: "700", letterSpacing: 1.1, color: colors.subtle, marginBottom: 2 },
+  sheetEyebrow: { fontSize: fontSizes.caption, fontWeight: "700", letterSpacing: 1.1, color: "#4A5564", marginBottom: 2 },
   modalTitle: { fontSize: fontSizes.heading, fontWeight: "700", color: colors.navy },
-  closeCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: "rgba(255,255,255,0.82)", borderWidth: 1, borderColor: "#E5DDD3", alignItems: "center", justifyContent: "center" },
+  closeCircle: { width: 40, height: 40, borderRadius: 20, backgroundColor: "#F5F1EC", borderWidth: 1, borderColor: "#E5DDD3", alignItems: "center", justifyContent: "center" },
   modalContent: { gap: 14, paddingBottom: 8, maxWidth: 720, width: "100%", alignSelf: "center" },
-  modalCard: { backgroundColor: "rgba(255,255,255,0.82)", borderRadius: 20, borderWidth: 1, borderColor: "#E5DDD3", padding: 16, gap: 12 },
+  modalCard: { backgroundColor: "#FFFFFF", borderRadius: 20, borderWidth: 1, borderColor: "#E5DDD3", padding: 16, gap: 12 },
   noticeText: { fontSize: fontSizes.subbody, color: "#236D61", fontWeight: "600" },
   error: { color: "#9A3026", fontSize: fontSizes.subbody, lineHeight: 20 },
   loading: { gap: 12, padding: 24, alignItems: "center" },

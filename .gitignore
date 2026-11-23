@@ -9,3 +9,5 @@ test-results/
 dist/
 .vercel/
 mobile/.expo/
+supabase/.temp/
+*.migration_payload.json

@@ -1,5 +1,5 @@
 import { signupConfig } from "./signupConfig.js";
-import { signInInnovator } from "./signupApi.js";
+import { signInAccount } from "./signupApi.js";
 import { clearPendingSignup, pendingEmail, saveAccountToken, startPendingSignup } from "./verificationSession.js";
 import { formatRetryWait } from "./verificationCooldown.js";
 
@@ -24,11 +24,13 @@ if (form && signupConfig) {
     status.textContent = "Signing you in.";
     try {
       const address = email.value.trim();
-      const result = await signInInnovator(signupConfig, address, password.value);
+      const result = await signInAccount(signupConfig, address, password.value);
       if (result.status === "signed-in") {
         if (saveAccountToken(result.token)) {
+          globalThis.__cedaSetPortalActivityActor?.(result.profile, signupConfig, result.token);
           clearPendingSignup();
-          location.replace("/account/");
+          const destinations = { admin: "/admin/", innovator: "/account/", assessor: "/assessor/", support: "/support/", committee: "/committee/" };
+          location.replace(destinations[result.profile.account_role] || "/signin/");
           return;
         }
         status.textContent = "Allow browser storage and try signing in again.";
@@ -43,7 +45,7 @@ if (form && signupConfig) {
       } else {
         status.textContent = {
           invalid: "The email or password is incorrect.",
-          "no-access": "We couldn't open an active Innovator account. Contact support for help.",
+          "no-access": "We couldn't open an active portal account. Contact support for help.",
           unavailable: "Sign-in is temporarily unavailable. Please try again.",
         }[result.status];
       }

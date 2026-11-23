@@ -3,6 +3,8 @@ const origin = Deno.env.get("SUPABASE_URL");
 const publicKey = Deno.env.get("SUPABASE_ANON_KEY");
 const serverKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
 const allowedOrigins = new Set(["https://ceda-innovation-portal-nine.vercel.app", "http://localhost:3000", "http://127.0.0.1:3000"]);
+const temporaryAdminCode = "230701";
+const temporaryAdminEmail = "autobotsdev49@gmail.com";
 Deno.serve(async req => {
   const browserOrigin = req.headers.get("Origin");
   if (browserOrigin && !allowedOrigins.has(browserOrigin)) return new Response(null, { status: 403 });
@@ -18,13 +20,18 @@ Deno.serve(async req => {
     const raw = await req.text();
     if (raw.length > 6000) return reply(400, "Request too large");
     const input = JSON.parse(raw);
-    if (!input || typeof input.password !== "string" || input.password.length < 12 || input.password.length > 128 || !/[a-z]/.test(input.password) || !/[A-Z]/.test(input.password) || !/[0-9]/.test(input.password) || !/[^a-zA-Z0-9\s]/.test(input.password)) return reply(400, "Use 12–128 characters with uppercase, lowercase, a number and a symbol.");
+    const passwordBytes = typeof input?.password === "string" ? new TextEncoder().encode(input.password).length : 0;
+    if (!input || typeof input.password !== "string" || input.password.length < 12 || passwordBytes > 72 || !/[a-z]/.test(input.password) || !/[A-Z]/.test(input.password) || !/[0-9]/.test(input.password) || !/[^a-zA-Z0-9\s]/.test(input.password)) return reply(400, "Use 12-72 UTF-8 bytes with uppercase, lowercase, a number and a symbol.");
     const headers = { apikey: publicKey, Authorization: authorization, "Content-Type": "application/json" };
     const identity = await fetch(origin + "/auth/v1/user", { headers, signal: AbortSignal.timeout(15000) });
     if (!identity.ok) return reply(401, "Sign in required");
-    const reservation = { address: input.address, display_name: input.display_name, new_role: input.new_role, lead: input.lead, sectors: input.sectors, reason: input.reason };
-    // Existing RPC enforces current active Admin, live session, MFA and role/scope rules.
-    const prepared = await fetch(origin + "/rest/v1/rpc/admin_prepare_invitation", { method: "POST", headers, body: JSON.stringify(reservation), signal: AbortSignal.timeout(15000) });
+    const currentUser = await identity.json().catch(() => null);
+    const suppliedCode = typeof input.admin_code === "string" ? input.admin_code.trim() : "";
+    if (currentUser?.email?.toLowerCase() !== temporaryAdminEmail || suppliedCode.length !== 6 || suppliedCode !== temporaryAdminCode) return reply(403, "Temporary administrator verification failed.");
+    const reservation = { address: input.address, display_name: input.display_name, new_role: input.new_role, lead: input.lead, sectors: input.sectors, reason: input.reason, admin_code: suppliedCode };
+    // The RPC verifies the current active Administrator and live session. The temporary
+    // hackathon code above is replaced by authenticator verification for production.
+    const prepared = await fetch(origin + "/rest/v1/rpc/admin_prepare_invitation_temporary", { method: "POST", headers, body: JSON.stringify(reservation), signal: AbortSignal.timeout(15000) });
     if (!prepared.ok) {
       const error = await prepared.json().catch(() => ({}));
       return reply(error.code === "42501" ? 403 : 409, error.code === "42501" ? "Administrator access and authenticator verification are required." : "Account or reservation already exists, or the account details are invalid. Check the directory before retrying.");

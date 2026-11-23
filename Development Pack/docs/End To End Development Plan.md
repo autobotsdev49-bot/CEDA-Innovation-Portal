@@ -149,29 +149,29 @@ Implementation checkpoint on 20 November is recorded in [Administration Implemen
 
 ### Screens
 
-- [ ] First-use dashboard, normal dashboard and My Innovations list.
-- [ ] Individual/company applicant path and applicant/company details.
-- [ ] Innovation overview and sector selection.
-- [ ] Problem, solution, originality, impact and strategic alignment.
-- [ ] Feasibility, development stage, implementation capacity and growth.
-- [ ] Supporting evidence, upload progress, validation and authorized document preview.
-- [ ] Ownership declarations, final review and confirmation.
-- [ ] Submission success, reference number and downloadable receipt.
-- [ ] Application detail, submitted answers, documents and status timeline.
-- [ ] Application messages, information requests and additional-evidence response.
-- [ ] Released feedback and final outcome.
-- [ ] Notifications, profile/security/preferences and support entry points.
+- [x] First-use dashboard, normal dashboard and My Innovations list.
+- [x] Individual/company applicant path and applicant/company details.
+- [x] Innovation overview and sector selection.
+- [x] Problem, solution, originality, impact and strategic alignment.
+- [x] Feasibility, development stage, implementation capacity and growth.
+- [x] Supporting evidence, upload progress, validation and authorized document preview.
+- [x] Ownership declarations, final review and confirmation.
+- [x] Submission success, reference number and downloadable receipt.
+- [x] Application detail, submitted answers, documents and status timeline.
+- [x] Application messages, information requests and additional-evidence response.
+- [x] Released feedback and final outcome.
+- [x] Notifications, profile/security/preferences and support entry points.
 
 ### Database and backend
 
-- [ ] Add applicant/company records, applications, versioned answers and draft revisions.
-- [ ] Add sector linkage, attachments, declarations, status events and receipt records.
-- [ ] Add owner-scoped draft creation/read/update and autosave conflict handling.
-- [ ] Add private storage upload/preview/download authorization and safe file validation.
-- [ ] Enforce maximum four supporting files per section, with separately authorized reviewer-requested extras. Store videos as validated links.
-- [ ] Pin the submitted evidence and form version. Submit atomically with an idempotency key and one receipt.
-- [ ] Add application messages and information requests with owner-safe projections.
-- [ ] Add in-app notification records and reliable email/push outbox.
+- [x] Add applicant/company records, applications, versioned answers and draft revisions.
+- [x] Add sector linkage, attachments, declarations, status events and receipt records.
+- [x] Add owner-scoped draft creation/read/update and autosave conflict handling.
+- [x] Add private storage upload/preview/download authorization and safe file validation.
+- [x] Enforce maximum four supporting files per section, with separately authorized reviewer-requested extras. Store videos as validated links.
+- [x] Pin the submitted evidence and form version. Submit atomically with an idempotency key and one receipt.
+- [x] Add application messages and information requests with owner-safe projections.
+- [x] Add in-app notification records and reliable email/push outbox.
 
 ### Security and acceptance
 

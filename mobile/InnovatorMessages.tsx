@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { pickEvidenceDocument, type PickedDocumentAsset } from "./filePicker";
+import { FrostedSurface } from "./FrostedGlass";
+import { buttonCornerRadius } from "./theme";
 import {
   deletePrivateEvidenceObject,
   isClosedSupportRequest,
@@ -74,7 +76,10 @@ export function InnovatorMessages({
             applicationRef: req.id,
             threadType: "support",
             subject: `Optimus Prime · ${req.id}`,
-            senderName: m.sender || (m.role === "innovator" ? "You" : "CEDA Support"),
+            senderName:
+              m.role === "innovator"
+                ? m.sender || "You"
+                : String(m.sender || "").trim().split(/\s+/)[0] || "CEDA Support",
             senderRole: m.role || "support",
             body: m.body,
             attachmentName: null as string | null,
@@ -208,8 +213,8 @@ export function InnovatorMessages({
                 Inbox
               </Text>
             </Pressable>
-            <Pressable onPress={onEscalateHumanSupport}>
-              <Text style={{ fontSize: fs("subbody"), fontWeight: "600", color: adminStyleColors.blueSoft }}>
+            <Pressable onPress={onEscalateHumanSupport} style={styles.headerLinkPill}>
+              <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: adminStyleColors.blueSoft }}>
                 Open Support Desk
               </Text>
             </Pressable>
@@ -230,34 +235,51 @@ export function InnovatorMessages({
             {activeThread.messages.map((m) => {
               const mine = m.senderRole === "innovator";
               return (
-                <View
-                  key={m.id}
-                  style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleStaff]}
-                >
-                  <View style={styles.msgHead}>
-                    <Text
-                      style={{
-                        fontSize: fs("caption"),
-                        fontWeight: "700",
-                        color: mine ? adminStyleColors.rust : adminStyleColors.blue,
-                      }}
-                    >
-                      {m.senderName} ({m.senderRole})
-                    </Text>
-                    <Text style={{ fontSize: fs("caption"), color: adminStyleColors.subtle }}>
-                      {m.createdAt}
-                    </Text>
-                  </View>
-                  <Text style={{ fontSize: fs("body"), color: adminStyleColors.navy, lineHeight: 22, marginTop: 4 }}>
-                    {m.body}
-                  </Text>
-                  {m.attachmentName ? (
-                    <View style={styles.attachBadge}>
-                      <Text style={{ fontSize: fs("caption"), color: adminStyleColors.teal, fontWeight: "600" }}>
-                        Attachment: {m.attachmentName}
+                <View key={m.id} style={[styles.chatRow, mine && styles.chatRowMine]}>
+                  <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleStaff]}>
+                    <View style={styles.msgHead}>
+                      <Text
+                        style={{
+                          fontSize: fs("caption"),
+                          fontWeight: "700",
+                          color: mine ? "rgba(255,255,255,0.85)" : adminStyleColors.teal,
+                        }}
+                      >
+                        {m.senderName} ({m.senderRole})
+                      </Text>
+                      <Text
+                        style={{
+                          fontSize: fs("caption"),
+                          color: mine ? "rgba(255,255,255,0.72)" : adminStyleColors.subtle,
+                        }}
+                      >
+                        {m.createdAt}
                       </Text>
                     </View>
-                  ) : null}
+                    <Text
+                      style={{
+                        fontSize: fs("body"),
+                        color: mine ? adminStyleColors.white : adminStyleColors.navy,
+                        lineHeight: 22,
+                        marginTop: 4,
+                      }}
+                    >
+                      {m.body}
+                    </Text>
+                    {m.attachmentName ? (
+                      <View style={[styles.attachBadge, mine && styles.attachBadgeMine]}>
+                        <Text
+                          style={{
+                            fontSize: fs("caption"),
+                            color: mine ? adminStyleColors.white : adminStyleColors.teal,
+                            fontWeight: "600",
+                          }}
+                        >
+                          Attachment: {m.attachmentName}
+                        </Text>
+                      </View>
+                    ) : null}
+                  </View>
                 </View>
               );
             })}
@@ -268,7 +290,7 @@ export function InnovatorMessages({
           <View style={{ gap: 10 }}>
             <GlassCard>
               <Text style={{ fontSize: fs("subbody"), fontWeight: "700", color: adminStyleColors.teal }}>
-                Closed by CEDA Support{activeClosedSupport.owner ? ` · ${activeClosedSupport.owner}` : ""}
+                Closed by CEDA Support{activeClosedSupport.owner && activeClosedSupport.owner !== "CEDA Support Desk" ? ` · ${String(activeClosedSupport.owner).trim().split(/\s+/)[0]}` : ""}
               </Text>
               <Text style={{ fontSize: fs("caption"), color: adminStyleColors.subtle, marginTop: 2 }}>
                 {activeClosedSupport.reportedAt || "Archived transcript"}
@@ -279,21 +301,25 @@ export function InnovatorMessages({
               .filter((item) => item.escalated && activeClosedSupport.detail?.includes(item.question))
               .map((item) => (
                 <React.Fragment key={item.id}>
-                  <View style={[styles.bubble, styles.bubbleMine]}>
-                    <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: adminStyleColors.rust }}>
-                      You → Optimus Prime
-                    </Text>
-                    <Text style={{ fontSize: fs("body"), color: adminStyleColors.navy, lineHeight: 22, marginTop: 4 }}>
-                      {item.question}
-                    </Text>
+                  <View style={[styles.chatRow, styles.chatRowMine]}>
+                    <View style={[styles.bubble, styles.bubbleMine]}>
+                      <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: "rgba(255,255,255,0.85)" }}>
+                        You → Optimus Prime
+                      </Text>
+                      <Text style={{ fontSize: fs("body"), color: adminStyleColors.white, lineHeight: 22, marginTop: 4 }}>
+                        {item.question}
+                      </Text>
+                    </View>
                   </View>
-                  <View style={[styles.bubble, styles.bubbleStaff]}>
-                    <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: adminStyleColors.purple }}>
-                      Optimus Prime
-                    </Text>
-                    <Text style={{ fontSize: fs("body"), color: adminStyleColors.navy, lineHeight: 22, marginTop: 4 }}>
-                      {item.answer}
-                    </Text>
+                  <View style={styles.chatRow}>
+                    <View style={[styles.bubble, styles.bubbleStaff]}>
+                      <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: adminStyleColors.purple }}>
+                        Optimus Prime
+                      </Text>
+                      <Text style={{ fontSize: fs("body"), color: adminStyleColors.navy, lineHeight: 22, marginTop: 4 }}>
+                        {item.answer}
+                      </Text>
+                    </View>
                   </View>
                 </React.Fragment>
               ))}
@@ -301,9 +327,9 @@ export function InnovatorMessages({
         ) : null}
 
         {!activeClosedSupport ? (
-          <GlassCard>
-            <SectionHeader eyebrow="REPLY" title={composingNew ? "Compose message" : "Reply to thread"} />
-            {composingNew ? (
+          composingNew ? (
+            <GlassCard>
+              <SectionHeader eyebrow="NEW CONVERSATION" title="Compose message" />
               <FormField label="Subject">
                 <FrostedInput
                   value={subject}
@@ -312,46 +338,108 @@ export function InnovatorMessages({
                   maxLength={200}
                 />
               </FormField>
-            ) : null}
+              <FormField label="Message">
+                <FrostedInput
+                  multiline
+                  value={body}
+                  onChangeText={setBody}
+                  placeholder="Write clearly to CEDA staff or Support Officers..."
+                  maxLength={4000}
+                />
+              </FormField>
 
-            <FormField label="Message">
-              <FrostedInput
-                multiline
-                value={body}
-                onChangeText={setBody}
-                placeholder="Write clearly to CEDA staff or Support Officers..."
-                maxLength={4000}
-              />
-            </FormField>
-
-            {attachment ? (
-              <View style={styles.attachmentRow}>
-                <Text style={{ fontSize: fs("subbody"), color: adminStyleColors.navy, flex: 1 }}>
-                  {attachment.name} ({formatBytes(attachment.size)})
-                </Text>
-                <Pressable onPress={() => setAttachment(null)}>
-                  <Text style={{ fontSize: fs("subbody"), fontWeight: "700", color: adminStyleColors.rust }}>
-                    Remove
+              {attachment ? (
+                <View style={styles.attachmentRow}>
+                  <Text style={{ fontSize: fs("subbody"), color: adminStyleColors.navy, flex: 1 }}>
+                    {attachment.name} ({formatBytes(attachment.size)})
                   </Text>
+                  <Pressable onPress={() => setAttachment(null)} style={styles.removeChip}>
+                    <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: adminStyleColors.rust }}>
+                      Remove
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+
+              {uploadPct !== null ? <ProgressBar percent={uploadPct} /> : null}
+              {errorMsg ? (
+                <Text style={{ fontSize: fs("subbody"), color: "#9A3026", fontWeight: "600" }}>
+                  {errorMsg}
+                </Text>
+              ) : null}
+              <View style={styles.actionRow}>
+                {!attachment ? (
+                  <ActionButton
+                    label="Attach private file"
+                    variant="secondary"
+                    compact
+                    onPress={() => void handlePickAttachment()}
+                  />
+                ) : null}
+                <ActionButton label="Send message" compact loading={sending} onPress={() => void handleSend()} />
+              </View>
+            </GlassCard>
+          ) : (
+            <View style={{ gap: 10 }}>
+              {attachment ? (
+                <View style={styles.attachmentRow}>
+                  <Text style={{ fontSize: fs("subbody"), color: adminStyleColors.navy, flex: 1 }}>
+                    {attachment.name} ({formatBytes(attachment.size)})
+                  </Text>
+                  <Pressable onPress={() => setAttachment(null)} style={styles.removeChip}>
+                    <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: adminStyleColors.rust }}>
+                      Remove
+                    </Text>
+                  </Pressable>
+                </View>
+              ) : null}
+              {uploadPct !== null ? <ProgressBar percent={uploadPct} /> : null}
+              {errorMsg ? (
+                <Text style={{ fontSize: fs("subbody"), color: "#9A3026", fontWeight: "600" }}>
+                  {errorMsg}
+                </Text>
+              ) : null}
+              <View style={styles.messageComposer}>
+                <FrostedSurface variant="bar" borderRadius={28} />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Attach private file"
+                  onPress={() => void handlePickAttachment()}
+                  style={({ pressed }) => [styles.attachCircle, pressed && { opacity: 0.72 }]}
+                >
+                  <InnovatorIcon name="documents" color={adminStyleColors.navy} size={17} />
+                </Pressable>
+                <FrostedInput
+                  accessibilityLabel="Message"
+                  multiline
+                  value={body}
+                  onChangeText={setBody}
+                  placeholder="Write a reply..."
+                  maxLength={4000}
+                  style={styles.messageInput}
+                />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Send message"
+                  disabled={sending}
+                  onPress={() => void handleSend()}
+                  style={({ pressed }) => [
+                    styles.sendCircle,
+                    (!body.trim() || sending) && styles.sendCircleMuted,
+                    pressed && !sending ? { opacity: 0.78 } : null,
+                  ]}
+                >
+                  {sending ? (
+                    <ActivityIndicator size="small" color={adminStyleColors.white} />
+                  ) : (
+                    <Text style={styles.sendArrow} accessible={false}>
+                      {"↑"}
+                    </Text>
+                  )}
                 </Pressable>
               </View>
-            ) : (
-              <ActionButton
-                label="Attach private file (optional)"
-                variant="secondary"
-                compact
-                onPress={() => void handlePickAttachment()}
-              />
-            )}
-
-            {uploadPct !== null ? <ProgressBar percent={uploadPct} /> : null}
-            {errorMsg ? (
-              <Text style={{ fontSize: fs("subbody"), color: "#9A3026", fontWeight: "600" }}>
-                {errorMsg}
-              </Text>
-            ) : null}
-            <ActionButton label="Send message" loading={sending} onPress={() => void handleSend()} />
-          </GlassCard>
+            </View>
+          )
         ) : null}
       </ScrollView>
     );
@@ -375,12 +463,12 @@ export function InnovatorMessages({
       />
 
       <View style={styles.topActions}>
-        <ActionButton label="New message" onPress={startNewThread} style={{ flex: 1 }} />
+        <ActionButton label="New message" compact onPress={startNewThread} />
         <ActionButton
           label="Human support"
           variant="secondary"
+          compact
           onPress={onEscalateHumanSupport}
-          style={{ flex: 1 }}
         />
       </View>
 
@@ -455,40 +543,61 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 18,
     gap: 14,
-    paddingBottom: 112,
+    paddingBottom: 144,
     maxWidth: 760,
     width: "100%",
     alignSelf: "center",
   },
-  topActions: { flexDirection: "row", gap: 10 },
+  topActions: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
+  actionRow: { flexDirection: "row", flexWrap: "wrap", gap: 8, alignItems: "center" },
   threadHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    gap: 8,
   },
   backPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 7,
-    borderRadius: 999,
+    minHeight: 34,
+    paddingHorizontal: 13,
+    paddingVertical: 6,
+    borderRadius: buttonCornerRadius,
     backgroundColor: "#EAF1FC",
-    borderWidth: 1,
-    borderColor: "#D9E5F7",
   },
+  headerLinkPill: {
+    minHeight: 34,
+    paddingHorizontal: 12,
+    borderRadius: buttonCornerRadius,
+    backgroundColor: "rgba(65,122,197,0.10)",
+    justifyContent: "center",
+  },
+  chatRow: { alignItems: "flex-start" },
+  chatRowMine: { alignItems: "flex-end" },
   bubble: {
-    padding: 14,
+    maxWidth: "88%",
+    paddingHorizontal: 14,
+    paddingVertical: 11,
     borderRadius: 18,
-    borderWidth: 1,
   },
   bubbleMine: {
-    backgroundColor: "#FBEDE8",
-    borderColor: "rgba(154,61,43,0.18)",
+    borderTopRightRadius: 5,
+    backgroundColor: adminStyleColors.rust,
+    shadowColor: "#4A1E15",
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 2,
   },
   bubbleStaff: {
-    backgroundColor: "rgba(255,255,255,0.9)",
-    borderColor: "#E5DDD3",
+    borderTopLeftRadius: 5,
+    backgroundColor: "rgba(255,250,244,0.96)",
+    shadowColor: "#261B16",
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 2,
   },
   msgHead: {
     flexDirection: "row",
@@ -499,26 +608,86 @@ const styles = StyleSheet.create({
   attachBadge: {
     alignSelf: "flex-start",
     marginTop: 8,
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 7,
+    borderRadius: buttonCornerRadius,
     backgroundColor: "#E4F4F0",
+  },
+  attachBadgeMine: {
+    backgroundColor: "rgba(255,255,255,0.18)",
   },
   attachmentRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    padding: 10,
-    borderRadius: 12,
-    backgroundColor: "rgba(247,242,235,0.8)",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,250,244,0.92)",
+    shadowColor: "#261B16",
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 1,
   },
+  removeChip: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: buttonCornerRadius,
+    backgroundColor: "#FBEDE8",
+  },
+  messageComposer: {
+    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+    marginTop: 4,
+    paddingLeft: 8,
+    paddingRight: 7,
+    paddingVertical: 7,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,250,244,0.94)",
+    shadowColor: "#261B16",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 14,
+    elevation: 4,
+  },
+  attachCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "rgba(25,44,64,0.06)",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  messageInput: {
+    flex: 1,
+    minHeight: 38,
+    maxHeight: 120,
+    paddingHorizontal: 4,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderRadius: 0,
+    backgroundColor: "transparent",
+  },
+  sendCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: adminStyleColors.rust,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendCircleMuted: { opacity: 0.55 },
+  sendArrow: { color: adminStyleColors.white, fontSize: 18, fontWeight: "700", lineHeight: 20 },
   threadRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
     paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: adminStyleColors.line,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(36,28,25,0.08)",
   },
   threadIcon: {
     width: 42,
@@ -535,8 +704,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 5,
     backgroundColor: "#EAF1FC",
-    borderRadius: 7,
-    paddingHorizontal: 8,
+    borderRadius: buttonCornerRadius,
+    paddingHorizontal: 10,
     paddingVertical: 3,
     marginTop: 2,
   },
