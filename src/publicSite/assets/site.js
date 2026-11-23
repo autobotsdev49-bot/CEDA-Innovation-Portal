@@ -263,67 +263,6 @@ for (const menu of document.querySelectorAll(".mobile-nav")) {
   });
 }
 
-// Stage tabs on eligibility page
-for (const panel of document.querySelectorAll(".stage-tabs")) {
-  const tabs = [...panel.querySelectorAll(".stage-tab")];
-  const contents = [...panel.querySelectorAll(".stage-content")];
-  tabs.forEach((tab, i) => {
-    tab.addEventListener("click", () => {
-      tabs.forEach(t => t.classList.remove("active"));
-      contents.forEach(c => c.classList.remove("active"));
-      tab.classList.add("active");
-      contents[i]?.classList.add("active");
-    });
-  });
-}
-
-// ── Animated number counter for impact figures ──────────────────────────────
-const counterEls = document.querySelectorAll("[data-counter]");
-if (counterEls.length) {
-  const runCounter = (el) => {
-    if (el.dataset.countingDone) return;
-    el.dataset.countingDone = "true";
-    const raw = el.textContent.trim();
-    const match = raw.match(/^([^\d]*)(\d[\d,]*)([^\d]*)$/);
-    if (!match) return;
-    const prefix = match[1];
-    const target = parseInt(match[2].replace(/,/g, ""), 10);
-    const suffix = match[3];
-    const isFast = el.hasAttribute("data-count-fast");
-    // Fast numbers (huge number like P696m) finish in 350ms very rapidly; normal in 1400ms
-    const duration = isFast ? 350 : 1400;
-    const startTime = performance.now();
-    (function tick(now) {
-      const p = Math.min((now - startTime) / duration, 1);
-      const eased = isFast ? Math.sin((p * Math.PI) / 2) : 1 - Math.pow(1 - p, 3);
-      const current = Math.round(eased * target);
-      el.textContent = prefix + current.toLocaleString("en") + suffix;
-      if (p < 1) {
-        requestAnimationFrame(tick);
-      } else {
-        el.textContent = prefix + target.toLocaleString("en") + suffix;
-      }
-    })(startTime);
-  };
-
-  const observer = new IntersectionObserver((entries) => {
-    for (const entry of entries) {
-      if (entry.isIntersecting) {
-        observer.unobserve(entry.target);
-        runCounter(entry.target);
-      }
-    }
-  }, { threshold: 0.1, rootMargin: "50px" });
-
-  for (const el of counterEls) {
-    observer.observe(el);
-    const rect = el.getBoundingClientRect();
-    if (rect.top < window.innerHeight && rect.bottom > 0) {
-      runCounter(el);
-    }
-  }
-}
-
 for (const carousel of document.querySelectorAll("[data-story-carousel]")) {
   const slides = [...carousel.querySelectorAll("[data-story-slide]")];
   let index = 0;
