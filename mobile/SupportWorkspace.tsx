@@ -35,6 +35,7 @@ import {
 } from "./InnovatorUI";
 import { isTokenAal2 } from "./securityApi";
 import { HOSTING_SUPPORT_SLA } from "./portalCatalog";
+import { TourTarget, useTour } from "./TourGuide";
 import { useAccessibility } from "./useAccessibility";
 import { fetchSupportTickets, updateSupportOfficerAvailability } from "./supportApi";
 import { SupportConversationModal } from "./SupportConversationModal";
@@ -99,6 +100,7 @@ export function SupportWorkspace({
   const [sessionMessage, setSessionMessage] = useState("");
   const [sessionError, setSessionError] = useState("");
   const { darkMode, openModal: openA11yModal, scaleFont } = useAccessibility();
+  const { setPortalContext, startTour } = useTour();
   const darkInk = darkMode ? "#f0e8e0" : colors.navy;
   const darkMuted = darkMode ? "#b8a898" : colors.muted;
   const requestSeq = useRef(0);
@@ -326,12 +328,19 @@ export function SupportWorkspace({
     },
   ];
 
+  useEffect(() => {
+    setPortalContext("support", (nextScreen) => {
+      setScreen(nextScreen as SupportScreen);
+    });
+  }, [setPortalContext]);
+
   return (
     <InnovatorA11yProvider darkMode={darkMode}>
       <View style={[styles.root, darkMode && { backgroundColor: "#131009" }]}>
         <FrostedScreenBackdrop image={require("./assets/innovation.webp")} imageHeight={320}>
           <View style={[styles.header, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
             <FrostedSurface variant="bar" />
+            <TourTarget id="support.menu">
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Open support menu"
@@ -340,6 +349,7 @@ export function SupportWorkspace({
             >
               <MobileIcon name="menu" color={darkInk} />
             </Pressable>
+            </TourTarget>
             <View style={styles.brand}>
               <Image
                 source={require("./assets/ceda.png")}
@@ -804,7 +814,7 @@ export function SupportWorkspace({
             <FrostedSurface variant="bar" />
             {tabs.map(tab => {
               const active = screen === tab.key;
-              return (
+              const tabEl = (
                 <Pressable
                   key={tab.key}
                   accessibilityRole="tab"
@@ -823,6 +833,14 @@ export function SupportWorkspace({
                   </Text>
                 </Pressable>
               );
+              if (tab.key === "overview" || tab.key === "queue" || tab.key === "performance") {
+                return (
+                  <TourTarget key={tab.key} id={`support.${tab.key}`} style={{ flex: 1 }}>
+                    {tabEl}
+                  </TourTarget>
+                );
+              }
+              return tabEl;
             })}
           </View>
 
@@ -852,6 +870,23 @@ export function SupportWorkspace({
                     </Pressable>
                   </View>
                   <ScrollView contentContainerStyle={styles.drawerList}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Take guided portal tour"
+                      onPress={() => {
+                        setDrawerOpen(false);
+                        setTimeout(() => startTour("support"), 200);
+                      }}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 10, paddingVertical: 12, borderRadius: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: darkMode ? "rgba(240,220,200,0.12)" : "rgba(36,28,25,0.08)", marginBottom: 6 }}
+                    >
+                      <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: darkMode ? "#17332d" : "#E4F4F0", alignItems: "center", justifyContent: "center" }}>
+                        <MobileIcon name="compass" color={colors.teal} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.drawerItemTitle, { color: darkInk }]}>Take Portal Tour</Text>
+                        <Text numberOfLines={1} style={[styles.headerSubtitle, { color: darkMuted }]}>Guided walkthrough of key tools</Text>
+                      </View>
+                    </Pressable>
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="Open Accessibility and TalkBack settings"

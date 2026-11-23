@@ -4,10 +4,12 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { FrostedModalBackdrop, FrostedSurface } from './FrostedGlass';
 import { MobileIcon } from './AdminOverview';
 import { useAccessibility, type MobileFontSizeMode } from './useAccessibility';
+import { useTour } from './TourGuide';
 import { buttonCornerRadius } from './theme';
 
 export function AccessibilityModal() {
   const insets = useSafeAreaInsets();
+  const { startTour } = useTour();
   const {
     darkMode,
     toggleDarkMode,
@@ -182,6 +184,21 @@ export function AccessibilityModal() {
                 <MobileIcon name='speaker' color={rustColor} />
                 <Text style={[styles.testSpeechText, { color: textColor, fontSize: scaleFont(13) }]}>
                   Test TalkBack speech feedback
+                </Text>
+              </Pressable>
+
+              <Pressable
+                accessibilityRole='button'
+                accessibilityLabel='Start interactive guided portal tour'
+                onPress={() => {
+                  closeModal();
+                  setTimeout(() => startTour(), 180);
+                }}
+                style={[styles.testSpeechBtn, { borderColor: cardBorder, backgroundColor: darkMode ? '#252018' : '#f7f2eb' }]}
+              >
+                <MobileIcon name='compass' color='#278477' />
+                <Text style={[styles.testSpeechText, { color: textColor, fontSize: scaleFont(13) }]}>
+                  Start Guided Portal Tour
                 </Text>
               </Pressable>
 

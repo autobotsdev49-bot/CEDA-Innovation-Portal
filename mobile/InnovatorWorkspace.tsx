@@ -51,6 +51,7 @@ import {
 import { InnovatorWizard, type WizardScreenMode } from "./InnovatorWizard";
 import { MobileIcon } from "./AdminOverview";
 import { buttonCornerRadius, fontSizes } from "./theme";
+import { TourTarget, useTour } from "./TourGuide";
 import { useAccessibility } from "./useAccessibility";
 
 const WORKSPACE_BG = require("./assets/innovation.webp");
@@ -74,6 +75,7 @@ export function InnovatorWorkspace({
 }) {
   const insets = useSafeAreaInsets();
   const { darkMode, setDarkMode, announce, openModal: openA11yModal, scaleFont } = useAccessibility();
+  const { setPortalContext, startTour } = useTour();
   const darkInk = darkMode ? "#f0e8e0" : adminStyleColors.navy;
   const darkMuted = darkMode ? "#b8a898" : adminStyleColors.muted;
   const darkSubtle = darkMode ? "#b8a898" : adminStyleColors.subtle;
@@ -253,6 +255,12 @@ export function InnovatorWorkspace({
     },
     [tab]
   );
+
+  useEffect(() => {
+    setPortalContext("innovator", (nextScreen) => {
+      executeNav({ kind: "tab", tab: nextScreen as PrimaryTab });
+    });
+  }, [setPortalContext, executeNav]);
 
   const guardedNavigate = useCallback(
     (action: PendingNavAction) => {
@@ -485,19 +493,21 @@ export function InnovatorWorkspace({
           {/* Top Frosted Header (Matches AdminWorkspace.tsx) */}
           <View style={[styles.header, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
             <FrostedSurface variant="bar" />
-            <Pressable
-              onPress={() => (isNestedScreen ? handleBack() : setDrawerOpen(true))}
-              accessibilityRole="button"
-              accessibilityLabel={isNestedScreen ? "Go back" : "Open innovator navigation menu"}
-              style={({ pressed }) => [
-                styles.headerAction,
-                darkMode && { backgroundColor: "rgba(37,32,24,0.88)", borderColor: "rgba(240,220,200,0.16)" },
-                isNestedScreen && styles.backButton,
-                pressed && { opacity: 0.7 },
-              ]}
-            >
-              <InnovatorIcon name={isNestedScreen ? "back" : "menu"} color={darkInk} />
-            </Pressable>
+            <TourTarget id="innovator.menu">
+              <Pressable
+                onPress={() => (isNestedScreen ? handleBack() : setDrawerOpen(true))}
+                accessibilityRole="button"
+                accessibilityLabel={isNestedScreen ? "Go back" : "Open innovator navigation menu"}
+                style={({ pressed }) => [
+                  styles.headerAction,
+                  darkMode && { backgroundColor: "rgba(37,32,24,0.88)", borderColor: "rgba(240,220,200,0.16)" },
+                  isNestedScreen && styles.backButton,
+                  pressed && { opacity: 0.7 },
+                ]}
+              >
+                <InnovatorIcon name={isNestedScreen ? "back" : "menu"} color={darkInk} />
+              </Pressable>
+            </TourTarget>
 
             {isNestedScreen ? (
               <View style={styles.headerCenter}>
@@ -632,6 +642,7 @@ export function InnovatorWorkspace({
                   onSignOut={onSignOut}
                 />
               ) : tab === "home" ? (
+                <TourTarget id="innovator.overview" style={{ flex: 1 }}>
                 <InnovatorOverview
                   data={data}
                   refreshing={refreshing}
@@ -650,7 +661,9 @@ export function InnovatorWorkspace({
                     setSubScreen("settings");
                   }}
                 />
+                </TourTarget>
               ) : tab === "applications" ? (
+                <TourTarget id="innovator.applications" style={{ flex: 1 }}>
                 <InnovatorApplications
                   token={account.token}
                   applications={data.applications}
@@ -663,6 +676,7 @@ export function InnovatorWorkspace({
                   onStartNew={startNewApplication}
                   onApplicationUpdated={upsertApplication}
                 />
+                </TourTarget>
               ) : tab === "submit" ? (
                 <InnovatorWizard
                   token={account.token}
@@ -735,27 +749,37 @@ export function InnovatorWorkspace({
           </View>
 
           {!isNestedScreen && data ? (
-            <Pressable
-              accessibilityRole="button"
-              accessibilityLabel={
-                activeOptimusSupport
-                  ? "Continue your CEDA human support chat"
-                  : "Open Optimus Prime AI chat"
-              }
-              onPress={() => setOptimusSheetOpen(true)}
-              style={({ pressed }) => [
-                styles.optimusFloatingPill,
-                { bottom: Math.max(insets.bottom, 16) + 78 },
-                pressed && { opacity: 0.85 },
-              ]}
+            <TourTarget
+              id="innovator.optimus"
+              style={{
+                position: "absolute",
+                right: 16,
+                bottom: Math.max(insets.bottom, 16) + 78,
+                zIndex: 20,
+              }}
             >
-              <View style={styles.optimusFloatingIcon}>
-                <InnovatorIcon name="optimus" color={adminStyleColors.rust} />
-              </View>
-              <Text style={styles.optimusFloatingLabel}>
-                {activeOptimusSupport ? "Continue support chat" : "Chat with Optimus"}
-              </Text>
-            </Pressable>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel={
+                  activeOptimusSupport
+                    ? "Continue your CEDA human support chat"
+                    : "Open Optimus Prime AI chat"
+                }
+                onPress={() => setOptimusSheetOpen(true)}
+                style={({ pressed }) => [
+                  styles.optimusFloatingPill,
+                  { position: "relative", bottom: 0, right: 0 },
+                  pressed && { opacity: 0.85 },
+                ]}
+              >
+                <View style={styles.optimusFloatingIcon}>
+                  <InnovatorIcon name="optimus" color={adminStyleColors.rust} />
+                </View>
+                <Text style={styles.optimusFloatingLabel}>
+                  {activeOptimusSupport ? "Continue support chat" : "Chat with Optimus"}
+                </Text>
+              </Pressable>
+            </TourTarget>
           ) : null}
 
           {/* Floating Frosted Bottom Pill Dock */}
@@ -767,7 +791,7 @@ export function InnovatorWorkspace({
               <FrostedSurface variant="bar" borderRadius={28} />
               {tabs.map((item) => {
                 const selected = tab === item.key && !subScreen && !detailState;
-                return (
+                const tabBtn = (
                   <Pressable
                     key={item.key}
                     accessibilityRole="tab"
@@ -797,6 +821,13 @@ export function InnovatorWorkspace({
                       {item.label}
                     </Text>
                   </Pressable>
+                );
+                return item.key === "submit" ? (
+                  <TourTarget key={item.key} id="innovator.submit" style={{ flex: 1 }}>
+                    {tabBtn}
+                  </TourTarget>
+                ) : (
+                  tabBtn
                 );
               })}
             </View>
@@ -941,6 +972,24 @@ export function InnovatorWorkspace({
                       ACCESSIBILITY &amp; TALKBACK
                     </Text>
                     <View style={[styles.drawerA11yBox, darkMode && { backgroundColor: "rgba(37,32,24,0.88)", borderColor: "rgba(240,220,200,0.12)" }]}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Take guided portal tour"
+                        onPress={() => {
+                          setDrawerOpen(false);
+                          setTimeout(() => startTour("innovator"), 200);
+                        }}
+                        style={[styles.drawerA11yRow, { marginBottom: 8, paddingBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: darkMode ? "rgba(240,220,200,0.12)" : "rgba(36,28,25,0.08)" }]}
+                      >
+                        <View style={[styles.drawerIcon, { backgroundColor: darkMode ? "#17332d" : "#E4F4F0", marginRight: 10 }]}>
+                          <MobileIcon name="compass" color="#278477" />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.drawerItemTitle, { color: darkInk }]}>Take Portal Tour</Text>
+                          <Text style={[styles.drawerSub, { color: darkSubtle }]}>Guided walkthrough of key tools</Text>
+                        </View>
+                        <Text style={[styles.chevron, { color: darkSubtle }]} accessible={false}>{"\u203a"}</Text>
+                      </Pressable>
                       <Pressable
                         accessibilityRole="button"
                         accessibilityLabel="Open full Accessibility and Display settings"

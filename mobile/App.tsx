@@ -11,6 +11,7 @@ import { portalUrl } from "./auth";
 import { AccessibilityProvider, useAccessibility } from "./useAccessibility";
 import { AccessibilityModal } from "./AccessibilityModal";
 import { AccessibilityFab } from "./AccessibilityFab";
+import { TourProvider } from "./TourGuide";
 
 const onboardingKey = "ceda.onboarding.v1";
 const splashHoldDuration = 1600;
@@ -143,7 +144,9 @@ export default function App() {
   return (
     <SafeAreaProvider>
       <AccessibilityProvider>
-        <AppContent />
+        <TourProvider>
+          <AppContent />
+        </TourProvider>
       </AccessibilityProvider>
     </SafeAreaProvider>
   );

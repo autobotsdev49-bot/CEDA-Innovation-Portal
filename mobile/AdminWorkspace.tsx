@@ -2,6 +2,7 @@ import { buttonCornerRadius, fontSizes } from "./theme";
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from "react";
 import { ActivityIndicator, BackHandler, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { TourTarget, useTour } from "./TourGuide";
 import { useAccessibility } from "./useAccessibility";
 import { FrostedModalBackdrop, FrostedScreenBackdrop, FrostedSurface } from "./FrostedGlass";
 import { AdminOverview, InsightCard, MobileIcon, PreviewLabel, type InsightScreen, type MobileIconName } from "./AdminOverview";
@@ -151,6 +152,7 @@ function TabIcon({ index, selected }: { index: number; selected: boolean }) {
 
 export function AdminWorkspace({ account, onSignOut, onAccountChange }: { account: Account; onSignOut: () => void; onAccountChange: (account: Account) => void }) {
   const { darkMode, openModal: openA11yModal, scaleFont } = useAccessibility();
+  const { setPortalContext, startTour } = useTour();
   const darkInk = darkMode ? "#f0e8e0" : colors.navy;
   const darkMuted = darkMode ? "#b8a898" : colors.muted;
   const [userEditor, setUserEditor] = useState<AdminUser | "create" | null>(null);
@@ -359,6 +361,12 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
     catch { setLinkError("We couldn't open your browser. Try again."); }
   }
 
+  useEffect(() => {
+    setPortalContext("admin", (nextScreen) => {
+      setScreen(nextScreen as Screen);
+    });
+  }, [setPortalContext]);
+
   const visibleSectors = sectors.filter(sector => (status === "All" || status === sector.status) && sector.name.toLowerCase().includes(query.trim().toLowerCase()));
   const publishedSectors = sectors.filter(sector => sector.status === "published").length;
   const otherSectors = Math.max(0, sectors.length - publishedSectors);
@@ -368,6 +376,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
     <FrostedScreenBackdrop image={require("./assets/innovation.webp")} imageHeight={320}>
     <View style={[s.header, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
       <FrostedSurface variant="bar" />
+      <TourTarget id="admin.menu">
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={nested ? "Back to " + parentScreen : "Open administration menu"}
@@ -376,6 +385,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
       >
         <MobileIcon name={nested ? "back" : "menu"} color={darkInk} />
       </Pressable>
+      </TourTarget>
       {nested ? (
         <View style={s.headerCenter}>
           <Text numberOfLines={1} style={[s.headerEyebrow, { color: darkMuted }]}>{parentScreen.toUpperCase()} / SUB-SCREEN</Text>
@@ -390,6 +400,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
           </View>
         </View>
       )}
+      <TourTarget id="admin.bell">
       <Pressable
         accessibilityRole="button"
         accessibilityLabel="Open notifications"
@@ -399,6 +410,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
         <MobileIcon name="bell" color={darkInk} />
         {openAlertsCount > 0 && <View style={s.bellDot} />}
       </Pressable>
+      </TourTarget>
     </View>
 
     <ScrollView ref={scroll} style={s.content} contentContainerStyle={s.contentInner} keyboardShouldPersistTaps="handled">
@@ -456,15 +468,15 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
       )}
 
       {!!linkError && <Text accessibilityRole="alert" style={s.error}>{linkError}</Text>}
-      {screen === "Overview" && <AdminOverview period={period} onPeriodChange={setPeriod} onNavigate={next => navigate(next, "Overview")} liveApplications={liveCases} liveMatters={liveMatters} liveAudit={liveAudit} liveOptimus={optimusOverview} reportingSummary={reportingSummary} onExportExecutive={() => void handleExportReport("executive", "csv")} />}
+      {screen === "Overview" && <TourTarget id="admin.overview"><AdminOverview period={period} onPeriodChange={setPeriod} onNavigate={next => navigate(next, "Overview")} liveApplications={liveCases} liveMatters={liveMatters} liveAudit={liveAudit} liveOptimus={optimusOverview} reportingSummary={reportingSummary} onExportExecutive={() => void handleExportReport("executive", "csv")} /></TourTarget>}
       {(["Portal analytics", "Website health", "Follow-ups", "Activity log"] as string[]).includes(screen) && <AdminInsights key={screen} screen={screen as InsightScreen} period={period} onPeriodChange={setPeriod} inspect={(title, facts) => setSheet({ title, eyebrow: screen.toUpperCase(), kind: "insight", facts })} liveMatters={liveMatters} liveAudit={liveAudit} reportingSummary={reportingSummary} onExportReport={(reportKey, format) => void handleExportReport(reportKey, format)} onOpenMatter={matter => setSheet({ title: matter.id, eyebrow: `${matter.kind.toUpperCase()} · ${matter.state.toUpperCase()}`, kind: "matter", matter })} />}
-      {screen === "Users" && <AdminUsers
+      {screen === "Users" && <TourTarget id="admin.users"><AdminUsers
         users={users} query={query} onQueryChange={setQuery} role={role} onRoleChange={setRole} status={status} onStatusChange={setStatus}
         loading={loading || query.trim() !== search} error={!!error} page={page}
         onPageChange={next => { setLoading(true); setUsers([]); setPage(next); }}
         onOpenUser={user => { setUserNotice(""); setUserEditor(user); }} onCreate={() => { setUserNotice(""); setUserEditor("create"); }} notice={userNotice}
-      />}
-      {screen === "Innovations" && <>{loading && <ActivityIndicator />}{!!error && <Pressable onPress={() => setAttempt(value => value + 1)}><Text>{error} Tap to retry.</Text></Pressable>}<AdminInnovations items={cases} isLive={liveCasesLoaded} query={query} onQueryChange={setQuery} status={status} onStatusChange={setStatus} onOpen={item => setSheet({ title: "Innovation details", eyebrow: item.id, kind: "case", item })} /></>}
+      /></TourTarget>}
+      {screen === "Innovations" && <TourTarget id="admin.innovations">{loading && <ActivityIndicator />}{!!error && <Pressable onPress={() => setAttempt(value => value + 1)}><Text>{error} Tap to retry.</Text></Pressable>}<AdminInnovations items={cases} isLive={liveCasesLoaded} query={query} onQueryChange={setQuery} status={status} onStatusChange={setStatus} onOpen={item => setSheet({ title: "Innovation details", eyebrow: item.id, kind: "case", item })} /></TourTarget>}
 
       {screen === "More" && <>
         <View style={s.profileCard}>
@@ -844,6 +856,21 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
             </View>
             <ScrollView contentContainerStyle={s.drawerContent}>
               <Text style={[s.drawerSectionLabel, { color: darkMuted }]}>ACCESSIBILITY &amp; TALKBACK</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Take guided portal tour"
+                style={s.drawerLink}
+                onPress={() => {
+                  setMenuOpen(false);
+                  setTimeout(() => startTour("admin"), 200);
+                }}
+              >
+                <View style={[s.drawerIcon, { backgroundColor: darkMode ? "#17332d" : "#E4F4F0" }]}><MobileIcon name="compass" color={colors.teal} /></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[s.rowTitle, { color: darkInk }]}>Take Portal Tour</Text>
+                  <Text numberOfLines={1} style={[s.drawerSub, { color: darkMuted }]}>Guided walkthrough of key tools</Text>
+                </View>
+              </Pressable>
               <Pressable
                 accessibilityRole="button"
                 accessibilityLabel="Open Accessibility and TalkBack settings"

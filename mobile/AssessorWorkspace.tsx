@@ -24,6 +24,7 @@ import {
   type AssessorCase, type AssessorData, type CaseDetail,
 } from "./assessorApi";
 import { buttonCornerRadius, fontSizes } from "./theme";
+import { TourTarget, useTour } from "./TourGuide";
 import { useAccessibility } from "./useAccessibility";
 
 const tabs = ["overview", "assessments", "library", "messages", "more"] as const;
@@ -179,6 +180,7 @@ function caseDirectoryRows(
 
 export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { account: Account; onSignOut: () => void; onAccountChange: (account: Account) => void }) {
   const { darkMode, openModal: openA11yModal, scaleFont } = useAccessibility();
+  const { setPortalContext, startTour } = useTour();
   const darkInk = darkMode ? "#f0e8e0" : colors.navy;
   const darkMuted = darkMode ? "#b8a898" : colors.muted;
   const darkSubtle = darkMode ? "#b8a898" : colors.subtle;
@@ -449,11 +451,19 @@ export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { acc
     );
   }
 
+  useEffect(() => {
+    setPortalContext("assessor", (nextScreen) => {
+      setCaseId(null);
+      setScreen(nextScreen as Screen);
+    });
+  }, [setPortalContext]);
+
   return (
     <View style={[styles.root, darkMode && { backgroundColor: "#131009" }]}>
       <FrostedScreenBackdrop image={require("./assets/innovation.webp")}>
         <View style={[styles.header, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
           <FrostedSurface variant="bar" />
+          <TourTarget id="assessor.menu">
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={nested ? "Go back" : "Open assessor navigation"}
@@ -463,6 +473,7 @@ export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { acc
           >
             <InnovatorIcon name={nested ? "back" : "menu"} color={darkInk} />
           </Pressable>
+          </TourTarget>
           {nested ? (
             <View style={styles.headerCenter}>
               <Text style={[styles.headerEyebrow, { color: darkSubtle }]} numberOfLines={1}>
@@ -1144,7 +1155,7 @@ export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { acc
             <FrostedSurface variant="bar" />
             {tabs.map(entry => {
               const active = entry === screen;
-              return (
+              const tabEl = (
                 <Pressable
                   key={entry}
                   accessibilityRole="tab"
@@ -1162,6 +1173,14 @@ export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { acc
                   </Text>
                 </Pressable>
               );
+              if (entry === "overview" || entry === "assessments" || entry === "library" || entry === "messages") {
+                return (
+                  <TourTarget key={entry} id={`assessor.${entry}`} style={{ flex: 1 }}>
+                    {tabEl}
+                  </TourTarget>
+                );
+              }
+              return tabEl;
             })}
           </View>
         )}
@@ -1200,6 +1219,24 @@ export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { acc
 
                 <ScrollView contentContainerStyle={styles.drawerContent}>
                   <Text style={[styles.drawerSectionLabel, { color: darkSubtle }]}>ACCESSIBILITY &amp; TALKBACK</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Take guided portal tour"
+                    onPress={() => {
+                      setDrawerOpen(false);
+                      setTimeout(() => startTour("assessor"), 200);
+                    }}
+                    style={styles.drawerLink}
+                  >
+                    <View style={[styles.drawerIcon, { backgroundColor: darkMode ? "#17332d" : "#E4F4F0" }]}>
+                      <MobileIcon name="compass" color={colors.teal} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.drawerItemTitle, { color: darkInk }]}>Take Portal Tour</Text>
+                      <Text numberOfLines={1} style={[styles.drawerSub, { color: darkSubtle }]}>Guided walkthrough of key tools</Text>
+                    </View>
+                    <Text style={[styles.chevron, { color: darkSubtle }]} accessible={false}>{"\u203a"}</Text>
+                  </Pressable>
                   <Pressable
                     accessibilityRole="button"
                     accessibilityLabel="Open Accessibility and TalkBack settings"

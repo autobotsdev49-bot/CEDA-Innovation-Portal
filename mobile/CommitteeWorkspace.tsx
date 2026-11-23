@@ -46,6 +46,7 @@ import {
 } from "./committeeApi";
 import { buttonCornerRadius, fontSizes } from "./theme";
 import { MobileIcon } from "./AdminOverview";
+import { TourTarget, useTour } from "./TourGuide";
 import { useAccessibility } from "./useAccessibility";
 
 type TabKey = "overview" | "timeline" | "applications" | "awards" | "account";
@@ -148,6 +149,13 @@ export function CommitteeWorkspace({
   }
 
   const { darkMode, openModal: openA11yModal, scaleFont } = useAccessibility();
+  const { setPortalContext } = useTour();
+
+  useEffect(() => {
+    setPortalContext("committee", (nextScreen) => {
+      setTab(nextScreen as TabKey);
+    });
+  }, [setPortalContext]);
   const darkInk = darkMode ? "#f0e8e0" : colors.navy;
   const darkMuted = darkMode ? "#b8a898" : colors.muted;
   const scopeLabel = data?.profile?.sectorNames?.length
@@ -170,6 +178,7 @@ export function CommitteeWorkspace({
             <View style={[styles.readonlyPill, darkMode && { backgroundColor: "#2e1c18" }]}>
               <Text style={styles.readonlyPillText}>Observer</Text>
             </View>
+            <TourTarget id="committee.accessibility">
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Open Accessibility and TalkBack settings"
@@ -187,6 +196,7 @@ export function CommitteeWorkspace({
             >
               <MobileIcon name="accessibility" color={darkInk} />
             </Pressable>
+            </TourTarget>
           </View>
         </View>
       </View>
@@ -431,7 +441,7 @@ export function CommitteeWorkspace({
         <FrostedSurface variant="bar" borderRadius={0} />
         {tabs.map(item => {
           const active = tab === item.key;
-          return (
+          const tabEl = (
             <Pressable
               key={item.key}
               accessibilityRole="tab"
@@ -443,6 +453,14 @@ export function CommitteeWorkspace({
               <Text style={[styles.tabText, { color: darkMuted }, active && styles.tabTextActive]}>{item.label}</Text>
             </Pressable>
           );
+          if (item.key === "overview" || item.key === "timeline" || item.key === "awards") {
+            return (
+              <TourTarget key={item.key} id={`committee.${item.key}`} style={{ flex: 1 }}>
+                {tabEl}
+              </TourTarget>
+            );
+          }
+          return tabEl;
         })}
       </View>
       </FrostedScreenBackdrop>
