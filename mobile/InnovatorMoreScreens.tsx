@@ -150,7 +150,7 @@ export function InnovatorMoreHub({
   onStartNew: () => void;
   onSignOut: () => void;
 }) {
-  const { fs } = useInnovatorA11y();
+  const { fs, darkMode, toggleDarkMode } = useInnovatorA11y();
   const initials = (profile.fullName || "Innovator")
     .trim()
     .split(/\s+/)
@@ -290,7 +290,7 @@ export function InnovatorDocumentsScreen({
   token: string;
   documents: InnovatorDocument[];
 }) {
-  const { fs } = useInnovatorA11y();
+  const { fs, darkMode, toggleDarkMode } = useInnovatorA11y();
   const [query, setQuery] = useState("");
   const [scope, setScope] = useState<"Verification records" | "All files & links">("Verification records");
   const [section, setSection] = useState("all");
@@ -408,7 +408,7 @@ export function OptimusAssistantContent({
   onRequestsUpdated: (requests: SupportRequestItem[]) => void;
   onClose?: () => void;
 }) {
-  const { fs } = useInnovatorA11y();
+  const { fs, darkMode, toggleDarkMode } = useInnovatorA11y();
   const scrollRef = useRef<React.ComponentRef<typeof ScrollView> | null>(null);
   const [question, setQuestion] = useState("");
   const [pendingPrompt, setPendingPrompt] = useState<string | null>(null);
@@ -1151,7 +1151,7 @@ export function InnovatorSupportScreen({
   onRequestsUpdated: (items: SupportRequestItem[]) => void;
   onOpenLiveChat?: () => void;
 }) {
-  const { fs } = useInnovatorA11y();
+  const { fs, darkMode, toggleDarkMode } = useInnovatorA11y();
   const [segment, setSegment] = useState<"faqs" | "tickets" | "new">("faqs");
   const [faqQuery, setFaqQuery] = useState("");
   const [kind, setKind] = useState<"Support" | "Bug" | "Feedback">("Support");
@@ -1624,7 +1624,7 @@ export function InnovatorSettingsScreen({
   onProfileUpdated: (next: InnovatorProfile) => void;
   onSignOut: () => void;
 }) {
-  const { fs } = useInnovatorA11y();
+  const { fs, darkMode, toggleDarkMode } = useInnovatorA11y();
   const [tab, setTab] = useState<string>("personal");
 
   const [fullName, setFullName] = useState(profile.fullName || "");
@@ -1879,6 +1879,12 @@ export function InnovatorSettingsScreen({
 
       {tab === "accessibility" ? (
         <GlassCard>
+          <SwitchRow
+            label="Dark mode"
+            detail="High-contrast dark palette for night use and low-light environments."
+            value={Boolean(darkMode)}
+            onValueChange={() => toggleDarkMode?.()}
+          />
           <FormField label="Text size">
             <ChoiceChips
               options={["standard", "large", "xlarge"]}

@@ -50,6 +50,8 @@ export interface InnovatorA11yConfig {
   scale: number;
   highContrast: boolean;
   reducedMotion: boolean;
+  darkMode: boolean;
+  toggleDarkMode?: () => void;
   fs: (step: FontStep) => number;
 }
 
@@ -58,6 +60,7 @@ const defaultA11y: InnovatorA11yConfig = {
   scale: 1,
   highContrast: false,
   reducedMotion: false,
+  darkMode: false,
   fs: (step) => fontSizes[step],
 };
 
@@ -67,11 +70,15 @@ export function InnovatorA11yProvider({
   textSize = "standard",
   highContrast = false,
   reducedMotion = false,
+  darkMode = false,
+  toggleDarkMode,
   children,
 }: {
   textSize?: "standard" | "large" | "xlarge";
   highContrast?: boolean;
   reducedMotion?: boolean;
+  darkMode?: boolean;
+  toggleDarkMode?: () => void;
   children: React.ReactNode;
 }) {
   const scale = textSize === "xlarge" ? 1.22 : textSize === "large" ? 1.11 : 1;
@@ -82,6 +89,8 @@ export function InnovatorA11yProvider({
         scale,
         highContrast,
         reducedMotion,
+        darkMode,
+        toggleDarkMode,
         fs: (step) => Math.round(fontSizes[step] * scale),
       }}
     >

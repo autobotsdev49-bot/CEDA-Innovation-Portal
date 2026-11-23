@@ -4,23 +4,38 @@
     "slug": "ceda-innovation-portal",
     "version": "0.1.0",
     "userInterfaceStyle": "light",
-    "ios": { "bundleIdentifier": "com.autobotsdev.cedainnovation", "supportsTablet": true },
+    "ios": {
+      "bundleIdentifier": "com.autobotsdev.cedainnovation",
+      "supportsTablet": true
+    },
     "android": {
       "package": "com.autobotsdev.cedainnovation",
       "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "resize"
     },
     "plugins": [
-      ["expo-splash-screen", {
-        "backgroundColor": "#ffffff",
-        "image": "./assets/ceda.png",
-        "imageWidth": 160,
-        "resizeMode": "contain"
-      }],
-      ["expo-notifications", {
-        "color": "#9A3D2B",
-        "defaultChannel": "ceda-portal-updates"
-      }]
-    ]
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#ffffff",
+          "image": "./assets/ceda.png",
+          "imageWidth": 160,
+          "resizeMode": "contain"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "color": "#9A3D2B",
+          "defaultChannel": "ceda-portal-updates"
+        }
+      ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "a3bf111f-1239-4da0-80a0-7ab0ca917738"
+      }
+    },
+    "owner": "jaycoder267"
   }
 }

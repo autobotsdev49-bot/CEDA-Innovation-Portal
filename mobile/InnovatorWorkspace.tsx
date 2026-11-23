@@ -8,6 +8,7 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -49,6 +50,7 @@ import {
 } from "./InnovatorUI";
 import { InnovatorWizard, type WizardScreenMode } from "./InnovatorWizard";
 import { buttonCornerRadius, fontSizes } from "./theme";
+import { useAccessibility } from "./useAccessibility";
 
 const WORKSPACE_BG = require("./assets/innovation.webp");
 
@@ -70,6 +72,7 @@ export function InnovatorWorkspace({
   onAccountChange: (next: Account) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { darkMode, setDarkMode } = useAccessibility();
   const [data, setData] = useState<InnovatorWorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -470,8 +473,10 @@ export function InnovatorWorkspace({
       textSize={(prefs.textSize as "standard" | "large" | "xlarge") || "standard"}
       highContrast={Boolean(prefs.highContrast)}
       reducedMotion={Boolean(prefs.reducedMotion)}
+      darkMode={darkMode}
+      toggleDarkMode={() => setDarkMode(!darkMode)}
     >
-      <View style={styles.screen}>
+      <View style={[styles.screen, darkMode && { backgroundColor: "#131009" }]}>
         <FrostedScreenBackdrop image={WORKSPACE_BG} imageHeight={320}>
           {/* Top Frosted Header (Matches AdminWorkspace.tsx) */}
           <View style={styles.header}>
@@ -924,6 +929,25 @@ export function InnovatorWorkspace({
                         </Pressable>
                       );
                     })}
+
+                    <Text style={[styles.drawerSectionLabel, { marginTop: 12 }]}>
+                      ACCESSIBILITY
+                    </Text>
+                    <View style={styles.drawerA11yBox}>
+                      <View style={styles.drawerA11yRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.drawerItemTitle}>Dark mode</Text>
+                          <Text style={styles.drawerSub}>High-contrast dark palette</Text>
+                        </View>
+                        <Switch
+                          value={darkMode}
+                          onValueChange={setDarkMode}
+                          thumbColor={darkMode ? adminStyleColors.rust : "#fff"}
+                          trackColor={{ false: "#d1c4bb", true: "rgba(154,61,43,0.35)" }}
+                          accessibilityLabel="Toggle dark mode"
+                        />
+                      </View>
+                    </View>
                   </ScrollView>
 
                   <View style={styles.drawerAccount}>
@@ -1320,6 +1344,20 @@ const styles = StyleSheet.create({
     paddingTop: 14,
     borderTopColor: hairline,
     borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  drawerA11yBox: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "rgba(36,28,25,0.04)",
+    borderRadius: 16,
+    marginHorizontal: 8,
+    marginVertical: 4,
+  },
+  drawerA11yRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
   },
   notifRow: {
     flexDirection: "row",
