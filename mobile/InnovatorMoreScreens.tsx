@@ -1913,6 +1913,9 @@ export function InnovatorSettingsScreen({
               • Swipe left/right with TalkBack or VoiceOver across form controls, tabs, and action pills.
             </Text>
             <Text style={{ fontSize: fs("caption"), color: adminStyleColors.subtle, marginTop: 2, lineHeight: 18 }}>
+              • Voice Control & Hands-free: Use voice commands in web accessibility menu; mobile Voice Access / VoiceOver is fully supported.
+            </Text>
+            <Text style={{ fontSize: fs("caption"), color: adminStyleColors.subtle, marginTop: 2, lineHeight: 18 }}>
               • Hardware Back and Escape return cleanly from sub-screens and modals without losing draft progress.
             </Text>
           </View>
