@@ -1376,6 +1376,7 @@ async function start() {
     state.profile = profile;
     globalThis.__cedaSetPortalActivityActor?.(profile, signupConfig, state.token);
     void import("./telemetry.js").then(m => m.initPortalTelemetry?.({ portalRole: "support" })).catch(() => {});
+    void import("./webFcm.js").then(m => m.registerWebFcmIfSupported?.(signupConfig, state.token)).catch(() => {});
     const officerName = String(profile.full_name || "Support Officer").trim();
     const nameEl = document.querySelector("[data-support-name]");
     const firstEl = document.querySelector("[data-support-first-name]");

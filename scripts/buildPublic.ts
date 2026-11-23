@@ -15,9 +15,10 @@ await writeFile(new URL("assessor.js", assets), `try {\n${assessmentFormSource.r
 for (const filename of ["assessmentForm.js", "assessmentOverview.js", "supportOverview.js", "committeeOverview.js", "reportingOverview.js"]) {
   await copyFile(new URL(`../mobile/${filename}`, import.meta.url), new URL(filename, assets));
 }
-for (const filename of ["ceda.png", "site.css", "admin.css", "innovator.css", "assessor.css", "support.css", "committee.css", "accessibility.css", "accessibility.js", "telemetry.js", "portalCatalog.js", "notificationsDomain.js", "admin.js", "adminOperations.js", "adminOverview.js", "activate.js", "access.css", "access.js", "signup.js", "signin.js", "signupApi.js", "verificationSession.js", "verificationCooldown.js", "verificationScreen.js", "verifiedAccount.js", "site.js", "innovation-hero.webp", "innovation-story.png", "innovation-gallery.png", "story-maggie.png", "story-obakeng.png", "story-tsholefelo.png"]) {
+for (const filename of ["ceda.png", "site.css", "admin.css", "innovator.css", "assessor.css", "support.css", "committee.css", "accessibility.css", "accessibility.js", "telemetry.js", "portalCatalog.js", "notificationsDomain.js", "webFcm.js", "admin.js", "adminOperations.js", "adminOverview.js", "activate.js", "access.css", "access.js", "signup.js", "signin.js", "signupApi.js", "verificationSession.js", "verificationCooldown.js", "verificationScreen.js", "verifiedAccount.js", "site.js", "innovation-hero.webp", "innovation-story.png", "innovation-gallery.png", "story-maggie.png", "story-obakeng.png", "story-tsholefelo.png"]) {
   await copyFile(new URL(`../src/publicSite/assets/${filename}`, import.meta.url), new URL(filename, assets));
 }
+await copyFile(new URL("../src/publicSite/assets/firebase-messaging-sw.js", import.meta.url), new URL("firebase-messaging-sw.js", output));
 
 // Keep the Support Officer entry self-contained alongside supportOverview helpers.
 const supportOverviewSource = await readFile(new URL("../mobile/supportOverview.js", import.meta.url), "utf8");
@@ -62,7 +63,11 @@ const innovatorEntry = innovatorSource
   .replace(/^import (\{[^\n]+\}) from ("[^\n]+");/gm, "const $1 = await import($2);");
 await writeFile(new URL("innovator.js", assets), `try {\n${wizardSource.replace(/\bexport\s+(const|function)\s+/g, "$1 ")}\n${innovatorEntry}\n} catch {\n  const status = document.querySelector('[data-innovator-status]');\n  if (status) {\n    status.classList.remove('admin-status-silent');\n    status.textContent = 'The innovator workspace could not start. Reload the page. If this continues on localhost, restart npm run dev.';\n  }\n}\n`, "utf8");
 
-let signupConfig: { url: string; key: string } | null = null;
+let signupConfig: {
+  url: string;
+  key: string;
+  firebaseWeb?: { projectId: string; apiKey: string; vapidKey: string; appId?: string };
+} | null = null;
 const signupEnabled = process.env.CEDA_SIGNUP_ENABLED === "true";
 if (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) {
   const url = new URL(process.env.NEXT_PUBLIC_SUPABASE_URL ?? "");
@@ -73,7 +78,17 @@ if (process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_PUB
       !/^sb_publishable_[\w-]+$/.test(key)) {
     if (signupEnabled) throw new Error("Signup requires a Supabase origin and an sb_publishable_ key.");
   } else {
-    signupConfig = { url: url.origin, key };
+    const fbProject = (process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID || process.env.FCM_PROJECT_ID || "").trim();
+    const fbApiKey = (process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "").trim();
+    const fbVapid = (process.env.NEXT_PUBLIC_FIREBASE_VAPID_KEY || "").trim();
+    const fbAppId = (process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "").trim();
+    signupConfig = {
+      url: url.origin,
+      key,
+      ...(fbProject && fbApiKey && fbVapid
+        ? { firebaseWeb: { projectId: fbProject, apiKey: fbApiKey, vapidKey: fbVapid, ...(fbAppId ? { appId: fbAppId } : {}) } }
+        : {}),
+    };
   }
 }
 if (signupEnabled && !signupConfig) throw new Error("Signup requires a Supabase origin and an sb_publishable_ key.");
@@ -94,7 +109,9 @@ const authHeaders = [
       "style-src 'self'",
       "img-src 'self' data: blob:",
       "font-src 'self'",
-      signupConfig ? `connect-src ${signupConfig.url}` : "connect-src 'none'",
+      signupConfig
+        ? `connect-src ${signupConfig.url} https://firebaseinstallations.googleapis.com https://fcmregistrations.googleapis.com`
+        : "connect-src 'none'",
       "frame-ancestors 'none'",
       "base-uri 'none'",
       "form-action 'none'",

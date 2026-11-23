@@ -3175,6 +3175,7 @@ async function bootstrapPortal() {
     }
     globalThis.__cedaSetPortalActivityActor?.(profile, signupConfig, token);
     void import("./telemetry.js").then(m => m.initPortalTelemetry?.({ portalRole: "innovator" })).catch(() => {});
+    void import("./webFcm.js").then(m => m.registerWebFcmIfSupported?.(signupConfig, token)).catch(() => {});
     await loadWorkspace(true);
     workspaceEl.hidden = false;
     announce("");

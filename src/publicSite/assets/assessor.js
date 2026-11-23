@@ -2217,6 +2217,7 @@ async function start() {
     if (state.profile.account_role !== "assessor") return location.replace(roleHomes[state.profile.account_role] || "/signin/");
     globalThis.__cedaSetPortalActivityActor?.(state.profile, signupConfig, token);
     void import("./telemetry.js").then(m => m.initPortalTelemetry?.({ portalRole: "assessor" })).catch(() => {});
+    void import("./webFcm.js").then(m => m.registerWebFcmIfSupported?.(signupConfig, token)).catch(() => {});
     state.workspace = await rpc("assessor_workspace");
     const { profile } = state.workspace;
     root.querySelector("[data-assessor-name]").textContent = profile.name;

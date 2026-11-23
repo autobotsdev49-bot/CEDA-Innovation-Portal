@@ -767,6 +767,7 @@ async function start() {
 
     wireEvents();
     void import("./telemetry.js").then(m => m.initPortalTelemetry?.({ portalRole: "committee" })).catch(() => {});
+    void import("./webFcm.js").then(m => m.registerWebFcmIfSupported?.(signupConfig, state.token)).catch(() => {});
     await loadWorkspace(true);
     await refreshMfaStatus();
     ensureCommitteeRealtimeSync();

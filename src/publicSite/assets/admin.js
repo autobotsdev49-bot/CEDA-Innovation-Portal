@@ -1832,6 +1832,7 @@ void run(async () => {
   }
   globalThis.__cedaSetPortalActivityActor?.(profile, signupConfig, accountToken());
   void import("./telemetry.js").then(m => m.initPortalTelemetry?.({ portalRole: "admin" })).catch(() => {});
+  void import("./webFcm.js").then(m => m.registerWebFcmIfSupported?.(signupConfig, accountToken())).catch(() => {});
   const adminName = profile.full_name || "Administrator";
   const adminEmail = profile.email || "Verified administrator session";
   document.querySelector("[data-admin-name]").textContent = adminName;

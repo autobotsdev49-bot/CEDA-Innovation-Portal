@@ -9,9 +9,10 @@ const files = new Map(Object.keys(pages).map((path) =>
 for (const filename of ["site.css", "access.css", "admin.css", "innovator.css", "assessor.css", "support.css", "committee.css", "accessibility.css"]) {
   files.set(`/assets/${filename}`, { path: `assets/${filename}`, type: "text/css; charset=utf-8" });
 }
-for (const filename of ["site.js", "accessibility.js", "telemetry.js", "reportingOverview.js", "portalCatalog.js", "notificationsDomain.js", "admin.js", "adminOperations.js", "adminOverview.js", "innovator.js", "assessor.js", "support.js", "supportOverview.js", "committee.js", "committeeOverview.js", "assessmentForm.js", "assessmentOverview.js", "activate.js", "access.js", "signup.js", "signin.js", "signupApi.js", "signupConfig.js", "verificationSession.js", "verificationCooldown.js", "verificationScreen.js", "verifiedAccount.js"]) {
+for (const filename of ["site.js", "accessibility.js", "telemetry.js", "reportingOverview.js", "portalCatalog.js", "notificationsDomain.js", "webFcm.js", "admin.js", "adminOperations.js", "adminOverview.js", "innovator.js", "assessor.js", "support.js", "supportOverview.js", "committee.js", "committeeOverview.js", "assessmentForm.js", "assessmentOverview.js", "activate.js", "access.js", "signup.js", "signin.js", "signupApi.js", "signupConfig.js", "verificationSession.js", "verificationCooldown.js", "verificationScreen.js", "verifiedAccount.js"]) {
   files.set(`/assets/${filename}`, { path: `assets/${filename}`, type: "text/javascript; charset=utf-8" });
 }
+files.set("/firebase-messaging-sw.js", { path: "firebase-messaging-sw.js", type: "text/javascript; charset=utf-8" });
 files.set("/assets/innovation-hero.webp", { path: "assets/innovation-hero.webp", type: "image/webp" });
 for (const name of ["innovation-story.png", "innovation-gallery.png"]) {
   files.set(`/assets/${name}`, { path: `assets/${name}`, type: "image/png" });
