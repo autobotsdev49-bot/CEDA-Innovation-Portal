@@ -15,6 +15,8 @@ import { InnovatorWorkspace } from "./InnovatorWorkspace";
 import { AssessorWorkspace } from "./AssessorWorkspace";
 import { SupportWorkspace } from "./SupportWorkspace";
 import { CommitteeWorkspace } from "./CommitteeWorkspace";
+import { unregisterNotificationDevice } from "./notificationsApi";
+import { useFcmNotifications } from "./useFcmNotifications";
 
 export type AuthMode = "signin" | "signup";
 const verificationWindow = 15 * 60_000;
@@ -87,6 +89,12 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
   const [pendingEmail, setPendingEmail] = useState("");
   const [showVerificationSuccess, setShowVerificationSuccess] = useState(false);
   const [account, setAccount] = useState<Account | null>(null);
+  const activeFcmTokenRef = useRef<string | null>(null);
+  useFcmNotifications(account, {
+    onTokenChange: (token) => {
+      activeFcmTokenRef.current = token;
+    },
+  });
   const [clock, setClock] = useState(Date.now);
   const secondsLeft = Math.max(0, Math.ceil((retryAt - clock) / 1000));
   const showBlur = backdropReady && !reduceTransparency && (Platform.OS === "ios" || (Platform.OS === "android" && Platform.Version >= 31));
@@ -191,8 +199,18 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
   function leave() {
     if (inFlight.current) return;
     if (account) {
+      const fcmToken = activeFcmTokenRef.current;
+      activeFcmTokenRef.current = null;
       setAccount(null);
-      void signOutInnovator(account.token).catch(() => {});
+      if (fcmToken) {
+        void unregisterNotificationDevice(account.token, fcmToken)
+          .catch(() => {})
+          .finally(() => {
+            void signOutInnovator(account.token).catch(() => {});
+          });
+      } else {
+        void signOutInnovator(account.token).catch(() => {});
+      }
     }
     onBack();
   }
