@@ -6,7 +6,7 @@ Welcome to the **CEDA Innovation Portal** (Web & Mobile). This manual explains h
 
 ## 1. Access & Platforms
 
-- **Live Web Portal**: [https://ceda-innovation-portal-nine.vercel.app/](https://ceda-innovation-portal-nine.vercel.app/)
+- **Live Web Portal**: [https://dist-tau-eight-27.vercel.app/](https://dist-tau-eight-27.vercel.app/)
 - **Android Mobile App (EAS APK)**: Download and install the standalone `.apk` from the latest EAS build, or run via **Expo Go** during development.
 - **Role-Based Sign-In**: All users sign in from the shared `/signin/` page (Web) or the **Sign in** screen (Mobile). The portal automatically routes you to your assigned workspace:
   - **Innovator**: `/account/`

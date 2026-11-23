@@ -8,11 +8,12 @@ Team repository: [CEDA Innovation Portal on GitHub](https://github.com/autobotsd
 
 | Deliverable | Link / Location |
 | --- | --- |
-| **Live Web Solution (Vercel)** | [https://ceda-innovation-portal-nine.vercel.app/](https://ceda-innovation-portal-nine.vercel.app/) |
+| **Live Web Solution (Vercel)** | [https://dist-tau-eight-27.vercel.app/](https://dist-tau-eight-27.vercel.app/) |
 | **Source Code (GitHub)** | [https://github.com/autobotsdev49-bot/CEDA-Innovation-Portal](https://github.com/autobotsdev49-bot/CEDA-Innovation-Portal) |
 | **User Manual** | [USER_MANUAL.md](USER_MANUAL.md) |
+| **Tech Stack** | [TECH_STACK.md](TECH_STACK.md) |
 | **Android Executable (EAS APK)** | [Latest EAS Android APK Build (`preview`)](https://expo.dev/accounts/jaycoder267/projects/ceda-innovation-portal/builds/f399e8e7-9f6d-459b-80b9-0292aa661a66) |
-| **Figma Project Designs** | `[Insert Figma Design Link Here]` |
+| **Figma Project Designs** | [CEDA Innovation Portal — Figma Designs](https://www.figma.com/design/C5Bax6H3Z6ZXPznR165Ana/CEDA-Hackthon?node-id=0-1&t=nM6QbMHb8uigmqKL-1) |
 
 ---
 

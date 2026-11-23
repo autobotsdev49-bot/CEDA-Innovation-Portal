@@ -23,7 +23,7 @@ This document details every language, framework, database, cloud service, securi
 | **Security Headers** | Strict CSP (`dist/vercel.json`) | Protected portal routes enforce `default-src 'none'`, `script-src 'self'`, `style-src 'self'`, `frame-ancestors 'none'`, `Referrer-Policy: no-referrer`, and `Cache-Control: no-store`. |
 | **Web Push (FCM)** | Service Worker (`firebase-messaging-sw.js`) + `webFcm.js` | Zero-dependency browser `PushManager` + Firebase Installations / FCM Registrations REST integration (`platform = 'web'`). |
 | **Accessibility & Tour** | `accessibility.js` + `tour.js` | Dark mode, multi-step text scaling, high contrast, TalkBack/screen-reader announcements, and interactive spotlight guided tour. |
-| **Hosting** | **Vercel** | Static CDN hosting at `https://ceda-innovation-portal-nine.vercel.app/` with per-route caching and security headers. |
+| **Hosting** | **Vercel** | Static CDN hosting at `https://dist-tau-eight-27.vercel.app/` with per-route caching and security headers. |
 
 ---
 
