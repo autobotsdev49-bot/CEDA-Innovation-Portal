@@ -326,13 +326,13 @@ export function SupportWorkspace({
     <InnovatorA11yProvider>
       <View style={styles.root}>
         <FrostedScreenBackdrop image={require("./assets/innovation.webp")} imageHeight={320}>
-          <View style={[styles.header, { paddingTop: Math.max(insets.top, 10) }]}>
+          <View style={styles.header}>
             <FrostedSurface variant="bar" />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Open support menu"
               onPress={() => setDrawerOpen(true)}
-              style={styles.headerAction}
+              style={({ pressed }) => [styles.headerAction, pressed && { opacity: 0.7 }]}
             >
               <MobileIcon name="menu" color={colors.navy} />
             </Pressable>
@@ -345,10 +345,10 @@ export function SupportWorkspace({
               />
               <View style={styles.headerBody}>
                 <Text numberOfLines={1} style={styles.headerTitle}>
-                  Support Desk
+                  Innovation
                 </Text>
                 <Text numberOfLines={1} style={styles.headerSubtitle}>
-                  {account.name} · {availability}
+                  Support desk · {availability}
                 </Text>
               </View>
             </View>
@@ -356,7 +356,7 @@ export function SupportWorkspace({
               accessibilityRole="button"
               accessibilityLabel={`Open requests, ${summary.openRequests} unresolved`}
               onPress={() => openQueueSlice("All")}
-              style={styles.headerAction}
+              style={({ pressed }) => [styles.headerAction, pressed && { opacity: 0.7 }]}
             >
               <MobileIcon name="bell" color={colors.navy} />
               {summary.openRequests > 0 && <View style={styles.bellDot} />}
@@ -807,7 +807,11 @@ export function SupportWorkspace({
                   accessibilityLabel={tab.label}
                   accessibilityState={{ selected: active }}
                   onPress={() => setScreen(tab.key)}
-                  style={[styles.tab, active && styles.selectedTab]}
+                  style={({ pressed }) => [
+                    styles.tab,
+                    active && styles.selectedTab,
+                    pressed && !active && { opacity: 0.72 },
+                  ]}
                 >
                   <InnovatorIcon name={tab.icon} color={active ? colors.rust : colors.muted} />
                   <Text numberOfLines={1} style={[styles.tabLabel, active && styles.selectedTabLabel]}>
@@ -824,13 +828,23 @@ export function SupportWorkspace({
                 <Pressable accessibilityRole="button" accessibilityLabel="Close support menu" onPress={() => setDrawerOpen(false)} style={StyleSheet.absoluteFill} />
                 <View accessibilityViewIsModal style={[styles.drawer, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 18) }]}>
                   <FrostedSurface variant="sheet" />
-                  <View style={styles.drawerHead}>
-                    <View style={styles.headerBody}>
-                      <Text style={styles.eyebrow}>CEDA Innovation</Text>
-                      <Text style={styles.headerTitle}>Support workspace</Text>
+                  <View style={styles.drawerHeading}>
+                    <View style={styles.drawerBrand}>
+                      <Image
+                        source={require("./assets/ceda.png")}
+                        resizeMode="contain"
+                        style={styles.logo}
+                        accessibilityLabel="CEDA Innovation"
+                      />
+                      <View style={{ flex: 1 }}>
+                        <Text accessibilityRole="header" style={styles.drawerHeadingTitle}>
+                          Support Desk
+                        </Text>
+                        <Text style={styles.headerSubtitle}>Quick navigation</Text>
+                      </View>
                     </View>
-                    <Pressable accessibilityRole="button" accessibilityLabel="Close menu" onPress={() => setDrawerOpen(false)} style={styles.headerAction}>
-                      <InnovatorIcon name="close" color={colors.navy} />
+                    <Pressable accessibilityRole="button" accessibilityLabel="Close menu" onPress={() => setDrawerOpen(false)} style={({ pressed }) => [styles.closeCircle, pressed && { opacity: 0.7 }]}>
+                      <InnovatorIcon name="close" color="#52606E" />
                     </Pressable>
                   </View>
                   <ScrollView contentContainerStyle={styles.drawerList}>
@@ -852,6 +866,7 @@ export function SupportWorkspace({
                         icon={tab.icon}
                         tint={screen === tab.key ? "#FBEDE8" : "#F3EFE9"}
                         color={screen === tab.key ? colors.rustDark : colors.navy}
+                        badge={tab.key === "queue" && summary.openRequests > 0 ? `${summary.openRequests} open` : undefined}
                         onPress={() => {
                           setScreen(tab.key);
                           setDrawerOpen(false);
@@ -860,6 +875,13 @@ export function SupportWorkspace({
                     ))}
                     <ActionButton label="Sign out" variant="secondary" onPress={onSignOut} />
                   </ScrollView>
+                  <View style={styles.drawerAccount}>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.drawerItemTitle}>{account.name}</Text>
+                      <Text numberOfLines={1} style={styles.headerSubtitle}>Support Officer · {availability}</Text>
+                    </View>
+                    <ActionButton label="Sign out" variant="secondary" compact onPress={onSignOut} />
+                  </View>
                 </View>
               </View>
             </FrostedModalBackdrop>
@@ -879,14 +901,14 @@ export function SupportWorkspace({
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.canvas },
-  header: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10, paddingHorizontal: 14, borderBottomWidth: 1, borderBottomColor: colors.borderWhite, overflow: "hidden" },
-  headerAction: { width: 44, height: 44, borderRadius: 22, justifyContent: "center", alignItems: "center", backgroundColor: "rgba(255,255,255,0.84)", borderWidth: 1, borderColor: "#E5DDD3" },
-  brand: { flex: 1, flexDirection: "row", gap: 9, alignItems: "center" },
-  logo: { width: 38, height: 36 },
+  header: { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 10, gap: 10, borderBottomWidth: 1, borderBottomColor: "rgba(255,255,255,0.88)", overflow: "hidden" },
+  headerAction: { width: 42, height: 42, borderRadius: 21, backgroundColor: "rgba(255,255,255,0.82)", borderWidth: 1, borderColor: "#E5DDD3", justifyContent: "center", alignItems: "center" },
+  brand: { flex: 1, flexDirection: "row", gap: 8, alignItems: "center", justifyContent: "center" },
+  logo: { width: 40, height: 36 },
   headerBody: { flex: 1, minWidth: 0, gap: 2 },
   headerTitle: { color: colors.navy, fontSize: fontSizes.heading, fontWeight: "700" },
   headerSubtitle: { color: colors.muted, fontSize: fontSizes.caption },
-  bellDot: { position: "absolute", width: 8, height: 8, borderRadius: 4, top: 8, right: 8, backgroundColor: colors.rust },
+  bellDot: { position: "absolute", top: 9, right: 10, width: 7, height: 7, borderRadius: 3.5, backgroundColor: colors.rust, borderWidth: 1.2, borderColor: "white" },
   body: { flex: 1 },
   content: { paddingHorizontal: 16, paddingTop: 16, gap: 14, width: "100%", maxWidth: 760, alignSelf: "center" },
   card: { gap: 10 },
@@ -933,13 +955,65 @@ const styles = StyleSheet.create({
   openConvBtn: { paddingHorizontal: 14, paddingVertical: 7, borderRadius: 999, backgroundColor: "#FFF5ED", borderWidth: 1, borderColor: "#D9C3B6" },
   openConvBtnText: { color: colors.rustDark, fontSize: fontSizes.caption, fontWeight: "700" },
   perfCard: { flexBasis: "46%", flexGrow: 1, borderRadius: 18, borderWidth: 1, borderColor: colors.borderWhite, padding: 14, gap: 6, overflow: "hidden" },
-  tabBar: { flexDirection: "row", gap: 4, paddingHorizontal: 8, paddingTop: 7, overflow: "hidden", borderTopWidth: 1, borderTopColor: colors.borderWhite },
-  tab: { flex: 1, minHeight: 48, alignItems: "center", justifyContent: "center", gap: 3 },
+  tabBar: {
+    flexDirection: "row",
+    borderTopWidth: 1,
+    borderTopColor: "rgba(255,255,255,0.9)",
+    paddingTop: 8,
+    paddingHorizontal: 6,
+    overflow: "hidden",
+  },
+  tab: {
+    flex: 1,
+    minHeight: 56,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 5,
+    paddingVertical: 6,
+  },
   tabLabel: { fontSize: fontSizes.caption, color: colors.muted, textAlign: "center" },
-  selectedTab: { backgroundColor: "#FBEDE8", borderRadius: 14 },
+  selectedTab: { backgroundColor: "rgba(251,237,232,0.88)", borderRadius: 14 },
   selectedTabLabel: { color: colors.rust, fontWeight: "700" },
   drawerBackdrop: { flex: 1 },
-  drawer: { width: "86%", maxWidth: 360, height: "100%", overflow: "hidden", borderRightWidth: 1, borderRightColor: colors.borderWhite },
-  drawerHead: { flexDirection: "row", alignItems: "center", gap: 8, paddingHorizontal: 16, paddingBottom: 10 },
-  drawerList: { paddingHorizontal: 14, paddingBottom: 16, gap: 10 },
+  drawer: {
+    width: "86%",
+    maxWidth: 360,
+    height: "100%",
+    borderRightWidth: 1,
+    borderColor: "rgba(255,255,255,0.94)",
+    overflow: "hidden",
+  },
+  drawerHeading: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 10,
+    paddingHorizontal: 18,
+    paddingBottom: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "rgba(218,208,198,0.45)",
+  },
+  drawerBrand: { flex: 1, flexDirection: "row", gap: 10, alignItems: "center" },
+  drawerHeadingTitle: { color: colors.navy, fontSize: fontSizes.heading, fontWeight: "700", letterSpacing: -0.3 },
+  closeCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F5F1EC",
+    borderWidth: 1,
+    borderColor: "#E5DDD3",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  drawerList: { padding: 14, gap: 4 },
+  drawerItemTitle: { color: colors.navy, fontWeight: "600", fontSize: fontSizes.body },
+  drawerAccount: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    paddingHorizontal: 18,
+    paddingTop: 14,
+    borderTopColor: "rgba(218,208,198,0.45)",
+    borderTopWidth: 1,
+  },
 });
