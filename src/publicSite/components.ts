@@ -39,7 +39,7 @@ export function siteHeader(path: string) {
     `<a href="${item.path}"${item.path === path ? ' aria-current="page"' : ""}>${item.label}</a>`).join("");
   return `<header class="header"><div class="wrap header-inner">${brand}
 <nav class="desktop-nav" aria-label="Main navigation">${links}</nav>
-<div class="header-actions">${buttonLink("/register/", "Sign up", "secondary", false)}${buttonLink("/signin/", "Submit innovation")}</div>
+<div class="header-actions"><div id="a11y-header-mount"></div>${buttonLink("/register/", "Sign up", "secondary", false)}${buttonLink("/signin/", "Submit innovation")}</div>
 <details class="mobile-nav"><summary>${icon("menu")} Menu</summary><nav aria-label="Main navigation">${links}<a href="/register/">Sign up</a><a href="/signin/">Submit innovation</a></nav></details></div></header>`;
 }
 

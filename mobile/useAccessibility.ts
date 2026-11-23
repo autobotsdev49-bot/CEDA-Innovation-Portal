@@ -8,14 +8,22 @@
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useState } from "react";
+import { AccessibilityInfo } from "react-native";
 
 const DARK_MODE_KEY = "ceda.mobile.darkMode";
+
+export function announceTalkBack(message: string) {
+  try {
+    AccessibilityInfo.announceForAccessibility(message);
+  } catch {}
+}
 
 export function useAccessibility() {
   const [darkMode, setDarkModeState] = useState<boolean>(false);
   const [loaded, setLoaded] = useState(false);
+  const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
 
-  // Load from storage on mount
+  // Load from storage and check screen reader on mount
   useEffect(() => {
     let active = true;
     void AsyncStorage.getItem(DARK_MODE_KEY)
@@ -28,15 +36,32 @@ export function useAccessibility() {
       .catch(() => {
         if (active) setLoaded(true);
       });
-    return () => { active = false; };
+
+    void AccessibilityInfo.isScreenReaderEnabled().then((enabled) => {
+      if (active) setScreenReaderEnabled(enabled);
+    }).catch(() => {});
+
+    const sub = AccessibilityInfo.addEventListener("screenReaderChanged", (enabled) => {
+      if (active) setScreenReaderEnabled(enabled);
+    });
+
+    return () => {
+      active = false;
+      sub?.remove?.();
+    };
   }, []);
 
   function setDarkMode(next: boolean) {
     setDarkModeState(next);
     void AsyncStorage.setItem(DARK_MODE_KEY, next ? "true" : "false").catch(() => {});
+    announceTalkBack(next ? "Dark mode on" : "Light mode on");
   }
 
-  return { darkMode, setDarkMode, darkModeLoaded: loaded };
+  function announce(message: string) {
+    announceTalkBack(message);
+  }
+
+  return { darkMode, setDarkMode, darkModeLoaded: loaded, screenReaderEnabled, announce };
 }
 
 // Dark palette for the mobile app

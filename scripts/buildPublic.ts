@@ -15,7 +15,7 @@ await writeFile(new URL("assessor.js", assets), `try {\n${assessmentFormSource.r
 for (const filename of ["assessmentForm.js", "assessmentOverview.js", "supportOverview.js", "committeeOverview.js", "reportingOverview.js"]) {
   await copyFile(new URL(`../mobile/${filename}`, import.meta.url), new URL(filename, assets));
 }
-for (const filename of ["ceda.png", "site.css", "admin.css", "innovator.css", "assessor.css", "support.css", "committee.css", "telemetry.js", "portalCatalog.js", "notificationsDomain.js", "admin.js", "adminOperations.js", "adminOverview.js", "activate.js", "access.css", "access.js", "signup.js", "signin.js", "signupApi.js", "verificationSession.js", "verificationCooldown.js", "verificationScreen.js", "verifiedAccount.js", "site.js", "innovation-hero.webp", "innovation-story.png", "innovation-gallery.png", "story-maggie.png", "story-obakeng.png", "story-tsholefelo.png"]) {
+for (const filename of ["ceda.png", "site.css", "admin.css", "innovator.css", "assessor.css", "support.css", "committee.css", "accessibility.css", "accessibility.js", "telemetry.js", "portalCatalog.js", "notificationsDomain.js", "admin.js", "adminOperations.js", "adminOverview.js", "activate.js", "access.css", "access.js", "signup.js", "signin.js", "signupApi.js", "verificationSession.js", "verificationCooldown.js", "verificationScreen.js", "verifiedAccount.js", "site.js", "innovation-hero.webp", "innovation-story.png", "innovation-gallery.png", "story-maggie.png", "story-obakeng.png", "story-tsholefelo.png"]) {
   await copyFile(new URL(`../src/publicSite/assets/${filename}`, import.meta.url), new URL(filename, assets));
 }
 

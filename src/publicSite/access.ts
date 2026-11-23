@@ -93,7 +93,7 @@ export function accountScreen() {
 function accessLayout(content: string, storyTitle: string, attributes = "", extraClass = "", tail = "") {
   return `<div class="access-layout${extraClass}"${attributes}>
   <div class="access-workspace">
-    <header class="access-brand">${brand}</header>
+    <header class="access-brand">${brand}<div id="a11y-access-mount"></div></header>
     ${content}
     <footer class="access-footer">${textLink("/", "Back to the public site")}<a href="/help/">Help centre</a></footer>
   </div>

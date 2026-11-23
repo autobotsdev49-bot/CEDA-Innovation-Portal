@@ -72,7 +72,7 @@ export function InnovatorWorkspace({
   onAccountChange: (next: Account) => void;
 }) {
   const insets = useSafeAreaInsets();
-  const { darkMode, setDarkMode } = useAccessibility();
+  const { darkMode, setDarkMode, announce } = useAccessibility();
   const [data, setData] = useState<InnovatorWorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -946,6 +946,29 @@ export function InnovatorWorkspace({
                           trackColor={{ false: "#d1c4bb", true: "rgba(154,61,43,0.35)" }}
                           accessibilityLabel="Toggle dark mode"
                         />
+                      </View>
+                      <View style={[styles.drawerA11yRow, { marginTop: 8, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(36,28,25,0.08)" }]}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.drawerItemTitle}>TalkBack speech</Text>
+                          <Text style={styles.drawerSub}>Read status aloud</Text>
+                        </View>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="Read account and application status aloud"
+                          onPress={() => {
+                            const appCount = data?.applications?.length || 0;
+                            const unread = (unreadMsgs || 0) + (unreadNotifs || 0);
+                            announce(`Innovator portal. Signed in as ${data?.profile?.fullName || account.name}. You have ${appCount} applications and ${unread} unread notifications.`);
+                          }}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: buttonCornerRadius,
+                            backgroundColor: adminStyleColors.rust,
+                          }}
+                        >
+                          <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>Speak</Text>
+                        </Pressable>
                       </View>
                     </View>
                   </ScrollView>
