@@ -3,15 +3,20 @@
     "name": "CEDA Innovation",
     "slug": "ceda-innovation-portal",
     "version": "0.1.0",
-    "userInterfaceStyle": "light",
+    "userInterfaceStyle": "automatic",
     "ios": {
       "bundleIdentifier": "com.autobotsdev.cedainnovation",
-      "supportsTablet": true
+      "supportsTablet": true,
+      "icon": "./assets/ceda.png"
     },
     "android": {
       "package": "com.autobotsdev.cedainnovation",
       "googleServicesFile": "./google-services.json",
-      "softwareKeyboardLayoutMode": "resize"
+      "softwareKeyboardLayoutMode": "resize",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/ceda.png",
+        "backgroundColor": "#ffffff"
+      }
     },
     "plugins": [
       [
@@ -36,6 +41,10 @@
         "projectId": "a3bf111f-1239-4da0-80a0-7ab0ca917738"
       }
     },
-    "owner": "jaycoder267"
+    "owner": "jaycoder267",
+    "icon": "./assets/ceda.png",
+    "web": {
+      "favicon": "./assets/ceda.png"
+    }
   }
 }

@@ -8,13 +8,17 @@ import { Onboarding, PortalWelcome } from "./Onboarding";
 import { palette } from "./theme";
 import { NativeAuth, type AuthMode } from "./NativeAuth";
 import { portalUrl } from "./auth";
+import { AccessibilityProvider, useAccessibility } from "./useAccessibility";
+import { AccessibilityModal } from "./AccessibilityModal";
+import { AccessibilityFab } from "./AccessibilityFab";
 
 const onboardingKey = "ceda.onboarding.v1";
 const splashHoldDuration = 1600;
 const splashFadeDuration = 650;
 void SplashScreen.preventAutoHideAsync().catch(() => {});
 
-export default function App() {
+function AppContent() {
+  const { darkMode } = useAccessibility();
   const [splashReady, setSplashReady] = useState(false);
   const [splashHoldFinished, setSplashHoldFinished] = useState(false);
   const [destinationReady, setDestinationReady] = useState(false);
@@ -82,53 +86,65 @@ export default function App() {
     }
   }
 
+  const bgScreen = darkMode ? "#131009" : palette.white;
+
+  return (
+    <View style={[styles.screen, { backgroundColor: bgScreen }]}>
+      <StatusBar barStyle={darkMode ? "light-content" : "dark-content"} />
+      {splashHoldFinished && showIntroduction !== null && (
+        <SafeAreaView
+          edges={authMode ? ["top", "left", "right"] : undefined}
+          style={[styles.screen, { backgroundColor: bgScreen }]}
+          pointerEvents={splashFinished ? "auto" : "none"}
+          accessibilityElementsHidden={!splashFinished}
+          importantForAccessibility={splashFinished ? "auto" : "no-hide-descendants"}
+          onLayout={() => setDestinationReady(true)}
+        >
+          {showIntroduction ? (
+            <Onboarding onFinish={finishIntroduction} />
+          ) : authMode ? (
+            <NativeAuth
+              key={authMode}
+              mode={authMode}
+              retryAt={retryAt[authMode]}
+              onRateLimited={(deadline) => setRetryAt(previous => ({ ...previous, [authMode]: deadline }))}
+              onBack={() => setAuthMode(null)}
+              onSwitch={setAuthMode}
+            />
+          ) : (
+            <PortalWelcome
+              error={linkError}
+              onSignIn={() => setAuthMode("signin")}
+              onSignUp={() => setAuthMode("signup")}
+              onWebsite={() => void openPortal(portalUrl)}
+            />
+          )}
+        </SafeAreaView>
+      )}
+      {!splashFinished && (
+        <Animated.View style={[StyleSheet.absoluteFill, styles.splash, { opacity: splashOpacity, backgroundColor: bgScreen }]}>
+          <Image
+            source={require("./assets/ceda.png")}
+            style={styles.splashLogo}
+            resizeMode="contain"
+            accessible
+            accessibilityLabel="CEDA Innovation"
+            onLoadEnd={() => setSplashReady(true)}
+          />
+        </Animated.View>
+      )}
+      <AccessibilityFab />
+      <AccessibilityModal />
+    </View>
+  );
+}
+
+export default function App() {
   return (
     <SafeAreaProvider>
-      <View style={styles.screen}>
-        <StatusBar barStyle="dark-content" />
-        {splashHoldFinished && showIntroduction !== null && (
-          <SafeAreaView
-            edges={authMode ? ["top", "left", "right"] : undefined}
-            style={styles.screen}
-            pointerEvents={splashFinished ? "auto" : "none"}
-            accessibilityElementsHidden={!splashFinished}
-            importantForAccessibility={splashFinished ? "auto" : "no-hide-descendants"}
-            onLayout={() => setDestinationReady(true)}
-          >
-            {showIntroduction ? (
-              <Onboarding onFinish={finishIntroduction} />
-            ) : authMode ? (
-              <NativeAuth
-                key={authMode}
-                mode={authMode}
-                retryAt={retryAt[authMode]}
-                onRateLimited={(deadline) => setRetryAt(previous => ({ ...previous, [authMode]: deadline }))}
-                onBack={() => setAuthMode(null)}
-                onSwitch={setAuthMode}
-              />
-            ) : (
-              <PortalWelcome
-                error={linkError}
-                onSignIn={() => setAuthMode("signin")}
-                onSignUp={() => setAuthMode("signup")}
-                onWebsite={() => void openPortal(portalUrl)}
-              />
-            )}
-          </SafeAreaView>
-        )}
-        {!splashFinished && (
-          <Animated.View style={[StyleSheet.absoluteFill, styles.splash, { opacity: splashOpacity }]}>
-            <Image
-              source={require("./assets/ceda.png")}
-              style={styles.splashLogo}
-              resizeMode="contain"
-              accessible
-              accessibilityLabel="CEDA Innovation"
-              onLoadEnd={() => setSplashReady(true)}
-            />
-          </Animated.View>
-        )}
-      </View>
+      <AccessibilityProvider>
+        <AppContent />
+      </AccessibilityProvider>
     </SafeAreaProvider>
   );
 }

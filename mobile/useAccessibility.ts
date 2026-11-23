@@ -1,16 +1,47 @@
-/**
- * useAccessibility - CEDA Innovation Mobile
- * Persists dark-mode preference to AsyncStorage.
- * Text-size / contrast / motion are stored server-side via profile.preferences.
- *
- * Usage:
- *   const { darkMode, setDarkMode } = useAccessibility();
- */
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
 import { AccessibilityInfo } from "react-native";
+import { fontSizes } from "./theme";
 
-const DARK_MODE_KEY = "ceda.mobile.darkMode";
+export type MobileFontStep = keyof typeof fontSizes;
+export type MobileFontSizeMode = "sm" | "default" | "lg" | "xl" | "xxl";
+
+export interface AccessibilityContextValue {
+  darkMode: boolean;
+  setDarkMode: (next: boolean) => void;
+  toggleDarkMode: () => void;
+  darkModeLoaded: boolean;
+  screenReaderEnabled: boolean;
+  fontSize: MobileFontSizeMode;
+  setFontSize: (mode: MobileFontSizeMode) => void;
+  scaleFont: (size: number) => number;
+  fs: (step: MobileFontStep) => number;
+  talkbackEnabled: boolean;
+  toggleTalkback: () => void;
+  setTalkbackEnabled: (enabled: boolean) => void;
+  highContrast: boolean;
+  toggleHighContrast: () => void;
+  setHighContrast: (enabled: boolean) => void;
+  announce: (message: string) => void;
+  isModalOpen: boolean;
+  openModal: () => void;
+  closeModal: () => void;
+}
+
+const STORAGE_KEYS = {
+  darkMode: "ceda.mobile.darkMode",
+  fontSize: "ceda.mobile.fontSize",
+  talkback: "ceda.mobile.talkback",
+  highContrast: "ceda.mobile.highContrast",
+};
+
+const FONT_MULTIPLIERS: Record<MobileFontSizeMode, number> = {
+  sm: 0.88,
+  default: 1.0,
+  lg: 1.15,
+  xl: 1.3,
+  xxl: 1.45,
+};
 
 export function announceTalkBack(message: string) {
   try {
@@ -18,28 +49,69 @@ export function announceTalkBack(message: string) {
   } catch {}
 }
 
-export function useAccessibility() {
-  const [darkMode, setDarkModeState] = useState<boolean>(false);
-  const [loaded, setLoaded] = useState(false);
-  const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
+const defaultContext: AccessibilityContextValue = {
+  darkMode: false,
+  setDarkMode: () => {},
+  toggleDarkMode: () => {},
+  darkModeLoaded: false,
+  screenReaderEnabled: false,
+  fontSize: "default",
+  setFontSize: () => {},
+  scaleFont: (s) => s,
+  fs: (step) => fontSizes[step],
+  talkbackEnabled: false,
+  toggleTalkback: () => {},
+  setTalkbackEnabled: () => {},
+  highContrast: false,
+  toggleHighContrast: () => {},
+  setHighContrast: () => {},
+  announce: () => {},
+  isModalOpen: false,
+  openModal: () => {},
+  closeModal: () => {},
+};
 
-  // Load from storage and check screen reader on mount
+const AccessibilityContext = createContext<AccessibilityContextValue>(defaultContext);
+
+export function AccessibilityProvider({ children }: { children: React.ReactNode }) {
+  const [darkMode, setDarkModeState] = useState<boolean>(false);
+  const [darkModeLoaded, setDarkModeLoaded] = useState(false);
+  const [screenReaderEnabled, setScreenReaderEnabled] = useState(false);
+  const [fontSize, setFontSizeState] = useState<MobileFontSizeMode>("default");
+  const [talkbackEnabled, setTalkbackEnabledState] = useState<boolean>(false);
+  const [highContrast, setHighContrastState] = useState<boolean>(false);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+
   useEffect(() => {
     let active = true;
-    void AsyncStorage.getItem(DARK_MODE_KEY)
-      .then((val) => {
-        if (active) {
-          setDarkModeState(val === "true");
-          setLoaded(true);
+    Promise.all([
+      AsyncStorage.getItem(STORAGE_KEYS.darkMode),
+      AsyncStorage.getItem(STORAGE_KEYS.fontSize),
+      AsyncStorage.getItem(STORAGE_KEYS.talkback),
+      AsyncStorage.getItem(STORAGE_KEYS.highContrast),
+    ])
+      .then(([darkVal, fontVal, talkbackVal, contrastVal]) => {
+        if (!active) return;
+        if (darkVal !== null) setDarkModeState(darkVal === "true");
+        setDarkModeLoaded(true);
+        if (fontVal && ["sm", "default", "lg", "xl", "xxl"].includes(fontVal)) {
+          setFontSizeState(fontVal as MobileFontSizeMode);
         }
+        if (talkbackVal !== null) setTalkbackEnabledState(talkbackVal === "true");
+        if (contrastVal !== null) setHighContrastState(contrastVal === "true");
       })
       .catch(() => {
-        if (active) setLoaded(true);
+        if (active) setDarkModeLoaded(true);
       });
 
-    void AccessibilityInfo.isScreenReaderEnabled().then((enabled) => {
-      if (active) setScreenReaderEnabled(enabled);
-    }).catch(() => {});
+    void AccessibilityInfo.isScreenReaderEnabled()
+      .then((enabled) => {
+        if (active && enabled) {
+          setScreenReaderEnabled(true);
+          setTalkbackEnabledState(true);
+        }
+      })
+      .catch(() => {});
 
     const sub = AccessibilityInfo.addEventListener("screenReaderChanged", (enabled) => {
       if (active) setScreenReaderEnabled(enabled);
@@ -51,17 +123,132 @@ export function useAccessibility() {
     };
   }, []);
 
-  function setDarkMode(next: boolean) {
-    setDarkModeState(next);
-    void AsyncStorage.setItem(DARK_MODE_KEY, next ? "true" : "false").catch(() => {});
-    announceTalkBack(next ? "Dark mode on" : "Light mode on");
-  }
-
-  function announce(message: string) {
+  const announce = useCallback((message: string) => {
     announceTalkBack(message);
-  }
+  }, []);
 
-  return { darkMode, setDarkMode, darkModeLoaded: loaded, screenReaderEnabled, announce };
+  const setDarkMode = useCallback((enabled: boolean) => {
+    setDarkModeState(enabled);
+    void AsyncStorage.setItem(STORAGE_KEYS.darkMode, enabled ? "true" : "false").catch(() => {});
+    announceTalkBack(enabled ? "Dark mode on" : "Light mode on");
+  }, []);
+
+  const toggleDarkMode = useCallback(() => {
+    setDarkModeState((prev) => {
+      const next = !prev;
+      void AsyncStorage.setItem(STORAGE_KEYS.darkMode, next ? "true" : "false").catch(() => {});
+      announceTalkBack(next ? "Dark mode on" : "Light mode on");
+      return next;
+    });
+  }, []);
+
+  const setFontSize = useCallback((mode: MobileFontSizeMode) => {
+    setFontSizeState(mode);
+    void AsyncStorage.setItem(STORAGE_KEYS.fontSize, mode).catch(() => {});
+    const label =
+      mode === "sm" ? "Small" : mode === "lg" ? "Large" : mode === "xl" ? "Extra large" : mode === "xxl" ? "Maximum" : "Default";
+    announceTalkBack(`Text size set to ${label}`);
+  }, []);
+
+  const setTalkbackEnabled = useCallback((enabled: boolean) => {
+    setTalkbackEnabledState(enabled);
+    void AsyncStorage.setItem(STORAGE_KEYS.talkback, enabled ? "true" : "false").catch(() => {});
+    announceTalkBack(enabled ? "TalkBack announcements enabled" : "TalkBack announcements muted");
+  }, []);
+
+  const toggleTalkback = useCallback(() => {
+    setTalkbackEnabledState((prev) => {
+      const next = !prev;
+      void AsyncStorage.setItem(STORAGE_KEYS.talkback, next ? "true" : "false").catch(() => {});
+      announceTalkBack(next ? "TalkBack announcements enabled" : "TalkBack announcements muted");
+      return next;
+    });
+  }, []);
+
+  const setHighContrast = useCallback((enabled: boolean) => {
+    setHighContrastState(enabled);
+    void AsyncStorage.setItem(STORAGE_KEYS.highContrast, enabled ? "true" : "false").catch(() => {});
+    announceTalkBack(enabled ? "High contrast mode on" : "Standard contrast on");
+  }, []);
+
+  const toggleHighContrast = useCallback(() => {
+    setHighContrastState((prev) => {
+      const next = !prev;
+      void AsyncStorage.setItem(STORAGE_KEYS.highContrast, next ? "true" : "false").catch(() => {});
+      announceTalkBack(next ? "High contrast mode on" : "Standard contrast on");
+      return next;
+    });
+  }, []);
+
+  const multiplier = FONT_MULTIPLIERS[fontSize] || 1.0;
+
+  const scaleFont = useCallback(
+    (size: number) => {
+      return Math.round(size * multiplier);
+    },
+    [multiplier]
+  );
+
+  const fs = useCallback(
+    (step: MobileFontStep) => {
+      return Math.round(fontSizes[step] * multiplier);
+    },
+    [multiplier]
+  );
+
+  const openModal = useCallback(() => setIsModalOpen(true), []);
+  const closeModal = useCallback(() => setIsModalOpen(false), []);
+
+  const value = useMemo<AccessibilityContextValue>(
+    () => ({
+      darkMode,
+      setDarkMode,
+      toggleDarkMode,
+      darkModeLoaded,
+      screenReaderEnabled,
+      fontSize,
+      setFontSize,
+      scaleFont,
+      fs,
+      talkbackEnabled,
+      toggleTalkback,
+      setTalkbackEnabled,
+      highContrast,
+      toggleHighContrast,
+      setHighContrast,
+      announce,
+      isModalOpen,
+      openModal,
+      closeModal,
+    }),
+    [
+      darkMode,
+      setDarkMode,
+      toggleDarkMode,
+      darkModeLoaded,
+      screenReaderEnabled,
+      fontSize,
+      setFontSize,
+      scaleFont,
+      fs,
+      talkbackEnabled,
+      toggleTalkback,
+      setTalkbackEnabled,
+      highContrast,
+      toggleHighContrast,
+      setHighContrast,
+      announce,
+      isModalOpen,
+      openModal,
+      closeModal,
+    ]
+  );
+
+  return React.createElement(AccessibilityContext.Provider, { value }, children);
+}
+
+export function useAccessibility(): AccessibilityContextValue {
+  return useContext(AccessibilityContext);
 }
 
 // Dark palette for the mobile app

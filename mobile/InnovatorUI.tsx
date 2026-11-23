@@ -22,6 +22,7 @@ import { MobileIcon } from "./AdminOverview";
 import { FrostedModalBackdrop, FrostedSurface } from "./FrostedGlass";
 import { createSignedEvidenceUrl } from "./innovatorApi";
 import { formatBytes, type InnovatorDocument } from "./innovatorDomain";
+import { useAccessibility } from "./useAccessibility";
 import { buttonCornerRadius, fontSizes } from "./theme";
 
 export const adminStyleColors = {
@@ -100,7 +101,36 @@ export function InnovatorA11yProvider({
 }
 
 export function useInnovatorA11y(): InnovatorA11yConfig {
-  return useContext(A11yContext);
+  const local = useContext(A11yContext);
+  const global = useAccessibility();
+
+  const effectiveDark = global.darkMode || local.darkMode;
+  const effectiveScale =
+    global.fontSize === "xxl"
+      ? 1.45
+      : global.fontSize === "xl"
+      ? 1.3
+      : global.fontSize === "lg"
+      ? 1.15
+      : global.fontSize === "sm"
+      ? 0.88
+      : local.scale;
+  const effectiveHighContrast = global.highContrast || local.highContrast;
+
+  return {
+    textSize:
+      global.fontSize === "xl" || global.fontSize === "xxl"
+        ? "xlarge"
+        : global.fontSize === "lg"
+        ? "large"
+        : local.textSize,
+    scale: effectiveScale,
+    highContrast: effectiveHighContrast,
+    reducedMotion: local.reducedMotion,
+    darkMode: effectiveDark,
+    toggleDarkMode: global.toggleDarkMode || local.toggleDarkMode,
+    fs: (step) => Math.round(fontSizes[step] * effectiveScale),
+  };
 }
 
 export type InnovatorIconName =
