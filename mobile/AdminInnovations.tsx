@@ -4,9 +4,9 @@ import { Keyboard, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, Vi
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { FrostedModalBackdrop, FrostedSurface } from "./FrostedGlass";
 import { MobileIcon } from "./AdminOverview";
-import type { previewApplications } from "./adminPreview";
+import type { AdminApplication } from "./auth";
 
-type Innovation = typeof previewApplications[number];
+export type Innovation = AdminApplication;
 const statuses = [
   { value: "All", color: "#66717E", tint: "#F1F3F6" },
   { value: "Submitted", color: "#28599B", tint: "#EAF1FC" },
@@ -14,6 +14,17 @@ const statuses = [
   { value: "Approved", color: "#236D61", tint: "#E4F4F0" },
   { value: "Rejected", color: "#903925", tint: "#FBEDE8" },
 ];
+
+function formatDate(raw: string): string {
+  if (!raw) return "";
+  try {
+    const parsed = new Date(raw.includes("T") ? raw : raw + "T12:00:00Z");
+    if (isNaN(parsed.getTime())) return raw;
+    return new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(parsed);
+  } catch {
+    return raw;
+  }
+}
 
 export function AdminInnovations({ items, query, onQueryChange, status, onStatusChange, onOpen }: {
   items: Innovation[]; query: string; onQueryChange: (value: string) => void;
@@ -38,7 +49,7 @@ export function AdminInnovations({ items, query, onQueryChange, status, onStatus
       const appearance = statuses.find(option => option.value === item.status) ?? statuses[0];
       return <Pressable key={item.id} accessibilityRole="button" accessibilityLabel={"View " + item.title + ", " + item.id + ", " + item.status} onPress={() => onOpen(item)} style={({ pressed }) => [s.item, index === filtered.length - 1 && { borderBottomWidth: 0 }, pressed && { backgroundColor: "rgba(247,242,235,0.65)" }]}>
         <View accessible={false} style={[s.itemIcon, { backgroundColor: appearance.tint }]}><MobileIcon name="application" color={appearance.color} /></View>
-        <View style={s.itemBody}><View style={s.referenceRow}><Text style={s.reference}>{item.id}</Text><Text style={s.reference}>{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", timeZone: "UTC" }).format(new Date(item.date + "T12:00:00Z"))}</Text></View><Text style={s.title}>{item.title}</Text><Text style={s.applicant}>{item.owner}</Text><View style={s.tags}><View style={s.sectorTag}><Text style={s.sectorText}>{item.sector}</Text></View><View style={[s.statusTag, { backgroundColor: appearance.tint }]}><View style={[s.dot, { backgroundColor: appearance.color }]} /><Text style={[s.statusText, { color: appearance.color }]}>{item.status}</Text></View></View></View><Text accessible={false} style={s.chevron}>{"\u203a"}</Text>
+        <View style={s.itemBody}><View style={s.referenceRow}><Text style={s.reference}>{item.id}</Text><Text style={s.reference}>{formatDate(item.date)}</Text></View><Text style={s.title}>{item.title}</Text><Text style={s.applicant}>{item.owner}</Text><View style={s.tags}><View style={s.sectorTag}><Text style={s.sectorText}>{item.sector}</Text></View><View style={[s.statusTag, { backgroundColor: appearance.tint }]}><View style={[s.dot, { backgroundColor: appearance.color }]} /><Text style={[s.statusText, { color: appearance.color }]}>{item.status}</Text></View></View></View><Text accessible={false} style={s.chevron}>{"\u203a"}</Text>
       </Pressable>;
     }) : <View style={s.empty}><Text style={s.emptyTitle}>No matching applications</Text><Text style={s.emptyCopy}>Try another status, sector or search.</Text><Pressable accessibilityRole="button" style={s.linkTouch} onPress={clearFilters}><Text style={s.link}>Clear filters</Text></Pressable></View>}</View>
     <Modal visible={filterOpen} transparent statusBarTranslucent animationType="slide" onRequestClose={() => setFilterOpen(false)}>

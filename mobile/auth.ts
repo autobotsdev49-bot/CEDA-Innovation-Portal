@@ -164,9 +164,7 @@ export function validAdminPassword(password: string) {
     const point = character.codePointAt(0) ?? 0;
     bytes += point <= 127 ? 1 : point <= 2047 ? 2 : point <= 65535 ? 3 : 4;
   }
-  return password.length >= 12 && bytes <= 72 &&
-    /[a-z]/.test(password) && /[A-Z]/.test(password) &&
-    /[0-9]/.test(password) && /[^a-zA-Z0-9\s]/.test(password);
+  return password.length >= 8 && bytes <= 72;
 }
 
 function requireAdminSession(account: Account) {
@@ -222,7 +220,7 @@ export async function inviteAdminUser(account: Account, input: AdminInvitation) 
 
 export async function createAdminUser(account: Account, input: AdminCreation) {
   requireAdminSession(account); validateAccess(input);
-  if (!validAdminPassword(input.password)) throw new Error("Use 12-72 UTF-8 bytes with uppercase, lowercase, a number and a symbol for the password.");
+  if (!validAdminPassword(input.password)) throw new Error("Use at least 8 characters and at most 72 UTF-8 bytes for the password.");
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.address.trim()) || input.address.length > 254 || !input.display_name.trim() || input.display_name.trim().length > 120 || /[<>\p{Cc}\p{Bidi_Control}]/u.test(input.display_name)) throw new Error("Enter a valid full name and email address.");
   try {
     const result = await adminAction(account, "/functions/v1/admincreate", { ...input, address: input.address.trim().toLowerCase(), display_name: input.display_name.trim(), reason: input.reason.trim() });

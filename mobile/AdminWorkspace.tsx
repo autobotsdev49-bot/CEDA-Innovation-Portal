@@ -8,7 +8,7 @@ import { AdminInnovations } from "./AdminInnovations";
 import { AdminUserEditor } from "./AdminUserEditor";
 import { AdminUsers } from "./AdminUsers";
 import { AdminInsights } from "./AdminInsights";
-import { previewMatters, type ReportingPeriod } from "./adminPreview";
+import { previewApplications, previewMatters, type ReportingPeriod } from "./adminPreview";
 import { portalUrl, readAdminApplications, readAdminRecords, type Account, type AdminApplication, type AdminSector, type AdminUser } from "./auth";
 
 const colors = { navy: "#192C40", rust: "#9A3D2B", teal: "#278477", blue: "#28599B", muted: "#66717E", subtle: "#7C8590", line: "#E5DDD3", canvas: "#F7F2EB" };
@@ -125,7 +125,7 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
   const [page, setPage] = useState(0);
   const [users, setUsers] = useState<AdminUser[]>([]);
   const [sectors, setSectors] = useState<AdminSector[]>([]);
-  const [cases, setCases] = useState<AdminApplication[]>([]);
+  const [cases, setCases] = useState<AdminApplication[]>(previewApplications);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [attempt, setAttempt] = useState(0);
@@ -164,8 +164,8 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
     if (screen !== "Innovations") return;
     let active = true;
     setLoading(true); setError("");
-    void readAdminApplications(account).then(records => { if (active) setCases(records); })
-      .catch((reason: unknown) => { if (active) { setCases([]); setError(reason instanceof Error ? reason.message : "Unable to load applications."); } })
+    void readAdminApplications(account).then(records => { if (active) setCases(records.length ? records : previewApplications); })
+      .catch((reason: unknown) => { if (active) { setCases(previewApplications); setError(reason instanceof Error ? reason.message : "Unable to load applications."); } })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [screen, attempt, account]);
