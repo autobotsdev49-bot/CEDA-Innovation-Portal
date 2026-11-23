@@ -15,6 +15,7 @@ import { InnovatorWorkspace } from "./InnovatorWorkspace";
 import { AssessorWorkspace } from "./AssessorWorkspace";
 import { SupportWorkspace } from "./SupportWorkspace";
 import { CommitteeWorkspace } from "./CommitteeWorkspace";
+import { useAccessibility } from "./useAccessibility";
 import { unregisterNotificationDevice } from "./notificationsApi";
 import { useFcmNotifications } from "./useFcmNotifications";
 
@@ -22,21 +23,22 @@ export type AuthMode = "signin" | "signup";
 const verificationWindow = 15 * 60_000;
 
 function Field({ label, password, ...input }: TextInputProps & { label: string; password?: boolean }) {
+  const { darkMode, scaleFont } = useAccessibility();
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     if (!input.value) setVisible(false);
   }, [input.value]);
   return (
     <View style={styles.field}>
-      <Text style={styles.label}>{label}</Text>
-      <View style={styles.inputShell}>
+      <Text style={[styles.label, { color: darkMode ? "#f0e8e0" : palette.ink, fontSize: scaleFont(14) }]}>{label}</Text>
+      <View style={[styles.inputShell, darkMode && { backgroundColor: "#252018", borderColor: "rgba(240,220,200,0.2)" }]}>
         <TextInput
           {...input}
           accessibilityLabel={label}
-          placeholderTextColor={palette.muted}
+          placeholderTextColor={darkMode ? "#907860" : palette.muted}
           secureTextEntry={password && !visible}
           disableFullscreenUI
-          style={styles.input}
+          style={[styles.input, { color: darkMode ? "#f0e8e0" : palette.ink, fontSize: scaleFont(16) }]}
         />
         {password && (
           <Pressable
@@ -69,6 +71,7 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
   onBack: () => void;
   onSwitch: (mode: AuthMode) => void;
 }) {
+  const { darkMode, scaleFont } = useAccessibility();
   const signup = mode === "signup";
   const target = useRef<ComponentRef<typeof BlurTargetView>>(null);
   const formScroll = useRef<ComponentRef<typeof ScrollView>>(null);
@@ -318,10 +321,10 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
   }
 
   return (
-    <KeyboardAvoidingView style={styles.screen} behavior="padding">
+    <KeyboardAvoidingView style={[styles.screen, darkMode && { backgroundColor: "#131009" }]} behavior="padding">
       <ScrollView
         ref={formScroll}
-        style={styles.screen}
+        style={[styles.screen, darkMode && { backgroundColor: "#131009" }]}
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         onLayout={updateFormViewport}
@@ -337,13 +340,17 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
             importantForAccessibility="no-hide-descendants"
           >
             <Image
-              style={{ width: "100%", height: photoHeight }}
+              style={{ width: "100%", height: photoHeight, opacity: darkMode ? 0.5 : 1 }}
               source={signup ? require("./assets/signup.jpg") : require("./assets/signin.jpg")}
               resizeMode="cover"
               accessible={false}
             />
             <LinearGradient
-              colors={["rgba(255,255,255,0.46)", "rgba(255,255,255,0)", "rgba(247,242,235,0.32)", palette.paper]}
+              colors={
+                darkMode
+                  ? (["rgba(19,16,9,0.5)", "rgba(19,16,9,0.2)", "rgba(19,16,9,0.7)", "#131009"] as const)
+                  : (["rgba(255,255,255,0.46)", "rgba(255,255,255,0)", "rgba(247,242,235,0.32)", palette.paper] as const)
+              }
               locations={[0, 0.35, 0.65, 1]}
               style={{ position: "absolute", top: 0, width: "100%", height: photoHeight }}
               pointerEvents="none"
@@ -354,13 +361,13 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
             <Image source={require("./assets/ceda.png")} resizeMode="contain" style={styles.logo} accessibilityLabel="CEDA" />
           </View>
 
-          <View style={[styles.panel, reduceTransparency && styles.solidPanel, { marginTop: panelTop - 62, paddingBottom: 16 + bottom }]}>
+          <View style={[styles.panel, darkMode && { backgroundColor: "#1a1510", borderColor: "rgba(240,220,200,0.12)" }, reduceTransparency && (darkMode ? { backgroundColor: "#1a1510" } : styles.solidPanel), { marginTop: panelTop - 62, paddingBottom: 16 + bottom }]}>
             {showBlur && (
               <BlurView
                 blurTarget={target}
                 blurMethod="dimezisBlurViewSdk31Plus"
                 intensity={46}
-                tint="default"
+                tint={darkMode ? "dark" : "default"}
                 style={[StyleSheet.absoluteFill, styles.panelCorners]}
                 pointerEvents="none"
                 accessible={false}
@@ -370,14 +377,18 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
             )}
             {!reduceTransparency && (
               <LinearGradient
-                colors={["rgba(255,250,244,0.58)", "rgba(255,250,244,0.85)", "#fffaf4"]}
+                colors={
+                  darkMode
+                    ? (["rgba(26,21,16,0.72)", "rgba(26,21,16,0.92)", "#1a1510"] as const)
+                    : (["rgba(255,250,244,0.58)", "rgba(255,250,244,0.85)", "#fffaf4"] as const)
+                }
                 locations={[0, 0.38, 1]}
                 pointerEvents="none"
                 accessible={false}
                 style={StyleSheet.absoluteFill}
               />
             )}
-            <Text accessibilityRole="header" style={styles.title}>{title}</Text>
+            <Text accessibilityRole="header" style={[styles.title, { color: darkMode ? "#f0e8e0" : palette.ink, fontSize: scaleFont(30) }]}>{title}</Text>
             <Text style={styles.description}>{description}</Text>
             {account ? (
               <>

@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Pressable, StyleSheet, Text, View } from "react-native";
 import { FrostedSurface } from "./FrostedGlass";
 import { fontSizes } from "./theme";
+import { useAccessibility } from "./useAccessibility";
 import type { ReportingPeriod } from "./adminPreview";
 import type { AdminApplication, AdminAuditEntry, AdminMatter, AdminOptimusOverview, AdminReportingSummary } from "./auth";
 import {
@@ -16,7 +17,8 @@ export type InsightScreen = "Portal analytics" | "Website health" | "Follow-ups"
 type Destination = InsightScreen | "Innovations" | "Optimus Prime";
 export type MobileIconName =
   | "menu" | "back" | "close" | "bell" | "search" | "traffic" | "people" | "application" | "alert"
-  | "sector" | "support" | "ai" | "feedback" | "audit" | "shield" | "pulse" | "clock" | "check" | "globe";
+  | "sector" | "support" | "ai" | "feedback" | "audit" | "shield" | "pulse" | "clock" | "check" | "globe"
+  | "accessibility" | "speaker" | "compass";
 
 export function MobileIcon({ name, color = ink }: { name: MobileIconName; color?: string }) {
   const border = { borderColor: color, borderWidth: 1.6 };
@@ -40,32 +42,41 @@ export function MobileIcon({ name, color = ink }: { name: MobileIconName; color?
     {name === "clock" && <View style={[border, { width: 18, height: 18, borderRadius: 9, justifyContent: "center", alignItems: "center" }]}><View style={{ width: 1.6, height: 5, backgroundColor: color, marginTop: -3 }} /><View style={{ width: 5, height: 1.6, backgroundColor: color, marginLeft: 3 }} /></View>}
     {name === "check" && <View style={[border, { width: 18, height: 18, borderRadius: 9, justifyContent: "center", alignItems: "center" }]}><View style={{ width: 8, height: 5, borderLeftWidth: 1.8, borderBottomWidth: 1.8, borderColor: color, transform: [{ rotate: "-45deg" }], marginTop: -1 }} /></View>}
     {name === "globe" && <View style={[border, { width: 18, height: 18, borderRadius: 9, justifyContent: "center", alignItems: "center" }]}><View style={{ width: 8, height: 16, borderRadius: 5, borderWidth: 1.2, borderColor: color }} /><View style={{ position: "absolute", width: 15, height: 1.3, backgroundColor: color }} /></View>}
+    {name === "accessibility" && <View style={[border, { width: 20, height: 20, borderRadius: 10, justifyContent: "center", alignItems: "center" }]}><View style={{ width: 4, height: 4, borderRadius: 2, backgroundColor: color, marginBottom: 1.5 }} /><View style={{ width: 10, height: 1.8, borderRadius: 1, backgroundColor: color }} /><View style={{ width: 2.2, height: 5, backgroundColor: color, borderRadius: 1 }} /><View style={{ flexDirection: "row", gap: 3, marginTop: -0.5 }}><View style={{ width: 2, height: 4.5, backgroundColor: color, borderRadius: 1, transform: [{ rotate: "16deg" }] }} /><View style={{ width: 2, height: 4.5, backgroundColor: color, borderRadius: 1, transform: [{ rotate: "-16deg" }] }} /></View></View>}
+    {name === "speaker" && <View style={{ width: 20, height: 18, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 2 }}><View style={{ width: 5, height: 6, backgroundColor: color, borderRadius: 1 }} /><View style={{ width: 0, height: 0, borderTopWidth: 5, borderBottomWidth: 5, borderRightWidth: 6, borderTopColor: "transparent", borderBottomColor: "transparent", borderRightColor: color, marginLeft: -2 }} /><View style={{ width: 5, height: 10, borderRightWidth: 1.6, borderTopRightRadius: 6, borderBottomRightRadius: 6, borderColor: color, marginLeft: 1 }} /><View style={{ width: 4, height: 14, borderRightWidth: 1.6, borderTopRightRadius: 8, borderBottomRightRadius: 8, borderColor: color, marginLeft: -1 }} /></View>}
+    {name === "compass" && <View style={[border, { width: 19, height: 19, borderRadius: 9.5, justifyContent: "center", alignItems: "center" }]}><View style={{ width: 9, height: 9, borderRadius: 2, borderWidth: 1.6, borderColor: color, transform: [{ rotate: "45deg" }] }} /><View style={{ position: "absolute", width: 3.5, height: 3.5, borderRadius: 2, backgroundColor: color }} /></View>}
   </View>;
 }
 export function PreviewLabel({ loaded = false }: { loaded?: boolean }) {
+  const { darkMode, scaleFont } = useAccessibility();
   return (
-    <View style={styles.preview}>
+    <View style={[styles.preview, darkMode && { borderColor: "rgba(215,166,92,0.28)" }]}>
       <FrostedSurface variant="bar" borderRadius={999} />
       <View style={[styles.previewDot, { backgroundColor: loaded ? teal : "#BF9958" }]} />
-      <Text style={[styles.previewText, { color: loaded ? teal : "#92713D" }]}>
+      <Text style={[styles.previewText, { color: loaded ? (darkMode ? "#4fb5a6" : teal) : "#d7a65c", fontSize: scaleFont(fontSizes.caption) }]}>
         {loaded ? "Live database" : "Syncing live data"}
       </Text>
-      <Text style={styles.previewCaption}>{loaded ? "Real-time records & telemetry" : "Connecting to Supabase"}</Text>
+      <Text style={[styles.previewCaption, { color: darkMode ? "#b8a898" : muted, fontSize: scaleFont(fontSizes.caption) }]}>
+        {loaded ? "Real-time records & telemetry" : "Connecting to Supabase"}
+      </Text>
     </View>
   );
 }
 export function InsightCard({ title, action, onPress, children }: { title: string; action?: string; onPress?: () => void; children: ReactNode }) {
-  return <View style={styles.panel}><FrostedSurface variant="card" borderRadius={20} /><View style={styles.sectionHeading}><Text accessibilityRole="header" style={styles.sectionTitle}>{title}</Text>{action && <Pressable accessibilityRole="button" onPress={onPress} style={styles.linkTouch}><Text style={styles.link}>{action}</Text></Pressable>}</View>{children}</View>;
+  const { darkMode, scaleFont } = useAccessibility();
+  return <View style={[styles.panel, darkMode && { borderWidth: 1, borderColor: "rgba(240,220,200,0.08)" }]}><FrostedSurface variant="card" borderRadius={20} /><View style={styles.sectionHeading}><Text accessibilityRole="header" style={[styles.sectionTitle, { color: darkMode ? "#f0e8e0" : ink, fontSize: scaleFont(fontSizes.heading) }]}>{title}</Text>{action && <Pressable accessibilityRole="button" onPress={onPress} style={styles.linkTouch}><Text style={[styles.link, { color: darkMode ? "#7ab0f5" : blue, fontSize: scaleFont(fontSizes.subbody) }]}>{action}</Text></Pressable>}</View>{children}</View>;
 }
 export function PeriodControl({ value, onChange }: { value: ReportingPeriod; onChange: (period: ReportingPeriod) => void }) {
-  return <View style={styles.periods}><FrostedSurface variant="bar" borderRadius={18} />{([1, 7, 30] as const).map((period, i) => <Pressable key={period} accessibilityRole="button" accessibilityLabel={"Show " + ["today", "last 7 days", "last 30 days"][i]} accessibilityState={{ selected: value === period }} onPress={() => onChange(period)} style={[styles.period, value === period && styles.selectedPeriod]}><Text style={[styles.periodText, value === period && { color: ink, fontWeight: "600" }]}>{["Today", "7 days", "30 days"][i]}</Text></Pressable>)}</View>;
+  const { darkMode, scaleFont } = useAccessibility();
+  return <View style={[styles.periods, darkMode && { borderColor: "rgba(240,220,200,0.12)" }]}><FrostedSurface variant="bar" borderRadius={18} />{([1, 7, 30] as const).map((period, i) => <Pressable key={period} accessibilityRole="button" accessibilityLabel={"Show " + ["today", "last 7 days", "last 30 days"][i]} accessibilityState={{ selected: value === period }} onPress={() => onChange(period)} style={[styles.period, value === period && [styles.selectedPeriod, darkMode && { backgroundColor: "#2e2416" }]]}><Text style={[styles.periodText, { color: darkMode ? "#b8a898" : muted, fontSize: scaleFont(fontSizes.caption) }, value === period && { color: darkMode ? "#f0e8e0" : ink, fontWeight: "600" }]}>{["Today", "7 days", "30 days"][i]}</Text></Pressable>)}</View>;
 }
 function MiniBars({ color }: { color: string }) { return <View accessible={false} style={styles.miniBars}>{[7, 11, 8, 15, 12, 20, 17].map((height, i) => <View key={i} style={{ width: 4, height, borderRadius: 2, backgroundColor: color, opacity: i === 6 ? 1 : 0.35 + i * 0.07 }} />)}</View>; }
 function Metric({ label, value, caption, icon, color, onPress }: { label: string; value: string; caption: string; icon: MobileIconName; color: string; onPress: () => void }) {
-  return <Pressable accessibilityRole="button" accessibilityLabel={label + ": " + value + ". " + caption + ". View details"} onPress={onPress} style={({ pressed }) => [styles.metric, pressed && { opacity: 0.65 }]}>
+  const { darkMode, scaleFont } = useAccessibility();
+  return <Pressable accessibilityRole="button" accessibilityLabel={label + ": " + value + ". " + caption + ". View details"} onPress={onPress} style={({ pressed }) => [styles.metric, darkMode && { borderWidth: 1, borderColor: "rgba(240,220,200,0.08)" }, pressed && { opacity: 0.65 }]}>
     <FrostedSurface variant="card" borderRadius={18} />
-    <View style={styles.metricTop}><View style={[styles.metricIcon, { backgroundColor: color + "15" }]}><MobileIcon name={icon} color={color} /></View><Text style={styles.metricValue}>{value}</Text></View>
-    <Text style={styles.metricLabel}>{label}</Text><View style={styles.metricBottom}><Text style={styles.metricCaption}>{caption}</Text><MiniBars color={color} /></View>
+    <View style={styles.metricTop}><View style={[styles.metricIcon, { backgroundColor: color + "22" }]}><MobileIcon name={icon} color={color} /></View><Text style={[styles.metricValue, { color: darkMode ? "#f0e8e0" : ink, fontSize: scaleFont(fontSizes.title) }]}>{value}</Text></View>
+    <Text style={[styles.metricLabel, { color: darkMode ? "#d8cbbd" : "#52606E", fontSize: scaleFont(fontSizes.subbody) }]}>{label}</Text><View style={styles.metricBottom}><Text style={[styles.metricCaption, { color: darkMode ? "#b8a898" : muted, fontSize: scaleFont(fontSizes.caption) }]}>{caption}</Text><MiniBars color={color} /></View>
   </Pressable>;
 }
 export function TrafficChart({
@@ -79,6 +90,7 @@ export function TrafficChart({
   dailyViews?: Array<{ date: string; views: number; uniqueSessions?: number }>;
   totalViews?: number;
 }) {
+  const { darkMode, scaleFont } = useAccessibility();
   const days = dailyViews && dailyViews.length
     ? dailyViews
     : emptyReportingSummary(period).telemetry.dailyViews;
@@ -90,12 +102,14 @@ export function TrafficChart({
   const chosen = days.find(day => day.date === selected) ?? days[days.length - 1];
   const plotHeight = 148;
   const plotWidth = Math.max(20, width - 12);
+  const darkInk = darkMode ? "#f0e8e0" : ink;
+  const darkMuted = darkMode ? "#b8a898" : muted;
   return <View style={{ gap: 12 }}>
-    <View style={styles.chartSummary}><Text style={styles.chartTotal}>{total.toLocaleString("en-BW")}<Text style={styles.chartUnit}> page views</Text></Text><View style={styles.legend}><View style={[styles.legendDot, { backgroundColor: blue }]} /><Text style={styles.small}>Live telemetry</Text></View></View>
+    <View style={styles.chartSummary}><Text style={[styles.chartTotal, { color: darkInk, fontSize: scaleFont(fontSizes.title) }]}>{total.toLocaleString("en-BW")}<Text style={[styles.chartUnit, { color: darkMuted, fontSize: scaleFont(fontSizes.subbody) }]}> page views</Text></Text><View style={styles.legend}><View style={[styles.legendDot, { backgroundColor: blue }]} /><Text style={[styles.small, { color: darkMuted, fontSize: scaleFont(fontSizes.subbody) }]}>Live telemetry</Text></View></View>
     <View style={styles.chart}>
-      <View style={styles.yAxis}>{[max, Math.round(max / 2), 0].map((value, idx) => <Text key={`${value}-${idx}`} style={styles.axisText}>{value}</Text>)}</View>
+      <View style={styles.yAxis}>{[max, Math.round(max / 2), 0].map((value, idx) => <Text key={`${value}-${idx}`} style={[styles.axisText, { color: darkMuted, fontSize: scaleFont(fontSizes.caption) }]}>{value}</Text>)}</View>
       <View style={styles.plot} onLayout={event => setWidth(event.nativeEvent.layout.width)}>
-        <View pointerEvents="none" style={StyleSheet.absoluteFill}>{[0, 0.5, 1].map(position => <View key={position} style={[styles.gridLine, { top: plotHeight * position }]} />)}</View>
+        <View pointerEvents="none" style={StyleSheet.absoluteFill}>{[0, 0.5, 1].map(position => <View key={position} style={[styles.gridLine, darkMode && { borderTopColor: "rgba(240,220,200,0.08)" }, { top: plotHeight * position }]} />)}</View>
         {line ? <View style={{ height: plotHeight, marginHorizontal: 6 }} accessible accessibilityLabel={"Live page views: " + days.map(day => `${day.date}: ${day.views}`).join(", ")}>
           {days.slice(1).map((day, index) => {
             const x = index / Math.max(1, days.length - 1) * plotWidth;
@@ -113,19 +127,21 @@ export function TrafficChart({
   </View>;
 }
 export function Ring({ segments, center, label }: { segments: { value: number; color: string }[]; center: string; label: string }) {
+  const { darkMode, scaleFont } = useAccessibility();
   const total = Math.max(1, segments.reduce((sum, segment) => sum + segment.value, 0));
   return <View accessible accessibilityLabel={center + " " + label} style={styles.ring}>
     {Array.from({ length: 100 }, (_, i) => {
       let limit = 0;
-      const color = segments.find(segment => { limit += segment.value / total * 100; return i < limit; })?.color ?? "#EEF0F3";
+      const color = segments.find(segment => { limit += segment.value / total * 100; return i < limit; })?.color ?? (darkMode ? "#2d241b" : "#EEF0F3");
       const angle = (i / 100 * 360 - 90) * Math.PI / 180;
       return <View key={i} style={{ position: "absolute", left: 59 + Math.cos(angle) * 50 - 1.8, top: 59 + Math.sin(angle) * 50 - 5, width: 3.6, height: 10, borderRadius: 2, backgroundColor: color, transform: [{ rotate: `${angle + Math.PI / 2}rad` }] }} />;
-    })}<Text style={styles.ringValue}>{center}</Text><Text style={styles.small}>{label}</Text>
+    })}<Text style={[styles.ringValue, { color: darkMode ? "#f0e8e0" : ink, fontSize: scaleFont(fontSizes.title) }]}>{center}</Text><Text style={[styles.small, { color: darkMode ? "#b8a898" : muted, fontSize: scaleFont(fontSizes.caption) }]}>{label}</Text>
   </View>;
 }
 export function Breakdown({ entries, maxValue }: { entries: { label: string; value: number; color: string }[]; maxValue?: number }) {
+  const { darkMode, scaleFont } = useAccessibility();
   const max = maxValue ?? Math.max(1, ...entries.map(entry => entry.value));
-  return <View style={{ flex: 1, gap: 13 }}>{entries.map(entry => <View key={entry.label} style={{ gap: 6 }}><View style={styles.sectionHeading}><View style={styles.legend}><View style={[styles.legendDot, { backgroundColor: entry.color }]} /><Text style={styles.small}>{entry.label}</Text></View><Text style={styles.breakdownValue}>{entry.value}</Text></View><View style={styles.progressTrack}><View style={{ width: `${entry.value / max * 100}%`, height: 4, borderRadius: 3, backgroundColor: entry.color }} /></View></View>)}</View>;
+  return <View style={{ flex: 1, gap: 13 }}>{entries.map(entry => <View key={entry.label} style={{ gap: 6 }}><View style={styles.sectionHeading}><View style={styles.legend}><View style={[styles.legendDot, { backgroundColor: entry.color }]} /><Text style={[styles.small, { color: darkMode ? "#b8a898" : muted, fontSize: scaleFont(fontSizes.subbody) }]}>{entry.label}</Text></View><Text style={[styles.breakdownValue, { color: darkMode ? "#f0e8e0" : ink, fontSize: scaleFont(fontSizes.subbody) }]}>{entry.value}</Text></View><View style={[styles.progressTrack, darkMode && { backgroundColor: "#2d241b" }]}><View style={{ width: `${entry.value / max * 100}%`, height: 4, borderRadius: 3, backgroundColor: entry.color }} /></View></View>)}</View>;
 }
 export function AdminOverview({
   period,
@@ -175,9 +191,13 @@ export function AdminOverview({
   const inpLabel = wv.inpMs != null ? formatTelemetryMetric(wv.inpMs, "ms") : "No INP samples yet";
   const helpful = summary.optimus.helpfulCount;
   const unhelpful = summary.optimus.notHelpfulCount;
+  const { darkMode, scaleFont } = useAccessibility();
+  const darkInk = darkMode ? "#f0e8e0" : ink;
+  const darkMuted = darkMode ? "#b8a898" : muted;
+  const darkLink = darkMode ? "#7ab0f5" : blue;
   const s = styles;
   return <>
-    <View style={s.overviewHeading}><Text accessibilityRole="header" style={s.title}>Overview</Text><Text style={s.small}>{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Gaborone" }).format(new Date())}</Text></View>
+    <View style={s.overviewHeading}><Text accessibilityRole="header" style={[s.title, { color: darkInk, fontSize: scaleFont(fontSizes.title) }]}>Overview</Text><Text style={[s.small, { color: darkMuted, fontSize: scaleFont(fontSizes.subbody) }]}>{new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric", timeZone: "Africa/Gaborone" }).format(new Date())}</Text></View>
     <PreviewLabel loaded={liveReady} />
     <View style={s.metrics}>
       <Metric label="Portal page views" value={summary.telemetry.totalViews.toLocaleString("en-BW")} caption={`${summary.participation.activeVisitorsNow} active · ${reportingPeriodLabel(period)}`} icon="traffic" color={blue} onPress={() => onNavigate("Portal analytics")} />
@@ -186,15 +206,15 @@ export function AdminOverview({
       <Metric label="Open follow-ups" value={String(reportingSummary?.loaded ? summary.matters.open + summary.matters.investigating + summary.matters.waiting : openMatters.length)} caption="Matters needing attention" icon="alert" color="#B1873E" onPress={() => onNavigate("Follow-ups")} />
     </View>
     <InsightCard title="Portal traffic" action={onExportExecutive ? "Export CSV" : undefined} onPress={onExportExecutive}>
-      <View style={s.sectionHeading}><Text style={s.small}>Reporting period</Text><PeriodControl value={period} onChange={onPeriodChange} /></View>
+      <View style={s.sectionHeading}><Text style={[s.small, { color: darkMuted }]}>Reporting period</Text><PeriodControl value={period} onChange={onPeriodChange} /></View>
       <TrafficChart period={period} dailyViews={summary.telemetry.dailyViews} totalViews={summary.telemetry.totalViews} />
-      <Pressable accessibilityRole="button" style={s.fullLink} onPress={() => onNavigate("Portal analytics")}><Text style={styles.link}>View full analytics &amp; exports</Text><Text style={styles.link}>→</Text></Pressable>
+      <Pressable accessibilityRole="button" style={[s.fullLink, darkMode && { borderTopColor: "rgba(240,220,200,0.08)" }]} onPress={() => onNavigate("Portal analytics")}><Text style={[styles.link, { color: darkLink }]}>View full analytics &amp; exports</Text><Text style={[styles.link, { color: darkLink }]}>→</Text></Pressable>
     </InsightCard>
-    <InsightCard title="Performance"><View style={styles.healthRow}><View style={styles.healthCopy}><View style={styles.legend}><View style={[styles.legendDot, { backgroundColor: teal }]} /><Text style={styles.healthTitle}>Website health</Text></View><Text style={styles.healthValue}>{lcpLabel}</Text><Text style={styles.small}>Main content load (p75)</Text></View><View style={styles.healthVisual}><MiniBars color={teal} /><Text style={styles.small}>{inpLabel}</Text></View></View><Pressable accessibilityRole="button" style={styles.fullLink} onPress={() => onNavigate("Website health")}><Text style={styles.link}>View website health</Text><Text style={styles.link}>→</Text></Pressable><View style={styles.healthRow}><View style={styles.healthCopy}><Text style={styles.healthTitle}>Optimus Prime</Text><Text style={styles.healthValue}>{optTotal !== null ? String(optTotal) : "0"}</Text><Text style={styles.small}>{`${summary.optimus.escalations} support escalations`}</Text></View><View style={styles.aiRing}><Ring segments={[{ value: Math.max(1, helpful || 0), color: blue }, { value: Math.max(1, unhelpful || (helpful ? 0 : 1)), color: "#E8ECF1" }]} center={String(summary.optimus.escalations)} label="Escalated" /></View></View><Pressable accessibilityRole="button" style={styles.fullLink} onPress={() => onNavigate("Optimus Prime")}><Text style={styles.link}>View AI configuration &amp; metrics</Text><Text style={styles.link}>→</Text></Pressable></InsightCard>
-    <InsightCard title="Application outcomes" action="View all" onPress={() => onNavigate("Innovations")}><View style={styles.outcomeRow}><Ring segments={summary.applications.total || appsList.length ? outcomes : [{ value: 1, color: "#EEF0F3" }]} center={String(summary.applications.total || appsList.length)} label="Applications" /><Breakdown entries={outcomes} /></View></InsightCard>
-    <InsightCard title="Follow-ups" action="View all" onPress={() => onNavigate("Follow-ups")}>{openMatters.length ? openMatters.slice(0, 3).map(item => <Pressable key={item.id} accessibilityRole="button" onPress={() => onNavigate("Follow-ups")} style={styles.matter}><View style={[styles.matterIcon, { backgroundColor: item.priority === "High" ? "#F9EBE6" : "#F1F3F6" }]}><MobileIcon name="alert" color={item.priority === "High" ? rust : blue} /></View><View style={{ flex: 1, gap: 4 }}><Text style={styles.itemTitle}>{item.title}</Text><Text style={styles.small}>{item.id} · {item.kind} · {item.state}</Text></View><View style={[styles.priorityDot, { backgroundColor: item.priority === "High" ? rust : "#D7A65C" }]} /></Pressable>) : <Text style={s.small}>No open follow-up matters in the live queue.</Text>}</InsightCard>
-    <InsightCard title="Recent activity" action="View log" onPress={() => onNavigate("Activity log")}>{recentAudit ? recentAudit.map(entry => <Pressable accessibilityRole="button" key={entry.id} style={styles.matter} onPress={() => onNavigate("Activity log")}><View style={styles.initials}><Text style={styles.initialsText}>{entry.actor.split(" ").slice(-1)[0].slice(0, 2).toUpperCase()}</Text></View><View style={{ flex: 1, gap: 4 }}><Text style={styles.itemTitle}>{entry.actor}</Text><Text style={styles.small}>{entry.action} · {entry.target}</Text><Text style={styles.eventTime}>{entry.created_at.slice(0, 16).replace("T", " ")}</Text></View></Pressable>) : <Text style={s.small}>No recent audit events loaded yet.</Text>}</InsightCard>
-    <Text style={styles.footerNote}>All counts, turnaround SLAs, and telemetry come from live Supabase reporting RPCs.</Text>
+    <InsightCard title="Performance"><View style={styles.healthRow}><View style={styles.healthCopy}><View style={styles.legend}><View style={[styles.legendDot, { backgroundColor: teal }]} /><Text style={[styles.healthTitle, { color: darkInk }]}>Website health</Text></View><Text style={[styles.healthValue, { color: darkInk }]}>{lcpLabel}</Text><Text style={[styles.small, { color: darkMuted }]}>Main content load (p75)</Text></View><View style={styles.healthVisual}><MiniBars color={teal} /><Text style={[styles.small, { color: darkMuted }]}>{inpLabel}</Text></View></View><Pressable accessibilityRole="button" style={[s.fullLink, darkMode && { borderTopColor: "rgba(240,220,200,0.08)" }]} onPress={() => onNavigate("Website health")}><Text style={[styles.link, { color: darkLink }]}>View website health</Text><Text style={[styles.link, { color: darkLink }]}>→</Text></Pressable><View style={styles.healthRow}><View style={styles.healthCopy}><Text style={[styles.healthTitle, { color: darkInk }]}>Optimus Prime</Text><Text style={[styles.healthValue, { color: darkInk }]}>{optTotal !== null ? String(optTotal) : "0"}</Text><Text style={[styles.small, { color: darkMuted }]}>{`${summary.optimus.escalations} support escalations`}</Text></View><View style={styles.aiRing}><Ring segments={[{ value: Math.max(1, helpful || 0), color: blue }, { value: Math.max(1, unhelpful || (helpful ? 0 : 1)), color: darkMode ? "#2d241b" : "#E8ECF1" }]} center={String(summary.optimus.escalations)} label="Escalated" /></View></View><Pressable accessibilityRole="button" style={[s.fullLink, darkMode && { borderTopColor: "rgba(240,220,200,0.08)" }]} onPress={() => onNavigate("Optimus Prime")}><Text style={[styles.link, { color: darkLink }]}>View AI configuration &amp; metrics</Text><Text style={[styles.link, { color: darkLink }]}>→</Text></Pressable></InsightCard>
+    <InsightCard title="Application outcomes" action="View all" onPress={() => onNavigate("Innovations")}><View style={styles.outcomeRow}><Ring segments={summary.applications.total || appsList.length ? outcomes : [{ value: 1, color: darkMode ? "#2d241b" : "#EEF0F3" }]} center={String(summary.applications.total || appsList.length)} label="Applications" /><Breakdown entries={outcomes} /></View></InsightCard>
+    <InsightCard title="Follow-ups" action="View all" onPress={() => onNavigate("Follow-ups")}>{openMatters.length ? openMatters.slice(0, 3).map(item => <Pressable key={item.id} accessibilityRole="button" onPress={() => onNavigate("Follow-ups")} style={[styles.matter, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}><View style={[styles.matterIcon, { backgroundColor: item.priority === "High" ? (darkMode ? "#3b1c17" : "#F9EBE6") : (darkMode ? "#242c38" : "#F1F3F6") }]}><MobileIcon name="alert" color={item.priority === "High" ? rust : blue} /></View><View style={{ flex: 1, gap: 4 }}><Text style={[styles.itemTitle, { color: darkInk }]}>{item.title}</Text><Text style={[styles.small, { color: darkMuted }]}>{item.id} · {item.kind} · {item.state}</Text></View><View style={[styles.priorityDot, { backgroundColor: item.priority === "High" ? rust : "#D7A65C" }]} /></Pressable>) : <Text style={[s.small, { color: darkMuted }]}>No open follow-up matters in the live queue.</Text>}</InsightCard>
+    <InsightCard title="Recent activity" action="View log" onPress={() => onNavigate("Activity log")}>{recentAudit ? recentAudit.map(entry => <Pressable accessibilityRole="button" key={entry.id} style={[styles.matter, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]} onPress={() => onNavigate("Activity log")}><View style={[styles.initials, darkMode && { backgroundColor: "#242c38" }]}><Text style={styles.initialsText}>{entry.actor.split(" ").slice(-1)[0].slice(0, 2).toUpperCase()}</Text></View><View style={{ flex: 1, gap: 4 }}><Text style={[styles.itemTitle, { color: darkInk }]}>{entry.actor}</Text><Text style={[styles.small, { color: darkMuted }]}>{entry.action} · {entry.target}</Text><Text style={[styles.eventTime, darkMode && { color: "#907860" }]}>{entry.created_at.slice(0, 16).replace("T", " ")}</Text></View></Pressable>) : <Text style={[s.small, { color: darkMuted }]}>No recent audit events loaded yet.</Text>}</InsightCard>
+    <Text style={[styles.footerNote, { color: darkMuted }]}>All counts, turnaround SLAs, and telemetry come from live Supabase reporting RPCs.</Text>
   </>;
 }
 

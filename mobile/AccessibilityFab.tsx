@@ -1,15 +1,16 @@
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useAccessibility } from './useAccessibility';
+import React from "react";
+import { Pressable, StyleSheet, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { MobileIcon } from "./AdminOverview";
+import { useAccessibility } from "./useAccessibility";
 
 export function AccessibilityFab() {
   const insets = useSafeAreaInsets();
-  const { openModal, darkMode, scaleFont } = useAccessibility();
+  const { openModal, darkMode } = useAccessibility();
 
   return (
     <View
-      pointerEvents='box-none'
+      pointerEvents="box-none"
       style={[
         styles.container,
         {
@@ -18,20 +19,18 @@ export function AccessibilityFab() {
       ]}
     >
       <Pressable
-        accessibilityRole='button'
-        accessibilityLabel='Open accessibility display options and screen reader settings'
+        accessibilityRole="button"
+        accessibilityLabel="Open accessibility display options and TalkBack settings"
         onPress={openModal}
         style={({ pressed }) => [
           styles.fab,
           {
-            backgroundColor: darkMode ? '#e07060' : '#9a3d2b',
+            backgroundColor: darkMode ? "#e07060" : "#9a3d2b",
             opacity: pressed ? 0.8 : 1,
           },
         ]}
       >
-        <Text style={[styles.iconText, { fontSize: scaleFont(20) }]} accessible={false}>
-          {"\u267F"}
-        </Text>
+        <MobileIcon name="accessibility" color="#ffffff" />
       </Pressable>
     </View>
   );
@@ -39,7 +38,7 @@ export function AccessibilityFab() {
 
 const styles = StyleSheet.create({
   container: {
-    position: 'absolute',
+    position: "absolute",
     right: 16,
     zIndex: 9999,
   },
@@ -47,19 +46,14 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: 24,
-    justifyContent: 'center',
-    alignItems: 'center',
-    shadowColor: '#000',
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
     shadowOpacity: 0.28,
     shadowOffset: { width: 0, height: 4 },
     shadowRadius: 8,
     elevation: 8,
     borderWidth: 2,
-    borderColor: '#ffffff',
-  },
-  iconText: {
-    color: '#ffffff',
-    fontWeight: '700',
-    textAlign: 'center',
+    borderColor: "#ffffff",
   },
 });

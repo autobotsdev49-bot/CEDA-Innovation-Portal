@@ -35,6 +35,7 @@ import {
 } from "./InnovatorUI";
 import { isTokenAal2 } from "./securityApi";
 import { HOSTING_SUPPORT_SLA } from "./portalCatalog";
+import { useAccessibility } from "./useAccessibility";
 import { fetchSupportTickets, updateSupportOfficerAvailability } from "./supportApi";
 import { SupportConversationModal } from "./SupportConversationModal";
 import {
@@ -97,6 +98,9 @@ export function SupportWorkspace({
   const [endingSessions, setEndingSessions] = useState(false);
   const [sessionMessage, setSessionMessage] = useState("");
   const [sessionError, setSessionError] = useState("");
+  const { darkMode, openModal: openA11yModal, scaleFont } = useAccessibility();
+  const darkInk = darkMode ? "#f0e8e0" : colors.navy;
+  const darkMuted = darkMode ? "#b8a898" : colors.muted;
   const requestSeq = useRef(0);
 
   const loadTickets = useCallback(
@@ -323,18 +327,18 @@ export function SupportWorkspace({
   ];
 
   return (
-    <InnovatorA11yProvider>
-      <View style={styles.root}>
+    <InnovatorA11yProvider darkMode={darkMode}>
+      <View style={[styles.root, darkMode && { backgroundColor: "#131009" }]}>
         <FrostedScreenBackdrop image={require("./assets/innovation.webp")} imageHeight={320}>
-          <View style={styles.header}>
+          <View style={[styles.header, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
             <FrostedSurface variant="bar" />
             <Pressable
               accessibilityRole="button"
               accessibilityLabel="Open support menu"
               onPress={() => setDrawerOpen(true)}
-              style={({ pressed }) => [styles.headerAction, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.headerAction, darkMode && { backgroundColor: "rgba(37,32,24,0.88)", borderColor: "rgba(240,220,200,0.16)" }, pressed && { opacity: 0.7 }]}
             >
-              <MobileIcon name="menu" color={colors.navy} />
+              <MobileIcon name="menu" color={darkInk} />
             </Pressable>
             <View style={styles.brand}>
               <Image
@@ -344,10 +348,10 @@ export function SupportWorkspace({
                 accessibilityLabel="CEDA Support Officer"
               />
               <View style={styles.headerBody}>
-                <Text numberOfLines={1} style={styles.headerTitle}>
+                <Text numberOfLines={1} style={[styles.headerTitle, { color: darkInk, fontSize: scaleFont(fontSizes.heading) }]}>
                   Innovation
                 </Text>
-                <Text numberOfLines={1} style={styles.headerSubtitle}>
+                <Text numberOfLines={1} style={[styles.headerSubtitle, { color: darkMuted }]}>
                   Support desk · {availability}
                 </Text>
               </View>
@@ -356,9 +360,9 @@ export function SupportWorkspace({
               accessibilityRole="button"
               accessibilityLabel={`Open requests, ${summary.openRequests} unresolved`}
               onPress={() => openQueueSlice("All")}
-              style={({ pressed }) => [styles.headerAction, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.headerAction, darkMode && { backgroundColor: "rgba(37,32,24,0.88)", borderColor: "rgba(240,220,200,0.16)" }, pressed && { opacity: 0.7 }]}
             >
-              <MobileIcon name="bell" color={colors.navy} />
+              <MobileIcon name="bell" color={darkInk} />
               {summary.openRequests > 0 && <View style={styles.bellDot} />}
             </Pressable>
           </View>
@@ -796,7 +800,7 @@ export function SupportWorkspace({
             )}
           </ScrollView>
 
-          <View accessibilityRole="tablist" style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+          <View accessibilityRole="tablist" style={[styles.tabBar, darkMode && { borderTopColor: "rgba(240,220,200,0.08)" }, { paddingBottom: Math.max(insets.bottom, 10) }]}>
             <FrostedSurface variant="bar" />
             {tabs.map(tab => {
               const active = screen === tab.key;
@@ -809,12 +813,12 @@ export function SupportWorkspace({
                   onPress={() => setScreen(tab.key)}
                   style={({ pressed }) => [
                     styles.tab,
-                    active && styles.selectedTab,
+                    active && [styles.selectedTab, darkMode && { backgroundColor: "rgba(224,112,96,0.16)" }],
                     pressed && !active && { opacity: 0.72 },
                   ]}
                 >
-                  <InnovatorIcon name={tab.icon} color={active ? colors.rust : colors.muted} />
-                  <Text numberOfLines={1} style={[styles.tabLabel, active && styles.selectedTabLabel]}>
+                  <InnovatorIcon name={tab.icon} color={active ? colors.rust : darkMuted} />
+                  <Text numberOfLines={1} style={[styles.tabLabel, { color: darkMuted }, active && styles.selectedTabLabel]}>
                     {tab.short}
                   </Text>
                 </Pressable>
@@ -826,9 +830,9 @@ export function SupportWorkspace({
             <FrostedModalBackdrop>
               <View style={styles.drawerBackdrop}>
                 <Pressable accessibilityRole="button" accessibilityLabel="Close support menu" onPress={() => setDrawerOpen(false)} style={StyleSheet.absoluteFill} />
-                <View accessibilityViewIsModal style={[styles.drawer, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 18) }]}>
+                <View accessibilityViewIsModal style={[styles.drawer, darkMode && { borderColor: "rgba(240,220,200,0.12)" }, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 18) }]}>
                   <FrostedSurface variant="sheet" />
-                  <View style={styles.drawerHeading}>
+                  <View style={[styles.drawerHeading, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
                     <View style={styles.drawerBrand}>
                       <Image
                         source={require("./assets/ceda.png")}
@@ -837,17 +841,34 @@ export function SupportWorkspace({
                         accessibilityLabel="CEDA Innovation"
                       />
                       <View style={{ flex: 1 }}>
-                        <Text accessibilityRole="header" style={styles.drawerHeadingTitle}>
+                        <Text accessibilityRole="header" style={[styles.drawerHeadingTitle, { color: darkInk }]}>
                           Support Desk
                         </Text>
-                        <Text style={styles.headerSubtitle}>Quick navigation</Text>
+                        <Text style={[styles.headerSubtitle, { color: darkMuted }]}>Quick navigation</Text>
                       </View>
                     </View>
-                    <Pressable accessibilityRole="button" accessibilityLabel="Close menu" onPress={() => setDrawerOpen(false)} style={({ pressed }) => [styles.closeCircle, pressed && { opacity: 0.7 }]}>
-                      <InnovatorIcon name="close" color="#52606E" />
+                    <Pressable accessibilityRole="button" accessibilityLabel="Close menu" onPress={() => setDrawerOpen(false)} style={({ pressed }) => [styles.closeCircle, darkMode && { backgroundColor: "#252018", borderColor: "rgba(240,220,200,0.16)" }, pressed && { opacity: 0.7 }]}>
+                      <InnovatorIcon name="close" color={darkInk} />
                     </Pressable>
                   </View>
                   <ScrollView contentContainerStyle={styles.drawerList}>
+                    <Pressable
+                      accessibilityRole="button"
+                      accessibilityLabel="Open Accessibility and TalkBack settings"
+                      onPress={() => {
+                        setDrawerOpen(false);
+                        openA11yModal();
+                      }}
+                      style={{ flexDirection: "row", alignItems: "center", gap: 12, paddingHorizontal: 10, paddingVertical: 12, borderRadius: 14, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: darkMode ? "rgba(240,220,200,0.12)" : "rgba(36,28,25,0.08)", marginBottom: 6 }}
+                    >
+                      <View style={{ width: 38, height: 38, borderRadius: 13, backgroundColor: darkMode ? "#2e1c18" : "#FBEDE8", alignItems: "center", justifyContent: "center" }}>
+                        <MobileIcon name="accessibility" color={colors.rust} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={[styles.drawerItemTitle, { color: darkInk }]}>Accessibility &amp; TalkBack</Text>
+                        <Text numberOfLines={1} style={[styles.headerSubtitle, { color: darkMuted }]}>Dark mode, text size &amp; speech feedback</Text>
+                      </View>
+                    </Pressable>
                     {tabs.map(tab => (
                       <IconRow
                         key={tab.key}
@@ -875,10 +896,10 @@ export function SupportWorkspace({
                     ))}
                     <ActionButton label="Sign out" variant="secondary" onPress={onSignOut} />
                   </ScrollView>
-                  <View style={styles.drawerAccount}>
+                  <View style={[styles.drawerAccount, darkMode && { borderTopColor: "rgba(240,220,200,0.08)" }]}>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.drawerItemTitle}>{account.name}</Text>
-                      <Text numberOfLines={1} style={styles.headerSubtitle}>Support Officer · {availability}</Text>
+                      <Text style={[styles.drawerItemTitle, { color: darkInk }]}>{account.name}</Text>
+                      <Text numberOfLines={1} style={[styles.headerSubtitle, { color: darkMuted }]}>Support Officer · {availability}</Text>
                     </View>
                     <ActionButton label="Sign out" variant="secondary" compact onPress={onSignOut} />
                   </View>

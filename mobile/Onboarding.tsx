@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from "
 import { LinearGradient } from "expo-linear-gradient";
 import { AccessibilityInfo, Image, Pressable, ScrollView, StyleSheet, Text, useWindowDimensions, View, type ImageSourcePropType } from "react-native";
 import { palette } from "./theme";
+import { useAccessibility } from "./useAccessibility";
 
 const slides = [
   {
@@ -31,6 +32,7 @@ type PortalIntroProps = {
 };
 
 function PortalIntro({ image, title, description, label, headerAction, actions }: PortalIntroProps) {
+  const { darkMode, scaleFont } = useAccessibility();
   const [viewportHeight, setViewportHeight] = useState(0);
   const [copyHeight, setCopyHeight] = useState(0);
   const [headerHeight, setHeaderHeight] = useState(58);
@@ -45,24 +47,32 @@ function PortalIntro({ image, title, description, label, headerAction, actions }
     scroll.current?.scrollTo({ y: 0, animated: false });
   }, [title]);
 
+  const bgScreen = darkMode ? "#131009" : palette.white;
+  const washColors = darkMode
+    ? (["rgba(19, 16, 9, 0)", "rgba(19, 16, 9, 0)", "rgba(19, 16, 9, 0.6)", "#131009"] as const)
+    : (["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0.5)", palette.white] as const);
+  const headerWashColors = darkMode
+    ? (["rgba(19, 16, 9, 0.94)", "rgba(19, 16, 9, 0.82)", "rgba(19, 16, 9, 0.45)", "rgba(19, 16, 9, 0)"] as const)
+    : (["rgba(255, 255, 255, 0.92)", "rgba(255, 255, 255, 0.78)", "rgba(255, 255, 255, 0.42)", "rgba(255, 255, 255, 0)"] as const);
+
   return (
-    <View style={styles.screen}>
+    <View style={[styles.screen, { backgroundColor: bgScreen }]}>
       <ScrollView
         ref={scroll}
         style={styles.scroll}
         onLayout={({ nativeEvent }) => setViewportHeight(nativeEvent.layout.height)}
       >
-        <View style={[styles.artworkFrame, { height: artworkHeight }]}>
+        <View style={[styles.artworkFrame, { height: artworkHeight, backgroundColor: darkMode ? "#1c1810" : palette.paper }]}>
           <Image source={image} resizeMode="cover" style={styles.artwork} accessible={false} />
           <LinearGradient
-            colors={["rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0)", "rgba(255, 255, 255, 0.5)", palette.white]}
+            colors={washColors}
             locations={[0, 0.48, 0.76, 1]}
             pointerEvents="none"
             accessible={false}
             style={StyleSheet.absoluteFill}
           />
           <LinearGradient
-            colors={["rgba(255, 255, 255, 0.92)", "rgba(255, 255, 255, 0.78)", "rgba(255, 255, 255, 0.42)", "rgba(255, 255, 255, 0)"]}
+            colors={headerWashColors}
             locations={[0, 0.45, 0.72, 1]}
             pointerEvents="none"
             accessible={false}
@@ -71,20 +81,20 @@ function PortalIntro({ image, title, description, label, headerAction, actions }
           <View style={styles.header} onLayout={({ nativeEvent }) => setHeaderHeight(nativeEvent.layout.height)}>
             <View style={styles.brand}>
               <Image source={require("./assets/ceda.png")} style={styles.logo} resizeMode="contain" accessible={false} />
-              <Text style={styles.brandText}>CEDA Innovation</Text>
+              <Text style={[styles.brandText, { color: darkMode ? "#f0e8e0" : palette.ink, fontSize: scaleFont(14) }]}>CEDA Innovation</Text>
             </View>
             {headerAction}
           </View>
         </View>
 
         <View style={styles.copy} onLayout={({ nativeEvent }) => setCopyHeight(nativeEvent.layout.height)}>
-          {label && <Text style={styles.progress}>{label}</Text>}
-          <Text accessibilityRole="header" style={styles.title}>{title}</Text>
-          <Text style={styles.description}>{description}</Text>
+          {label && <Text style={[styles.progress, { fontSize: scaleFont(13) }]}>{label}</Text>}
+          <Text accessibilityRole="header" style={[styles.title, { color: darkMode ? "#f0e8e0" : palette.ink, fontSize: scaleFont(34) }]}>{title}</Text>
+          <Text style={[styles.description, { color: darkMode ? "#b8a898" : palette.muted, fontSize: scaleFont(16) }]}>{description}</Text>
         </View>
       </ScrollView>
 
-      <View style={styles.footer}>{actions}</View>
+      <View style={[styles.footer, { backgroundColor: bgScreen }]}>{actions}</View>
     </View>
   );
 }

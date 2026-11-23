@@ -60,7 +60,7 @@ export function AccessibilityModal() {
             <View style={[styles.header, { borderBottomColor: cardBorder }]}>
               <View style={styles.headerTitleWrap}>
                 <View style={[styles.headerIconWrap, { backgroundColor: darkMode ? '#2e1c18' : '#fbede8' }]}>
-                  <MobileIcon name='shield' color={rustColor} />
+                  <MobileIcon name='accessibility' color={rustColor} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Text accessibilityRole='header' style={[styles.title, { color: textColor, fontSize: scaleFont(18) }]}>
@@ -179,11 +179,15 @@ export function AccessibilityModal() {
                 onPress={() => announce('CEDA Innovation Portal accessibility features active and functioning.')}
                 style={[styles.testSpeechBtn, { borderColor: cardBorder, backgroundColor: darkMode ? '#252018' : '#f7f2eb' }]}
               >
-                <MobileIcon name='globe' color={rustColor} />
+                <MobileIcon name='speaker' color={rustColor} />
                 <Text style={[styles.testSpeechText, { color: textColor, fontSize: scaleFont(13) }]}>
                   Test TalkBack speech feedback
                 </Text>
               </Pressable>
+
+              <Text style={[styles.rowSub, { color: mutedColor, fontSize: scaleFont(11), textAlign: 'center' }]}>
+                TalkBack &amp; Voice Access: Works with Android TalkBack / Voice Access and iOS VoiceOver / Voice Control via native accessibility labels.
+              </Text>
 
               <Pressable
                 accessibilityRole='button'

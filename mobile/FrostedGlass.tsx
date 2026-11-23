@@ -3,6 +3,7 @@ import { AccessibilityInfo, Image, Platform, StyleSheet, View, type ImageSourceP
 import { BlurTargetView, BlurView } from "expo-blur";
 import { LinearGradient } from "expo-linear-gradient";
 import { palette } from "./theme";
+import { useAccessibility } from "./useAccessibility";
 
 type FrostedContextValue = {
   target: RefObject<ComponentRef<typeof BlurTargetView> | null> | undefined;
@@ -35,6 +36,24 @@ const gradientPresets = {
   },
 };
 
+const darkGradientPresets = {
+  sheet: {
+    colors: ["rgba(30,24,18,0.98)", "rgba(26,21,16,0.99)", "#1a1510"] as const,
+    locations: [0, 0.38, 1] as const,
+    intensity: 44,
+  },
+  card: {
+    colors: ["rgba(34,27,20,0.96)", "rgba(30,24,18,0.98)", "#1e1812"] as const,
+    locations: [0, 0.42, 1] as const,
+    intensity: 40,
+  },
+  bar: {
+    colors: ["rgba(26,21,16,0.96)", "rgba(22,18,13,0.98)", "#16120d"] as const,
+    locations: [0, 0.45, 1] as const,
+    intensity: 42,
+  },
+};
+
 export function useReduceTransparency() {
   const [reduceTransparency, setReduceTransparency] = useState(Platform.OS === "ios");
   useEffect(() => {
@@ -58,6 +77,7 @@ export function FrostedScreenBackdrop({
   imageHeight?: number;
   children: ReactNode;
 }) {
+  const { darkMode } = useAccessibility();
   const target = useRef<ComponentRef<typeof BlurTargetView>>(null);
   const [backdropReady, setBackdropReady] = useState(false);
   const reduceTransparency = useReduceTransparency();
@@ -73,17 +93,21 @@ export function FrostedScreenBackdrop({
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
       >
-        <View style={[StyleSheet.absoluteFill, { backgroundColor: palette.paper }]} />
+        <View style={[StyleSheet.absoluteFill, { backgroundColor: darkMode ? "#131009" : palette.paper }]} />
         {image && (
           <Image
             source={image}
             resizeMode="cover"
             accessible={false}
-            style={{ width: "100%", height: imageHeight, opacity: 0.34 }}
+            style={{ width: "100%", height: imageHeight, opacity: darkMode ? 0.16 : 0.34 }}
           />
         )}
         <LinearGradient
-          colors={["rgba(238,225,210,0.68)", "rgba(247,242,235,0.86)", palette.paper]}
+          colors={
+            darkMode
+              ? ["rgba(19,16,9,0.72)", "rgba(19,16,9,0.92)", "#131009"]
+              : ["rgba(238,225,210,0.68)", "rgba(247,242,235,0.86)", palette.paper]
+          }
           locations={[0, 0.52, 1]}
           style={{ position: "absolute", top: 0, left: 0, right: 0, height: imageHeight + 80 }}
           pointerEvents="none"
@@ -131,30 +155,49 @@ export function FrostedSurface({
   borderRadius?: number;
   style?: StyleProp<ViewStyle>;
 }) {
+  const { darkMode } = useAccessibility();
   const { target, showBlur, reduceTransparency } = useContext(FrostedContext);
-  const preset = gradientPresets[variant];
+  const preset = darkMode ? darkGradientPresets[variant] : gradientPresets[variant];
   const radiusStyle = borderRadius !== undefined ? { borderRadius } : undefined;
 
   return (
     <>
-      {showBlur && (
-        <BlurView
-          blurTarget={target}
-          blurMethod="dimezisBlurViewSdk31Plus"
-          intensity={preset.intensity}
-          tint="light"
-          style={[StyleSheet.absoluteFill, radiusStyle, style]}
-          pointerEvents="none"
-          accessible={false}
-          accessibilityElementsHidden
-          importantForAccessibility="no-hide-descendants"
-        />
-      )}
+      {showBlur &&
+        (darkMode ? (
+          <BlurView
+            blurTarget={target}
+            blurMethod="dimezisBlurViewSdk31Plus"
+            intensity={preset.intensity}
+            tint="dark"
+            style={[StyleSheet.absoluteFill, radiusStyle, style]}
+            pointerEvents="none"
+            accessible={false}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          />
+        ) : (
+          <BlurView
+            blurTarget={target}
+            blurMethod="dimezisBlurViewSdk31Plus"
+            intensity={preset.intensity}
+            tint="light"
+            style={[StyleSheet.absoluteFill, radiusStyle, style]}
+            pointerEvents="none"
+            accessible={false}
+            accessibilityElementsHidden
+            importantForAccessibility="no-hide-descendants"
+          />
+        ))}
       {reduceTransparency ? (
         <View
           pointerEvents="none"
           accessible={false}
-          style={[StyleSheet.absoluteFill, { backgroundColor: "#fffaf4" }, radiusStyle, style]}
+          style={[
+            StyleSheet.absoluteFill,
+            { backgroundColor: darkMode ? "#1e1812" : "#fffaf4" },
+            radiusStyle,
+            style,
+          ]}
         />
       ) : (
         <LinearGradient

@@ -322,11 +322,12 @@ export function GlassCard({
   children: React.ReactNode;
   style?: StyleProp<ViewStyle>;
 }) {
-  const { highContrast } = useInnovatorA11y();
+  const { highContrast, darkMode } = useInnovatorA11y();
   return (
     <View
       style={[
         uiStyles.card,
+        darkMode ? { borderColor: "rgba(240,220,200,0.12)" } : null,
         highContrast ? uiStyles.cardHighContrast : null,
         style,
       ]}
@@ -367,17 +368,19 @@ export function SubscreenHero({
   badge: string;
   summary: string;
 }) {
-  const { fs, highContrast } = useInnovatorA11y();
+  const { fs, highContrast, darkMode } = useInnovatorA11y();
+  const darkInk = darkMode ? "#f0e8e0" : adminStyleColors.navy;
+  const darkSubtle = darkMode ? "#b8a898" : adminStyleColors.subtle;
   return (
-    <View style={[uiStyles.subscreenHero, highContrast ? uiStyles.cardHighContrast : null]}>
+    <View style={[uiStyles.subscreenHero, darkMode ? { borderColor: "rgba(240,220,200,0.12)" } : null, highContrast ? uiStyles.cardHighContrast : null]}>
       <FrostedSurface variant="card" borderRadius={22} />
       <View style={uiStyles.subscreenTop}>
         <View style={[uiStyles.subscreenIcon, { backgroundColor: tint }]}>
           <InnovatorIcon name={icon} color={color} />
         </View>
         <View style={{ flex: 1, gap: 3 }}>
-          <Text style={[uiStyles.subscreenEyebrow, { fontSize: fs("caption") }]}>{eyebrow}</Text>
-          <Text accessibilityRole="header" style={[uiStyles.subscreenTitle, { fontSize: fs("title") }]}>
+          <Text style={[uiStyles.subscreenEyebrow, { fontSize: fs("caption"), color: darkSubtle }]}>{eyebrow}</Text>
+          <Text accessibilityRole="header" style={[uiStyles.subscreenTitle, { fontSize: fs("title"), color: darkInk }]}>
             {title}
           </Text>
         </View>
@@ -385,7 +388,7 @@ export function SubscreenHero({
           <Text style={{ color, fontSize: fs("caption"), fontWeight: "700" }}>{badge}</Text>
         </View>
       </View>
-      <Text style={{ color: adminStyleColors.subtle, fontSize: fs("subbody"), lineHeight: 19 }}>
+      <Text style={{ color: darkSubtle, fontSize: fs("subbody"), lineHeight: 19 }}>
         {summary}
       </Text>
     </View>
@@ -426,7 +429,7 @@ export function MetricTile({
   color: string;
   onPress?: () => void;
 }) {
-  const { fs, highContrast } = useInnovatorA11y();
+  const { fs, highContrast, darkMode } = useInnovatorA11y();
   return (
     <Pressable
       accessibilityRole={onPress ? "button" : "text"}
@@ -435,20 +438,21 @@ export function MetricTile({
       disabled={!onPress}
       style={({ pressed }) => [
         uiStyles.metric,
+        darkMode ? { borderColor: "rgba(240,220,200,0.12)" } : null,
         highContrast ? uiStyles.cardHighContrast : null,
         pressed && onPress ? { opacity: 0.68 } : null,
       ]}
     >
       <FrostedSurface variant="card" borderRadius={18} />
       <View style={uiStyles.metricTop}>
-        <View style={[uiStyles.metricIcon, { backgroundColor: color + "16" }]}>
+        <View style={[uiStyles.metricIcon, { backgroundColor: color + "22" }]}>
           <InnovatorIcon name={icon} color={color} />
         </View>
-        <Text style={[uiStyles.metricValue, { fontSize: fs("title") }]}>{value}</Text>
+        <Text style={[uiStyles.metricValue, { fontSize: fs("title"), color: darkMode ? "#f0e8e0" : adminStyleColors.navy }]}>{value}</Text>
       </View>
-      <Text style={[uiStyles.metricLabel, { fontSize: fs("subbody") }]}>{label}</Text>
+      <Text style={[uiStyles.metricLabel, { fontSize: fs("subbody"), color: darkMode ? "#d8cbbd" : "#52606E" }]}>{label}</Text>
       <View style={uiStyles.metricBottom}>
-        <Text style={[uiStyles.metricCaption, { fontSize: fs("caption") }]} numberOfLines={1}>
+        <Text style={[uiStyles.metricCaption, { fontSize: fs("caption"), color: darkMode ? "#b8a898" : adminStyleColors.subtle }]} numberOfLines={1}>
           {caption}
         </Text>
         <MiniBars color={color} />
@@ -478,7 +482,9 @@ export function IconRow({
   onPress?: () => void;
   children?: React.ReactNode;
 }) {
-  const { fs } = useInnovatorA11y();
+  const { fs, darkMode } = useInnovatorA11y();
+  const darkInk = darkMode ? "#f0e8e0" : adminStyleColors.navy;
+  const darkSubtle = darkMode ? "#b8a898" : adminStyleColors.subtle;
   const content = (
     <>
       <View accessible={false} style={[uiStyles.rowIcon, { backgroundColor: tint }]}>
@@ -486,7 +492,7 @@ export function IconRow({
       </View>
       <View style={uiStyles.rowBody}>
         <View style={uiStyles.rowTop}>
-          <Text style={[uiStyles.rowTitle, { fontSize: fs("body") }]} numberOfLines={2}>
+          <Text style={[uiStyles.rowTitle, { fontSize: fs("body"), color: darkInk }]} numberOfLines={2}>
             {title}
           </Text>
           {badge ? (
@@ -496,14 +502,14 @@ export function IconRow({
           ) : null}
         </View>
         {detail ? (
-          <Text style={{ color: adminStyleColors.subtle, fontSize: fs("subbody"), lineHeight: 19 }} numberOfLines={2}>
+          <Text style={{ color: darkSubtle, fontSize: fs("subbody"), lineHeight: 19 }} numberOfLines={2}>
             {detail}
           </Text>
         ) : null}
         {children ? <View style={uiStyles.tags}>{children}</View> : null}
       </View>
       {onPress ? (
-        <Text style={uiStyles.chevron} accessible={false}>
+        <Text style={[uiStyles.chevron, darkMode && { color: "#b8a898" }]} accessible={false}>
           {"\u203a"}
         </Text>
       ) : null}
@@ -511,7 +517,7 @@ export function IconRow({
   );
 
   if (!onPress) {
-    return <View style={[uiStyles.row, last && { borderBottomWidth: 0 }]}>{content}</View>;
+    return <View style={[uiStyles.row, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }, last && { borderBottomWidth: 0 }]}>{content}</View>;
   }
   return (
     <Pressable
@@ -520,8 +526,9 @@ export function IconRow({
       onPress={onPress}
       style={({ pressed }) => [
         uiStyles.row,
+        darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" },
         last && { borderBottomWidth: 0 },
-        pressed && { backgroundColor: "rgba(247,242,235,0.65)" },
+        pressed && { backgroundColor: darkMode ? "rgba(240,220,200,0.08)" : "rgba(247,242,235,0.65)" },
       ]}
     >
       {content}
@@ -540,30 +547,30 @@ export function FrostedSearchPill({
   placeholder: string;
   rightButton?: React.ReactNode;
 }) {
-  const { fs, highContrast } = useInnovatorA11y();
+  const { fs, highContrast, darkMode } = useInnovatorA11y();
   return (
     <View style={uiStyles.toolbar}>
-      <View style={[uiStyles.pillSearch, highContrast ? uiStyles.cardHighContrast : null]}>
+      <View style={[uiStyles.pillSearch, darkMode ? { borderColor: "rgba(240,220,200,0.14)" } : null, highContrast ? uiStyles.cardHighContrast : null]}>
         <FrostedSurface variant="bar" borderRadius={24} />
-        <InnovatorIcon name="search" color="#8B929C" />
+        <InnovatorIcon name="search" color={darkMode ? "#b8a898" : "#8B929C"} />
         <TextInput
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor="#8B929C"
+          placeholderTextColor={darkMode ? "#907860" : "#8B929C"}
           returnKeyType="search"
           autoCapitalize="none"
           autoCorrect={false}
-          style={[uiStyles.pillSearchInput, { fontSize: fs("body") }]}
+          style={[uiStyles.pillSearchInput, { fontSize: fs("body"), color: darkMode ? "#f0e8e0" : adminStyleColors.navy }]}
         />
         {value ? (
           <Pressable
             accessibilityRole="button"
             accessibilityLabel="Clear search"
             onPress={() => onChangeText("")}
-            style={uiStyles.clearSearch}
+            style={[uiStyles.clearSearch, darkMode && { backgroundColor: "#2e2416" }]}
           >
-            <Text style={uiStyles.clearText}>{"\u00d7"}</Text>
+            <Text style={[uiStyles.clearText, darkMode && { color: "#f0e8e0" }]}>{"\u00d7"}</Text>
           </Pressable>
         ) : null}
       </View>
@@ -589,7 +596,7 @@ export function ActionButton({
   compact?: boolean;
   style?: StyleProp<ViewStyle>;
 }) {
-  const { fs, highContrast } = useInnovatorA11y();
+  const { fs, highContrast, darkMode } = useInnovatorA11y();
   const isDisabled = disabled || loading;
 
   return (
@@ -605,7 +612,7 @@ export function ActionButton({
           ? uiStyles.buttonPrimary
           : variant === "danger"
             ? uiStyles.buttonDanger
-            : uiStyles.buttonSecondary,
+            : [uiStyles.buttonSecondary, darkMode ? { backgroundColor: "#252018", borderColor: "rgba(240,220,200,0.18)" } : null],
         highContrast && variant === "secondary" ? uiStyles.buttonSecondaryHighContrast : null,
         pressed && !isDisabled ? { opacity: 0.72 } : null,
         isDisabled ? { opacity: 0.5 } : null,
@@ -615,12 +622,12 @@ export function ActionButton({
       {loading ? (
         <ActivityIndicator
           size="small"
-          color={variant === "secondary" ? adminStyleColors.navy : adminStyleColors.white}
+          color={variant === "secondary" ? (darkMode ? "#f0e8e0" : adminStyleColors.navy) : adminStyleColors.white}
         />
       ) : null}
       <Text
         style={{
-          color: variant === "secondary" ? adminStyleColors.navy : adminStyleColors.white,
+          color: variant === "secondary" ? (darkMode ? "#f0e8e0" : adminStyleColors.navy) : adminStyleColors.white,
           fontSize: fs(compact ? "subbody" : "body"),
           fontWeight: "600",
           textAlign: "center",
@@ -643,18 +650,18 @@ export function SectionHeader({
   subtitle?: string;
   right?: React.ReactNode;
 }) {
-  const { fs } = useInnovatorA11y();
+  const { fs, darkMode } = useInnovatorA11y();
   return (
     <View style={uiStyles.sectionHeadRow}>
       <View style={{ flex: 1, gap: 2 }}>
         {eyebrow ? (
-          <Text style={[uiStyles.eyebrow, { fontSize: fs("caption") }]}>{eyebrow}</Text>
+          <Text style={[uiStyles.eyebrow, { fontSize: fs("caption"), color: darkMode ? "#b8a898" : adminStyleColors.subtle }]}>{eyebrow}</Text>
         ) : null}
-        <Text accessibilityRole="header" style={[uiStyles.sectionTitle, { fontSize: fs("heading") }]}>
+        <Text accessibilityRole="header" style={[uiStyles.sectionTitle, { fontSize: fs("heading"), color: darkMode ? "#f0e8e0" : adminStyleColors.navy }]}>
           {title}
         </Text>
         {subtitle ? (
-          <Text style={[uiStyles.sectionSubtitle, { fontSize: fs("subbody") }]}>{subtitle}</Text>
+          <Text style={[uiStyles.sectionSubtitle, { fontSize: fs("subbody"), color: darkMode ? "#b8a898" : adminStyleColors.subtle }]}>{subtitle}</Text>
         ) : null}
       </View>
       {right}
@@ -675,23 +682,23 @@ export function FormField({
   counterOk?: boolean;
   children: React.ReactNode;
 }) {
-  const { fs } = useInnovatorA11y();
+  const { fs, darkMode } = useInnovatorA11y();
   return (
     <View style={uiStyles.fieldWrap}>
       <View style={uiStyles.fieldLabelRow}>
-        <Text style={[uiStyles.fieldLabel, { fontSize: fs("subbody") }]}>{label}</Text>
+        <Text style={[uiStyles.fieldLabel, { fontSize: fs("subbody"), color: darkMode ? "#f0e8e0" : adminStyleColors.navy }]}>{label}</Text>
         {counterText ? (
           <View
             style={[
               uiStyles.counterPill,
-              { backgroundColor: counterOk ? "#E4F4F0" : "#F3EFEA" },
+              { backgroundColor: counterOk ? (darkMode ? "#17332d" : "#E4F4F0") : (darkMode ? "#252018" : "#F3EFEA") },
             ]}
           >
             <Text
               style={{
                 fontSize: fs("caption"),
                 fontWeight: "700",
-                color: counterOk ? adminStyleColors.teal : adminStyleColors.muted,
+                color: counterOk ? (darkMode ? "#4fb5a6" : adminStyleColors.teal) : (darkMode ? "#b8a898" : adminStyleColors.muted),
               }}
             >
               {counterText}
@@ -699,22 +706,23 @@ export function FormField({
           </View>
         ) : null}
       </View>
-      {hint ? <Text style={[uiStyles.fieldHint, { fontSize: fs("caption") }]}>{hint}</Text> : null}
+      {hint ? <Text style={[uiStyles.fieldHint, { fontSize: fs("caption"), color: darkMode ? "#b8a898" : adminStyleColors.subtle }]}>{hint}</Text> : null}
       {children}
     </View>
   );
 }
 
 export function FrostedInput({ multiline, style, ...props }: TextInputProps) {
-  const { fs, highContrast } = useInnovatorA11y();
+  const { fs, highContrast, darkMode } = useInnovatorA11y();
   return (
     <TextInput
-      placeholderTextColor={adminStyleColors.subtle}
+      placeholderTextColor={darkMode ? "#907860" : adminStyleColors.subtle}
       multiline={multiline}
       textAlignVertical={multiline ? "top" : "center"}
       {...props}
       style={[
         uiStyles.input,
+        darkMode ? { backgroundColor: "#252018", borderColor: "rgba(240,220,200,0.16)", color: "#f0e8e0" } : null,
         multiline ? uiStyles.inputMultiline : null,
         highContrast ? uiStyles.inputHighContrast : null,
         { fontSize: fs("body") },
@@ -735,7 +743,7 @@ export function ChoiceChips({
   onSelect: (next: string) => void;
   multi?: boolean;
 }) {
-  const { fs, highContrast } = useInnovatorA11y();
+  const { fs, highContrast, darkMode } = useInnovatorA11y();
   const isSelected = (opt: string) =>
     multi ? Array.isArray(selected) && selected.includes(opt) : selected === opt;
 
@@ -751,6 +759,7 @@ export function ChoiceChips({
             accessibilityState={{ checked: active, selected: active }}
             style={[
               uiStyles.chip,
+              darkMode && !active ? { backgroundColor: "#252018", borderColor: "rgba(240,220,200,0.16)" } : null,
               active ? uiStyles.chipActive : null,
               highContrast && !active ? uiStyles.chipHighContrast : null,
             ]}
@@ -759,7 +768,7 @@ export function ChoiceChips({
               style={{
                 fontSize: fs("subbody"),
                 fontWeight: active ? "700" : "500",
-                color: active ? adminStyleColors.white : adminStyleColors.muted,
+                color: active ? adminStyleColors.white : (darkMode ? "#d8cbbd" : adminStyleColors.muted),
               }}
             >
               {opt}
@@ -784,20 +793,20 @@ export function SwitchRow({
   onValueChange: (next: boolean) => void;
   last?: boolean;
 }) {
-  const { fs } = useInnovatorA11y();
+  const { fs, darkMode } = useInnovatorA11y();
   return (
     <Pressable
       onPress={() => onValueChange(!value)}
       accessibilityRole="switch"
       accessibilityState={{ checked: value }}
-      style={[uiStyles.switchRow, last && { borderBottomWidth: 0 }]}
+      style={[uiStyles.switchRow, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }, last && { borderBottomWidth: 0 }]}
     >
       <View style={{ flex: 1, paddingRight: 12 }}>
-        <Text style={{ fontSize: fs("body"), fontWeight: "600", color: adminStyleColors.navy }}>
+        <Text style={{ fontSize: fs("body"), fontWeight: "600", color: darkMode ? "#f0e8e0" : adminStyleColors.navy }}>
           {label}
         </Text>
         {detail ? (
-          <Text style={{ fontSize: fs("subbody"), color: adminStyleColors.subtle, marginTop: 2, lineHeight: 19 }}>
+          <Text style={{ fontSize: fs("subbody"), color: darkMode ? "#b8a898" : adminStyleColors.subtle, marginTop: 2, lineHeight: 19 }}>
             {detail}
           </Text>
         ) : null}
@@ -805,7 +814,7 @@ export function SwitchRow({
       <Switch
         value={value}
         onValueChange={onValueChange}
-        trackColor={{ false: "rgba(25,44,64,0.18)", true: adminStyleColors.rust }}
+        trackColor={{ false: darkMode ? "rgba(240,220,200,0.22)" : "rgba(25,44,64,0.18)", true: adminStyleColors.rust }}
         thumbColor={adminStyleColors.white}
       />
     </Pressable>
@@ -830,11 +839,11 @@ export function ProgressBar({
 }
 
 export function FactRow({ label, value, last = false }: { label: string; value: string; last?: boolean }) {
-  const { fs } = useInnovatorA11y();
+  const { fs, darkMode } = useInnovatorA11y();
   return (
-    <View style={[uiStyles.factRow, last && { borderBottomWidth: 0 }]}>
-      <Text style={[uiStyles.factLabel, { fontSize: fs("caption") }]}>{label}</Text>
-      <Text style={[uiStyles.factValue, { fontSize: fs("body") }]}>{value || "Not recorded"}</Text>
+    <View style={[uiStyles.factRow, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }, last && { borderBottomWidth: 0 }]}>
+      <Text style={[uiStyles.factLabel, { fontSize: fs("caption"), color: darkMode ? "#b8a898" : adminStyleColors.subtle }]}>{label}</Text>
+      <Text style={[uiStyles.factValue, { fontSize: fs("body"), color: darkMode ? "#f0e8e0" : adminStyleColors.navy }]}>{value || "Not recorded"}</Text>
     </View>
   );
 }
@@ -853,7 +862,7 @@ export function FlushSheetModal({
   children: React.ReactNode;
 }) {
   const insets = useSafeAreaInsets();
-  const { fs, reducedMotion } = useInnovatorA11y();
+  const { fs, reducedMotion, darkMode } = useInnovatorA11y();
   if (!visible) return null;
 
   return (
@@ -880,15 +889,16 @@ export function FlushSheetModal({
               accessibilityViewIsModal
               style={[
                 uiStyles.sheetContainer,
+                darkMode ? { borderColor: "rgba(240,220,200,0.14)" } : null,
                 { paddingBottom: Math.max(insets.bottom, 22) },
               ]}
             >
               <FrostedSurface variant="sheet" borderRadius={32} />
-              <View style={uiStyles.sheetHandle} />
-              <View style={uiStyles.sheetHeader}>
+              <View style={[uiStyles.sheetHandle, darkMode ? { backgroundColor: "rgba(240,220,200,0.22)" } : null]} />
+              <View style={[uiStyles.sheetHeader, darkMode ? { borderBottomColor: "rgba(240,220,200,0.1)" } : null]}>
                 <View style={{ flex: 1 }}>
-                  <Text style={[uiStyles.sheetEyebrow, { fontSize: fs("caption") }]}>{eyebrow}</Text>
-                  <Text accessibilityRole="header" style={[uiStyles.sheetTitle, { fontSize: fs("heading") }]} numberOfLines={2}>
+                  <Text style={[uiStyles.sheetEyebrow, { fontSize: fs("caption"), color: darkMode ? "#b8a898" : adminStyleColors.subtle }]}>{eyebrow}</Text>
+                  <Text accessibilityRole="header" style={[uiStyles.sheetTitle, { fontSize: fs("heading"), color: darkMode ? "#f0e8e0" : adminStyleColors.navy }]} numberOfLines={2}>
                     {title}
                   </Text>
                 </View>
@@ -896,9 +906,9 @@ export function FlushSheetModal({
                   onPress={onClose}
                   accessibilityRole="button"
                   accessibilityLabel="Close dialog"
-                  style={uiStyles.closeCircle}
+                  style={[uiStyles.closeCircle, darkMode ? { backgroundColor: "#252018", borderColor: "rgba(240,220,200,0.16)" } : null]}
                 >
-                  <InnovatorIcon name="close" color="#52606E" />
+                  <InnovatorIcon name="close" color={darkMode ? "#f0e8e0" : "#52606E"} />
                 </Pressable>
               </View>
 

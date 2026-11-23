@@ -24,6 +24,7 @@ import {
   type AssessorCase, type AssessorData, type CaseDetail,
 } from "./assessorApi";
 import { buttonCornerRadius, fontSizes } from "./theme";
+import { useAccessibility } from "./useAccessibility";
 
 const tabs = ["overview", "assessments", "library", "messages", "more"] as const;
 const leadSections = ["progress", "reports"] as const;
@@ -177,6 +178,10 @@ function caseDirectoryRows(
 }
 
 export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { account: Account; onSignOut: () => void; onAccountChange: (account: Account) => void }) {
+  const { darkMode, openModal: openA11yModal, scaleFont } = useAccessibility();
+  const darkInk = darkMode ? "#f0e8e0" : colors.navy;
+  const darkMuted = darkMode ? "#b8a898" : colors.muted;
+  const darkSubtle = darkMode ? "#b8a898" : colors.subtle;
   const insets = useSafeAreaInsets();
   const scroll = useRef<ComponentRef<typeof ScrollView>>(null);
   const [screen, setScreen] = useState<Screen>("overview");
@@ -445,25 +450,25 @@ export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { acc
   }
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, darkMode && { backgroundColor: "#131009" }]}>
       <FrostedScreenBackdrop image={require("./assets/innovation.webp")}>
-        <View style={styles.header}>
+        <View style={[styles.header, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
           <FrostedSurface variant="bar" />
           <Pressable
             accessibilityRole="button"
             accessibilityLabel={nested ? "Go back" : "Open assessor navigation"}
             onPress={nested ? goBack : () => setDrawerOpen(true)}
-            style={({ pressed }) => [styles.headerAction, nested && styles.backAction, pressed && { opacity: 0.7 }]}
+            style={({ pressed }) => [styles.headerAction, darkMode && { backgroundColor: "rgba(37,32,24,0.88)", borderColor: "rgba(240,220,200,0.16)" }, nested && styles.backAction, pressed && { opacity: 0.7 }]}
             disabled={caseBusy}
           >
-            <InnovatorIcon name={nested ? "back" : "menu"} color={colors.navy} />
+            <InnovatorIcon name={nested ? "back" : "menu"} color={darkInk} />
           </Pressable>
           {nested ? (
             <View style={styles.headerCenter}>
-              <Text style={styles.headerEyebrow} numberOfLines={1}>
+              <Text style={[styles.headerEyebrow, { color: darkSubtle }]} numberOfLines={1}>
                 {caseId ? (detail?.case.reference ?? "CASE REVIEW") : `${screens[parent].title.toUpperCase()} / SUB-SCREEN`}
               </Text>
-              <Text style={styles.brandTitle} numberOfLines={1}>
+              <Text style={[styles.brandTitle, { color: darkInk, fontSize: scaleFont(fontSizes.heading) }]} numberOfLines={1}>
                 {caseId ? "Application review" : screens[screen].title}
               </Text>
             </View>
@@ -471,8 +476,8 @@ export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { acc
             <View style={styles.brand}>
               <Image source={require("./assets/ceda.png")} accessibilityLabel="CEDA Innovation" resizeMode="contain" style={styles.logo} />
               <View style={styles.brandTextWrap}>
-                <Text style={styles.brandTitle}>Innovation</Text>
-                <Text style={styles.brandSubtitle} numberOfLines={1}>{roleSubtitle}</Text>
+                <Text style={[styles.brandTitle, { color: darkInk, fontSize: scaleFont(fontSizes.heading) }]}>Innovation</Text>
+                <Text style={[styles.brandSubtitle, { color: darkSubtle }]} numberOfLines={1}>{roleSubtitle}</Text>
               </View>
             </View>
           )}
@@ -1135,7 +1140,7 @@ export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { acc
         </ScrollView>
 
         {!nested && (
-          <View accessibilityRole="tablist" style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+          <View accessibilityRole="tablist" style={[styles.tabBar, darkMode && { borderTopColor: "rgba(240,220,200,0.08)" }, { paddingBottom: Math.max(insets.bottom, 10) }]}>
             <FrostedSurface variant="bar" />
             {tabs.map(entry => {
               const active = entry === screen;
@@ -1146,13 +1151,13 @@ export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { acc
                   accessibilityLabel={screens[entry].title}
                   accessibilityState={{ selected: active }}
                   onPress={() => navigate(entry)}
-                  style={({ pressed }) => [styles.tab, active && styles.selected, pressed && !active && { opacity: 0.72 }]}
+                  style={({ pressed }) => [styles.tab, active && [styles.selected, darkMode && { backgroundColor: "rgba(224,112,96,0.16)" }], pressed && !active && { opacity: 0.72 }]}
                 >
                   <View>
-                    <InnovatorIcon name={screens[entry].icon} color={active ? colors.rust : colors.muted} />
+                    <InnovatorIcon name={screens[entry].icon} color={active ? colors.rust : darkMuted} />
                     {entry === "messages" && totalUnread > 0 && <View style={styles.tabUnreadDot} />}
                   </View>
-                  <Text numberOfLines={1} style={[styles.tabLabel, active && styles.selectedText]}>
+                  <Text numberOfLines={1} style={[styles.tabLabel, { color: darkMuted }, active && styles.selectedText]}>
                     {screens[entry].short ?? screens[entry].title}
                   </Text>
                 </Pressable>
@@ -1165,42 +1170,62 @@ export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { acc
           <FrostedModalBackdrop>
             <View style={styles.drawerBackdrop}>
               <Pressable accessibilityRole="button" accessibilityLabel="Close assessor menu" onPress={() => setDrawerOpen(false)} style={StyleSheet.absoluteFill} />
-              <View accessibilityViewIsModal style={[styles.drawer, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 18) }]}>
+              <View accessibilityViewIsModal style={[styles.drawer, darkMode && { borderColor: "rgba(240,220,200,0.12)" }, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 18) }]}>
                 <FrostedSurface variant="sheet" />
-                <View style={styles.drawerHeading}>
+                <View style={[styles.drawerHeading, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
                   <View style={styles.drawerBrand}>
                     <Image source={require("./assets/ceda.png")} resizeMode="contain" style={styles.logo} accessibilityLabel="CEDA Innovation" />
                     <View style={{ flex: 1 }}>
-                      <Text accessibilityRole="header" style={styles.drawerHeadingTitle}>{roleName} Portal</Text>
-                      <Text style={styles.brandSubtitle} numberOfLines={1}>{roleSubtitle}</Text>
+                      <Text accessibilityRole="header" style={[styles.drawerHeadingTitle, { color: darkInk }]}>{roleName} Portal</Text>
+                      <Text style={[styles.brandSubtitle, { color: darkSubtle }]} numberOfLines={1}>{roleSubtitle}</Text>
                     </View>
                   </View>
-                  <Pressable accessibilityRole="button" accessibilityLabel="Close menu" onPress={() => setDrawerOpen(false)} style={({ pressed }) => [styles.closeCircle, pressed && { opacity: 0.7 }]}>
-                    <InnovatorIcon name="close" color="#52606E" />
+                  <Pressable accessibilityRole="button" accessibilityLabel="Close menu" onPress={() => setDrawerOpen(false)} style={({ pressed }) => [styles.closeCircle, darkMode && { backgroundColor: "#252018", borderColor: "rgba(240,220,200,0.16)" }, pressed && { opacity: 0.7 }]}>
+                    <InnovatorIcon name="close" color={darkInk} />
                   </Pressable>
                 </View>
 
-                <View style={styles.drawerStatsRow}>
+                <View style={[styles.drawerStatsRow, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
                   {[
                     [String(cases.length), "Total"],
                     [String(mine.filter(item => !item.submitted).length), "To review"],
                     [String(alerts.length), "Alerts"],
                   ].map(([value, label]) => (
                     <View key={label} style={styles.drawerStatItem}>
-                      <Text style={styles.drawerStatValue}>{value}</Text>
-                      <Text style={styles.drawerStatLabel}>{label}</Text>
+                      <Text style={[styles.drawerStatValue, { color: darkInk }]}>{value}</Text>
+                      <Text style={[styles.drawerStatLabel, { color: darkSubtle }]}>{label}</Text>
                     </View>
                   ))}
                 </View>
 
                 <ScrollView contentContainerStyle={styles.drawerContent}>
+                  <Text style={[styles.drawerSectionLabel, { color: darkSubtle }]}>ACCESSIBILITY &amp; TALKBACK</Text>
+                  <Pressable
+                    accessibilityRole="button"
+                    accessibilityLabel="Open Accessibility and TalkBack settings"
+                    onPress={() => {
+                      setDrawerOpen(false);
+                      openA11yModal();
+                    }}
+                    style={styles.drawerLink}
+                  >
+                    <View style={[styles.drawerIcon, { backgroundColor: darkMode ? "#2e1c18" : "#FBEDE8" }]}>
+                      <MobileIcon name="accessibility" color={colors.rust} />
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.drawerItemTitle, { color: darkInk }]}>Accessibility &amp; TalkBack</Text>
+                      <Text numberOfLines={1} style={[styles.drawerSub, { color: darkSubtle }]}>Dark mode, text size &amp; speech feedback</Text>
+                    </View>
+                    <Text style={[styles.chevron, { color: darkSubtle }]} accessible={false}>{"\u203a"}</Text>
+                  </Pressable>
+
                   {[
                     { heading: "MAIN WORKSPACE", items: tabs.filter(entry => entry !== "more") as Screen[] },
                     ...(lead ? [{ heading: "LEAD ASSESSOR TOOLS", items: [...leadSections] as Screen[] }] : []),
                     { heading: "ACCOUNT & TOOLS", items: [...otherSections] as Screen[] },
-                  ].map((group, groupIndex) => (
-                    <View key={group.heading} style={groupIndex > 0 ? { marginTop: 10 } : undefined}>
-                      <Text style={styles.drawerSectionLabel}>{group.heading}</Text>
+                  ].map((group) => (
+                    <View key={group.heading} style={{ marginTop: 10 }}>
+                      <Text style={[styles.drawerSectionLabel, { color: darkSubtle }]}>{group.heading}</Text>
                       {group.items.map(entry => {
                         const meta = screens[entry];
                         const active = screen === entry && !caseId;
@@ -1210,16 +1235,16 @@ export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { acc
                             accessibilityRole="button"
                             accessibilityState={{ selected: active }}
                             onPress={() => navigate(entry)}
-                            style={[styles.drawerLink, active && styles.drawerLinkActive]}
+                            style={[styles.drawerLink, active && [styles.drawerLinkActive, darkMode && { backgroundColor: "rgba(224,112,96,0.16)" }]]}
                           >
                             <View style={[styles.drawerIcon, { backgroundColor: meta.tint }]}>
                               <InnovatorIcon name={meta.icon} color={meta.color} />
                             </View>
                             <View style={{ flex: 1 }}>
-                              <Text style={[styles.drawerItemTitle, active && { color: colors.rust }]}>{meta.title}</Text>
-                              <Text numberOfLines={1} style={styles.drawerSub}>{meta.detail}</Text>
+                              <Text style={[styles.drawerItemTitle, { color: darkInk }, active && { color: colors.rust }]}>{meta.title}</Text>
+                              <Text numberOfLines={1} style={[styles.drawerSub, { color: darkSubtle }]}>{meta.detail}</Text>
                             </View>
-                            <Text style={styles.chevron} accessible={false}>{"\u203a"}</Text>
+                            <Text style={[styles.chevron, { color: darkSubtle }]} accessible={false}>{"\u203a"}</Text>
                           </Pressable>
                         );
                       })}
@@ -1227,10 +1252,10 @@ export function AssessorWorkspace({ account, onSignOut, onAccountChange }: { acc
                   ))}
                 </ScrollView>
 
-                <View style={styles.drawerAccount}>
+                <View style={[styles.drawerAccount, darkMode && { borderTopColor: "rgba(240,220,200,0.08)" }]}>
                   <View style={{ flex: 1 }}>
-                    <Text style={styles.drawerItemTitle}>{displayName}</Text>
-                    <Text numberOfLines={1} style={styles.drawerSub}>{roleSubtitle}</Text>
+                    <Text style={[styles.drawerItemTitle, { color: darkInk }]}>{displayName}</Text>
+                    <Text numberOfLines={1} style={[styles.drawerSub, { color: darkSubtle }]}>{roleSubtitle}</Text>
                   </View>
                   <ActionButton label="Sign out" variant="secondary" compact onPress={onSignOut} />
                 </View>

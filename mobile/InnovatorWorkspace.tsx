@@ -49,6 +49,7 @@ import {
   type InnovatorIconName,
 } from "./InnovatorUI";
 import { InnovatorWizard, type WizardScreenMode } from "./InnovatorWizard";
+import { MobileIcon } from "./AdminOverview";
 import { buttonCornerRadius, fontSizes } from "./theme";
 import { useAccessibility } from "./useAccessibility";
 
@@ -72,7 +73,10 @@ export function InnovatorWorkspace({
   onAccountChange: (next: Account) => void;
 }) {
   const insets = useSafeAreaInsets();
-  const { darkMode, setDarkMode, announce } = useAccessibility();
+  const { darkMode, setDarkMode, announce, openModal: openA11yModal, scaleFont } = useAccessibility();
+  const darkInk = darkMode ? "#f0e8e0" : adminStyleColors.navy;
+  const darkMuted = darkMode ? "#b8a898" : adminStyleColors.muted;
+  const darkSubtle = darkMode ? "#b8a898" : adminStyleColors.subtle;
   const [data, setData] = useState<InnovatorWorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -479,7 +483,7 @@ export function InnovatorWorkspace({
       <View style={[styles.screen, darkMode && { backgroundColor: "#131009" }]}>
         <FrostedScreenBackdrop image={WORKSPACE_BG} imageHeight={320}>
           {/* Top Frosted Header (Matches AdminWorkspace.tsx) */}
-          <View style={styles.header}>
+          <View style={[styles.header, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
             <FrostedSurface variant="bar" />
             <Pressable
               onPress={() => (isNestedScreen ? handleBack() : setDrawerOpen(true))}
@@ -487,19 +491,20 @@ export function InnovatorWorkspace({
               accessibilityLabel={isNestedScreen ? "Go back" : "Open innovator navigation menu"}
               style={({ pressed }) => [
                 styles.headerAction,
+                darkMode && { backgroundColor: "rgba(37,32,24,0.88)", borderColor: "rgba(240,220,200,0.16)" },
                 isNestedScreen && styles.backButton,
                 pressed && { opacity: 0.7 },
               ]}
             >
-              <InnovatorIcon name={isNestedScreen ? "back" : "menu"} color={adminStyleColors.navy} />
+              <InnovatorIcon name={isNestedScreen ? "back" : "menu"} color={darkInk} />
             </Pressable>
 
             {isNestedScreen ? (
               <View style={styles.headerCenter}>
-                <Text numberOfLines={1} style={styles.headerEyebrow}>
+                <Text numberOfLines={1} style={[styles.headerEyebrow, { color: darkSubtle }]}>
                   {nestedEyebrow}
                 </Text>
-                <Text numberOfLines={1} style={styles.brandTitle}>
+                <Text numberOfLines={1} style={[styles.brandTitle, { color: darkInk, fontSize: scaleFont(fontSizes.heading) }]}>
                   {nestedTitle}
                 </Text>
               </View>
@@ -512,8 +517,8 @@ export function InnovatorWorkspace({
                   accessibilityLabel="CEDA Innovation"
                 />
                 <View>
-                  <Text style={styles.brandTitle}>Innovation</Text>
-                  <Text style={styles.brandSubtitle}>Innovator portal</Text>
+                  <Text style={[styles.brandTitle, { color: darkInk, fontSize: scaleFont(fontSizes.heading) }]}>Innovation</Text>
+                  <Text style={[styles.brandSubtitle, { color: darkSubtle }]}>Innovator portal</Text>
                 </View>
               </View>
             )}
@@ -522,9 +527,9 @@ export function InnovatorWorkspace({
               onPress={() => setNotificationsOpen(true)}
               accessibilityRole="button"
               accessibilityLabel="Open notifications"
-              style={({ pressed }) => [styles.headerAction, pressed && { opacity: 0.7 }]}
+              style={({ pressed }) => [styles.headerAction, darkMode && { backgroundColor: "rgba(37,32,24,0.88)", borderColor: "rgba(240,220,200,0.16)" }, pressed && { opacity: 0.7 }]}
             >
-              <InnovatorIcon name="bell" color={adminStyleColors.navy} />
+              <InnovatorIcon name="bell" color={darkInk} />
               {unreadNotifs > 0 ? <View style={styles.bellDot} /> : null}
             </Pressable>
           </View>
@@ -785,6 +790,7 @@ export function InnovatorWorkspace({
                       numberOfLines={1}
                       style={[
                         styles.tabLabel,
+                        { color: darkMuted },
                         selected && { color: adminStyleColors.rust, fontWeight: "700" },
                       ]}
                     >
@@ -832,61 +838,62 @@ export function InnovatorWorkspace({
                         accessibilityLabel="CEDA Innovation"
                       />
                       <View style={{ flex: 1 }}>
-                        <Text accessibilityRole="header" style={styles.drawerHeadingTitle}>
+                        <Text accessibilityRole="header" style={[styles.drawerHeadingTitle, { color: darkInk }]}>
                           Innovator Portal
                         </Text>
-                        <Text style={styles.brandSubtitle}>Quick navigation</Text>
+                        <Text style={[styles.brandSubtitle, { color: darkSubtle }]}>Quick navigation</Text>
                       </View>
                     </View>
                     <Pressable
                       accessibilityRole="button"
                       accessibilityLabel="Close innovator menu"
                       onPress={() => setDrawerOpen(false)}
-                      style={styles.closeCircle}
+                      style={[styles.closeCircle, darkMode && { backgroundColor: "#252018", borderColor: "rgba(240,220,200,0.16)" }]}
                     >
-                      <InnovatorIcon name="close" color="#52606E" />
+                      <InnovatorIcon name="close" color={darkInk} />
                     </Pressable>
                   </View>
 
                   {data ? (
-                    <View style={styles.drawerStatsRow}>
+                    <View style={[styles.drawerStatsRow, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
                       <View style={styles.drawerStatItem}>
-                        <Text style={styles.drawerStatValue}>{data.applications.length}</Text>
-                        <Text style={styles.drawerStatLabel}>Applications</Text>
+                        <Text style={[styles.drawerStatValue, { color: darkInk }]}>{data.applications.length}</Text>
+                        <Text style={[styles.drawerStatLabel, { color: darkSubtle }]}>Applications</Text>
                       </View>
                       <View style={styles.drawerStatItem}>
-                        <Text style={styles.drawerStatValue}>
+                        <Text style={[styles.drawerStatValue, { color: darkInk }]}>
                           {data.applications.filter((a) => a.status === "Draft").length}
                         </Text>
-                        <Text style={styles.drawerStatLabel}>Drafts</Text>
+                        <Text style={[styles.drawerStatLabel, { color: darkSubtle }]}>Drafts</Text>
                       </View>
                       <View style={styles.drawerStatItem}>
-                        <Text style={styles.drawerStatValue}>{unreadMsgs + unreadNotifs}</Text>
-                        <Text style={styles.drawerStatLabel}>Unread</Text>
+                        <Text style={[styles.drawerStatValue, { color: darkInk }]}>{unreadMsgs + unreadNotifs}</Text>
+                        <Text style={[styles.drawerStatLabel, { color: darkSubtle }]}>Unread</Text>
                       </View>
                     </View>
                   ) : null}
 
                   <ScrollView contentContainerStyle={styles.drawerContent}>
-                    <Text style={styles.drawerSectionLabel}>MAIN WORKSPACE</Text>
+                    <Text style={[styles.drawerSectionLabel, { color: darkSubtle }]}>MAIN WORKSPACE</Text>
                     {mainDrawerLinks.map((link) => (
                       <Pressable
                         key={link.label}
                         accessibilityRole="button"
                         accessibilityState={{ selected: link.active }}
                         onPress={() => guardedNavigate(link.action)}
-                        style={[styles.drawerLink, link.active && styles.drawerLinkActive]}
+                        style={[styles.drawerLink, link.active && [styles.drawerLinkActive, darkMode && { backgroundColor: "rgba(224,112,96,0.16)" }]]}
                       >
                         <View style={{ flex: 1 }}>
                           <Text
                             style={[
                               styles.drawerItemTitle,
+                              { color: darkInk },
                               link.active && { color: adminStyleColors.rust },
                             ]}
                           >
                             {link.label}
                           </Text>
-                          <Text numberOfLines={1} style={styles.drawerSub}>
+                          <Text numberOfLines={1} style={[styles.drawerSub, { color: darkSubtle }]}>
                             {link.detail}
                           </Text>
                         </View>
@@ -930,14 +937,32 @@ export function InnovatorWorkspace({
                       );
                     })}
 
-                    <Text style={[styles.drawerSectionLabel, { marginTop: 12 }]}>
-                      ACCESSIBILITY
+                    <Text style={[styles.drawerSectionLabel, { marginTop: 12, color: darkSubtle }]}>
+                      ACCESSIBILITY &amp; TALKBACK
                     </Text>
-                    <View style={styles.drawerA11yBox}>
+                    <View style={[styles.drawerA11yBox, darkMode && { backgroundColor: "rgba(37,32,24,0.88)", borderColor: "rgba(240,220,200,0.12)" }]}>
+                      <Pressable
+                        accessibilityRole="button"
+                        accessibilityLabel="Open full Accessibility and Display settings"
+                        onPress={() => {
+                          setDrawerOpen(false);
+                          openA11yModal();
+                        }}
+                        style={[styles.drawerA11yRow, { marginBottom: 8, paddingBottom: 8, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: darkMode ? "rgba(240,220,200,0.12)" : "rgba(36,28,25,0.08)" }]}
+                      >
+                        <View style={[styles.drawerIcon, { backgroundColor: darkMode ? "#2e1c18" : "#FBEDE8", marginRight: 10 }]}>
+                          <MobileIcon name="accessibility" color={adminStyleColors.rust} />
+                        </View>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.drawerItemTitle, { color: darkInk }]}>Display &amp; Text Size</Text>
+                          <Text style={[styles.drawerSub, { color: darkSubtle }]}>Text scaling, contrast &amp; speech</Text>
+                        </View>
+                        <Text style={[styles.chevron, { color: darkSubtle }]} accessible={false}>{"\u203a"}</Text>
+                      </Pressable>
                       <View style={styles.drawerA11yRow}>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.drawerItemTitle}>Dark mode</Text>
-                          <Text style={styles.drawerSub}>High-contrast dark palette</Text>
+                          <Text style={[styles.drawerItemTitle, { color: darkInk }]}>Dark mode</Text>
+                          <Text style={[styles.drawerSub, { color: darkSubtle }]}>High-contrast dark palette</Text>
                         </View>
                         <Switch
                           value={darkMode}
@@ -947,10 +972,10 @@ export function InnovatorWorkspace({
                           accessibilityLabel="Toggle dark mode"
                         />
                       </View>
-                      <View style={[styles.drawerA11yRow, { marginTop: 8, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(36,28,25,0.08)" }]}>
+                      <View style={[styles.drawerA11yRow, { marginTop: 8, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: darkMode ? "rgba(240,220,200,0.12)" : "rgba(36,28,25,0.08)" }]}>
                         <View style={{ flex: 1 }}>
-                          <Text style={styles.drawerItemTitle}>TalkBack speech</Text>
-                          <Text style={styles.drawerSub}>Read status aloud</Text>
+                          <Text style={[styles.drawerItemTitle, { color: darkInk }]}>TalkBack speech</Text>
+                          <Text style={[styles.drawerSub, { color: darkSubtle }]}>Read status aloud</Text>
                         </View>
                         <Pressable
                           accessibilityRole="button"
@@ -961,12 +986,16 @@ export function InnovatorWorkspace({
                             announce(`Innovator portal. Signed in as ${data?.profile?.fullName || account.name}. You have ${appCount} applications and ${unread} unread notifications.`);
                           }}
                           style={{
-                            paddingHorizontal: 12,
+                            flexDirection: "row",
+                            alignItems: "center",
+                            gap: 5,
+                            paddingHorizontal: 10,
                             paddingVertical: 6,
                             borderRadius: buttonCornerRadius,
                             backgroundColor: adminStyleColors.rust,
                           }}
                         >
+                          <MobileIcon name="speaker" color="#ffffff" />
                           <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>Speak</Text>
                         </Pressable>
                       </View>

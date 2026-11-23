@@ -45,6 +45,8 @@ import {
   type CommitteeWorkspaceData,
 } from "./committeeApi";
 import { buttonCornerRadius, fontSizes } from "./theme";
+import { MobileIcon } from "./AdminOverview";
+import { useAccessibility } from "./useAccessibility";
 
 type TabKey = "overview" | "timeline" | "applications" | "awards" | "account";
 
@@ -145,24 +147,46 @@ export function CommitteeWorkspace({
     });
   }
 
+  const { darkMode, openModal: openA11yModal, scaleFont } = useAccessibility();
+  const darkInk = darkMode ? "#f0e8e0" : colors.navy;
+  const darkMuted = darkMode ? "#b8a898" : colors.muted;
   const scopeLabel = data?.profile?.sectorNames?.length
     ? data.profile.sectorNames.join(", ")
     : "All visible sectors";
 
   return (
-    <View style={styles.root}>
+    <View style={[styles.root, darkMode && { backgroundColor: "#131009" }]}>
       <FrostedScreenBackdrop>
-      <View style={[styles.header, { paddingTop: insets.top + 8 }]}>
+      <View style={[styles.header, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }, { paddingTop: insets.top + 8 }]}>
         <FrostedSurface variant="bar" borderRadius={0} />
         <View style={styles.headerRow}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.eyebrow}>COMMITTEE OBSERVER · READ-ONLY</Text>
-            <Text style={styles.headerTitle} numberOfLines={1}>
+            <Text style={[styles.eyebrow, { color: darkMuted }]}>COMMITTEE OBSERVER · READ-ONLY</Text>
+            <Text style={[styles.headerTitle, { color: darkInk, fontSize: scaleFont(fontSizes.heading) }]} numberOfLines={1}>
               {data?.profile?.name || account.name}
             </Text>
           </View>
-          <View style={styles.readonlyPill}>
-            <Text style={styles.readonlyPillText}>Observer</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+            <View style={[styles.readonlyPill, darkMode && { backgroundColor: "#2e1c18" }]}>
+              <Text style={styles.readonlyPillText}>Observer</Text>
+            </View>
+            <Pressable
+              accessibilityRole="button"
+              accessibilityLabel="Open Accessibility and TalkBack settings"
+              onPress={openA11yModal}
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 19,
+                backgroundColor: darkMode ? "rgba(37,32,24,0.88)" : "rgba(255,255,255,0.86)",
+                borderWidth: 1,
+                borderColor: darkMode ? "rgba(240,220,200,0.16)" : "#E5DDD3",
+                alignItems: "center",
+                justifyContent: "center",
+              }}
+            >
+              <MobileIcon name="accessibility" color={darkInk} />
+            </Pressable>
           </View>
         </View>
       </View>
@@ -403,7 +427,7 @@ export function CommitteeWorkspace({
         )}
       </ScrollView>
 
-      <View style={[styles.tabBar, { paddingBottom: Math.max(10, insets.bottom) }]}>
+      <View style={[styles.tabBar, darkMode && { borderTopColor: "rgba(240,220,200,0.08)" }, { paddingBottom: Math.max(10, insets.bottom) }]}>
         <FrostedSurface variant="bar" borderRadius={0} />
         {tabs.map(item => {
           const active = tab === item.key;
@@ -415,8 +439,8 @@ export function CommitteeWorkspace({
               onPress={() => setTab(item.key)}
               style={styles.tabItem}
             >
-              <InnovatorIcon name={item.icon} color={active ? colors.rust : colors.muted} />
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>{item.label}</Text>
+              <InnovatorIcon name={item.icon} color={active ? colors.rust : darkMuted} />
+              <Text style={[styles.tabText, { color: darkMuted }, active && styles.tabTextActive]}>{item.label}</Text>
             </Pressable>
           );
         })}
@@ -426,11 +450,11 @@ export function CommitteeWorkspace({
       <Modal visible={detailVisible} animationType="slide" transparent onRequestClose={() => setDetailVisible(false)}>
         <FrostedModalBackdrop>
           <View style={styles.modalBackdrop}>
-          <View style={[styles.modalCard, { marginTop: insets.top + 16, marginBottom: insets.bottom + 12 }]}>
-            <View style={styles.modalHeader}>
+          <View style={[styles.modalCard, darkMode && { backgroundColor: "#1a1510", borderColor: "rgba(240,220,200,0.12)", borderWidth: 1 }, { marginTop: insets.top + 16, marginBottom: insets.bottom + 12 }]}>
+            <View style={[styles.modalHeader, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.eyebrow}>{selectedDetail?.case.reference || "APPLICATION"} · READ-ONLY</Text>
-                <Text style={styles.modalTitle} numberOfLines={2}>{selectedDetail?.case.title || "Application timeline"}</Text>
+                <Text style={[styles.eyebrow, { color: darkMuted }]}>{selectedDetail?.case.reference || "APPLICATION"} · READ-ONLY</Text>
+                <Text style={[styles.modalTitle, { color: darkInk }]} numberOfLines={2}>{selectedDetail?.case.title || "Application timeline"}</Text>
               </View>
               <Pressable accessibilityRole="button" onPress={() => setDetailVisible(false)} style={styles.closeBtn}>
                 <Text style={styles.closeBtnText}>Close</Text>

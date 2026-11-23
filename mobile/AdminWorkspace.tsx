@@ -2,6 +2,7 @@ import { buttonCornerRadius, fontSizes } from "./theme";
 import { useEffect, useRef, useState, type ComponentRef, type ReactNode } from "react";
 import { ActivityIndicator, BackHandler, Image, KeyboardAvoidingView, Linking, Modal, Platform, Pressable, ScrollView, Share, StyleSheet, Text, TextInput, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useAccessibility } from "./useAccessibility";
 import { FrostedModalBackdrop, FrostedScreenBackdrop, FrostedSurface } from "./FrostedGlass";
 import { AdminOverview, InsightCard, MobileIcon, PreviewLabel, type InsightScreen, type MobileIconName } from "./AdminOverview";
 import { AdminInnovations } from "./AdminInnovations";
@@ -149,6 +150,9 @@ function TabIcon({ index, selected }: { index: number; selected: boolean }) {
 }
 
 export function AdminWorkspace({ account, onSignOut, onAccountChange }: { account: Account; onSignOut: () => void; onAccountChange: (account: Account) => void }) {
+  const { darkMode, openModal: openA11yModal, scaleFont } = useAccessibility();
+  const darkInk = darkMode ? "#f0e8e0" : colors.navy;
+  const darkMuted = darkMode ? "#b8a898" : colors.muted;
   const [userEditor, setUserEditor] = useState<AdminUser | "create" | null>(null);
   const [userNotice, setUserNotice] = useState("");
   const [menuOpen, setMenuOpen] = useState(false);
@@ -360,29 +364,29 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
   const otherSectors = Math.max(0, sectors.length - publishedSectors);
   const matchingScreens = [...tabs, ...extras].filter(item => item.toLowerCase().includes(workspaceSearch.trim().toLowerCase()));
 
-  return <View style={s.screen}>
+  return <View style={[s.screen, darkMode && { backgroundColor: "#131009" }]}>
     <FrostedScreenBackdrop image={require("./assets/innovation.webp")} imageHeight={320}>
-    <View style={s.header}>
+    <View style={[s.header, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
       <FrostedSurface variant="bar" />
       <Pressable
         accessibilityRole="button"
         accessibilityLabel={nested ? "Back to " + parentScreen : "Open administration menu"}
         onPress={() => nested ? goBack() : setMenuOpen(true)}
-        style={({ pressed }) => [s.headerAction, nested && s.backButton, pressed && { opacity: 0.7 }]}
+        style={({ pressed }) => [s.headerAction, darkMode && { backgroundColor: "rgba(37,32,24,0.88)", borderColor: "rgba(240,220,200,0.16)" }, nested && s.backButton, pressed && { opacity: 0.7 }]}
       >
-        <MobileIcon name={nested ? "back" : "menu"} color={colors.navy} />
+        <MobileIcon name={nested ? "back" : "menu"} color={darkInk} />
       </Pressable>
       {nested ? (
         <View style={s.headerCenter}>
-          <Text numberOfLines={1} style={s.headerEyebrow}>{parentScreen.toUpperCase()} / SUB-SCREEN</Text>
-          <Text numberOfLines={1} style={s.brandTitle}>{screen}</Text>
+          <Text numberOfLines={1} style={[s.headerEyebrow, { color: darkMuted }]}>{parentScreen.toUpperCase()} / SUB-SCREEN</Text>
+          <Text numberOfLines={1} style={[s.brandTitle, { color: darkInk, fontSize: scaleFont(fontSizes.heading) }]}>{screen}</Text>
         </View>
       ) : (
         <View style={s.brand}>
           <Image source={require("./assets/ceda.png")} resizeMode="contain" style={s.logo} accessibilityLabel="CEDA Innovation" />
           <View>
-            <Text style={s.brandTitle}>Innovation</Text>
-            <Text style={s.brandSubtitle}>Admin portal</Text>
+            <Text style={[s.brandTitle, { color: darkInk, fontSize: scaleFont(fontSizes.heading) }]}>Innovation</Text>
+            <Text style={[s.brandSubtitle, { color: darkMuted }]}>Admin portal</Text>
           </View>
         </View>
       )}
@@ -390,9 +394,9 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
         accessibilityRole="button"
         accessibilityLabel="Open notifications"
         onPress={() => setSheet({ title: "Notifications", eyebrow: "ADMINISTRATOR ALERTS", kind: "notifications" })}
-        style={({ pressed }) => [s.headerAction, pressed && { opacity: 0.7 }]}
+        style={({ pressed }) => [s.headerAction, darkMode && { backgroundColor: "rgba(37,32,24,0.88)", borderColor: "rgba(240,220,200,0.16)" }, pressed && { opacity: 0.7 }]}
       >
-        <MobileIcon name="bell" color={colors.navy} />
+        <MobileIcon name="bell" color={darkInk} />
         {openAlertsCount > 0 && <View style={s.bellDot} />}
       </Pressable>
     </View>
@@ -806,13 +810,13 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
     </ScrollView>
 
     {!nested && (
-      <View accessibilityRole="tablist" style={[s.tabBar, { paddingBottom: Math.max(insets.bottom, 10) }]}>
+      <View accessibilityRole="tablist" style={[s.tabBar, darkMode && { borderTopColor: "rgba(240,220,200,0.08)" }, { paddingBottom: Math.max(insets.bottom, 10) }]}>
         <FrostedSurface variant="bar" />
         {tabs.map((tab, index) => {
           const selected = screen === tab;
-          return <Pressable key={tab} accessibilityRole="tab" accessibilityState={{ selected }} onPress={() => navigate(tab)} style={[s.tab, selected && s.tabSelected]}>
+          return <Pressable key={tab} accessibilityRole="tab" accessibilityState={{ selected }} onPress={() => navigate(tab)} style={[s.tab, selected && [s.tabSelected, darkMode && { backgroundColor: "rgba(224,112,96,0.16)" }]]}>
             <TabIcon index={index} selected={selected} />
-            <Text style={[s.tabLabel, selected && { color: colors.rust, fontWeight: "700" }]}>{tab}</Text>
+            <Text style={[s.tabLabel, { color: darkMuted }, selected && { color: colors.rust, fontWeight: "700" }]}>{tab}</Text>
           </Pressable>;
         })}
       </View>
@@ -826,39 +830,55 @@ export function AdminWorkspace({ account, onSignOut, onAccountChange }: { accoun
           <Pressable accessibilityRole="button" accessibilityLabel="Close administration menu" onPress={() => setMenuOpen(false)} style={StyleSheet.absoluteFill} />
           <View accessibilityViewIsModal style={[s.drawer, { paddingTop: Math.max(insets.top, 16), paddingBottom: Math.max(insets.bottom, 18) }]}>
             <FrostedSurface variant="sheet" />
-            <View style={s.drawerHeading}>
+            <View style={[s.drawerHeading, darkMode && { borderBottomColor: "rgba(240,220,200,0.08)" }]}>
               <View style={s.brand}>
                 <Image source={require("./assets/ceda.png")} resizeMode="contain" style={s.logo} accessibilityLabel="CEDA Innovation" />
                 <View style={{ flex: 1 }}>
-                  <Text accessibilityRole="header" style={s.heading}>Administration</Text>
-                  <Text style={s.brandSubtitle}>Quick navigation</Text>
+                  <Text accessibilityRole="header" style={[s.heading, { color: darkInk }]}>Administration</Text>
+                  <Text style={[s.brandSubtitle, { color: darkMuted }]}>Quick navigation</Text>
                 </View>
               </View>
-              <Pressable accessibilityRole="button" accessibilityLabel="Close administration menu" onPress={() => setMenuOpen(false)} style={s.closeCircle}>
-                <MobileIcon name="close" color="#52606E" />
+              <Pressable accessibilityRole="button" accessibilityLabel="Close administration menu" onPress={() => setMenuOpen(false)} style={[s.closeCircle, darkMode && { backgroundColor: "#252018", borderColor: "rgba(240,220,200,0.16)" }]}>
+                <MobileIcon name="close" color={darkInk} />
               </Pressable>
             </View>
             <ScrollView contentContainerStyle={s.drawerContent}>
-              <Text style={s.drawerSectionLabel}>MAIN WORKSPACE</Text>
+              <Text style={[s.drawerSectionLabel, { color: darkMuted }]}>ACCESSIBILITY &amp; TALKBACK</Text>
+              <Pressable
+                accessibilityRole="button"
+                accessibilityLabel="Open Accessibility and TalkBack settings"
+                style={s.drawerLink}
+                onPress={() => {
+                  setMenuOpen(false);
+                  openA11yModal();
+                }}
+              >
+                <View style={[s.drawerIcon, { backgroundColor: darkMode ? "#2e1c18" : "#FBEDE8" }]}><MobileIcon name="accessibility" color={colors.rust} /></View>
+                <View style={{ flex: 1 }}>
+                  <Text style={[s.rowTitle, { color: darkInk }]}>Accessibility &amp; TalkBack</Text>
+                  <Text numberOfLines={1} style={[s.drawerSub, { color: darkMuted }]}>Dark mode, text size &amp; speech feedback</Text>
+                </View>
+              </Pressable>
+              <Text style={[s.drawerSectionLabel, { marginTop: 10, color: darkMuted }]}>MAIN WORKSPACE</Text>
               {tabs.map(item => (
-                <Pressable accessibilityRole="button" accessibilityState={{ selected: screen === item }} key={item} style={[s.drawerLink, screen === item && s.drawerLinkActive]} onPress={() => navigate(item)}>
-                  <Text style={[s.rowTitle, screen === item && { color: colors.rust }]}>{item}</Text>
+                <Pressable accessibilityRole="button" accessibilityState={{ selected: screen === item }} key={item} style={[s.drawerLink, screen === item && [s.drawerLinkActive, darkMode && { backgroundColor: "rgba(224,112,96,0.16)" }]]} onPress={() => navigate(item)}>
+                  <Text style={[s.rowTitle, { color: darkInk }, screen === item && { color: colors.rust }]}>{item}</Text>
                   <Text style={s.chevron} accessible={false}>›</Text>
                 </Pressable>
               ))}
-              <Text style={[s.drawerSectionLabel, { marginTop: 10 }]}>MORE SUB-SCREENS</Text>
+              <Text style={[s.drawerSectionLabel, { marginTop: 10, color: darkMuted }]}>MORE SUB-SCREENS</Text>
               {extras.map(item => {
                 const meta = extraMeta[item];
-                return <Pressable accessibilityRole="button" accessibilityState={{ selected: screen === item }} key={item} style={[s.drawerLink, screen === item && s.drawerLinkActive]} onPress={() => navigate(item, "More")}>
+                return <Pressable accessibilityRole="button" accessibilityState={{ selected: screen === item }} key={item} style={[s.drawerLink, screen === item && [s.drawerLinkActive, darkMode && { backgroundColor: "rgba(224,112,96,0.16)" }]]} onPress={() => navigate(item, "More")}>
                   <View style={[s.drawerIcon, { backgroundColor: meta.tint }]}><MobileIcon name={meta.icon} color={meta.color} /></View>
-                  <View style={{ flex: 1 }}><Text style={[s.rowTitle, screen === item && { color: colors.rust }]}>{item}</Text><Text numberOfLines={1} style={s.drawerSub}>{meta.detail}</Text></View>
+                  <View style={{ flex: 1 }}><Text style={[s.rowTitle, { color: darkInk }, screen === item && { color: colors.rust }]}>{item}</Text><Text numberOfLines={1} style={[s.drawerSub, { color: darkMuted }]}>{meta.detail}</Text></View>
                 </Pressable>;
               })}
             </ScrollView>
-            <View style={s.drawerAccount}>
+            <View style={[s.drawerAccount, darkMode && { borderTopColor: "rgba(240,220,200,0.08)" }]}>
               <View style={{ flex: 1 }}>
-                <Text style={s.rowTitle}>{account.name}</Text>
-                <Text style={s.drawerSub}>Administrator · Expires {sessionExpiry}</Text>
+                <Text style={[s.rowTitle, { color: darkInk }]}>{account.name}</Text>
+                <Text style={[s.drawerSub, { color: darkMuted }]}>Administrator · Expires {sessionExpiry}</Text>
               </View>
               <Button title="Sign out" onPress={onSignOut} secondary />
             </View>
