@@ -22,7 +22,8 @@ begin
   return result;
 end $$;
 
-revoke all on function ceda_private.admin_audit_feed(text,integer) from public, anon, authenticated;
+revoke all on function ceda_private.admin_audit_feed(text,integer) from public, anon;
+grant execute on function ceda_private.admin_audit_feed(text,integer) to authenticated;
 create or replace function public.admin_audit_feed(search_text text default '', page_number integer default 0)
 returns jsonb language sql security invoker set search_path = ''
 as $$ select ceda_private.admin_audit_feed(search_text,page_number) $$;

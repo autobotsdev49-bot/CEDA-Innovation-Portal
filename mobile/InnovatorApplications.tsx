@@ -157,7 +157,6 @@ export function InnovatorApplications({
                   styles.pill,
                   selected && {
                     backgroundColor: st === "All" ? adminStyleColors.navy : app.tint,
-                    borderColor: st === "All" ? adminStyleColors.navy : app.tint,
                   },
                 ]}
               >
@@ -381,12 +380,15 @@ export function InnovatorApplications({
               {withdrawError}
             </Text>
           ) : null}
-          <ActionButton
-            label="Confirm withdrawal"
-            variant="danger"
-            loading={withdrawBusy}
-            onPress={() => void handleConfirmWithdraw()}
-          />
+          <View style={styles.actionRow}>
+            <ActionButton
+              label="Confirm withdrawal"
+              variant="danger"
+              compact
+              loading={withdrawBusy}
+              onPress={() => void handleConfirmWithdraw()}
+            />
+          </View>
         </View>
       </FlushSheetModal>
     </View>
@@ -397,22 +399,25 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 18,
     gap: 14,
-    paddingBottom: 112,
+    paddingBottom: 144,
     maxWidth: 760,
     width: "100%",
     alignSelf: "center",
   },
   funnelButton: {
-    width: 46,
-    height: 46,
+    width: 44,
+    height: 44,
     borderRadius: buttonCornerRadius,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
     justifyContent: "center",
     alignItems: "center",
     overflow: "hidden",
+    shadowColor: "#261B16",
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 2,
   },
-  funnelSelected: { borderColor: "#D9E5F7" },
+  funnelSelected: { backgroundColor: "#EAF1FC" },
   funnel: { alignItems: "center" },
   funnelTop: {
     width: 0,
@@ -433,17 +438,20 @@ const styles = StyleSheet.create({
     right: 8,
     top: 8,
   },
-  pills: { gap: 7, paddingVertical: 2 },
+  pills: { gap: 8, paddingVertical: 4 },
   pill: {
-    minHeight: 40,
+    minHeight: 36,
     paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,250,244,0.88)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: buttonCornerRadius,
+    backgroundColor: "rgba(255,250,244,0.92)",
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    shadowColor: "#261B16",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 1,
   },
   dot: { width: 6, height: 6, borderRadius: 3 },
   countRow: {
@@ -452,13 +460,19 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     gap: 10,
   },
+  actionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    alignItems: "center",
+  },
   item: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: adminStyleColors.line,
+    paddingVertical: 15,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(36,28,25,0.08)",
   },
   itemIcon: {
     width: 42,
@@ -480,15 +494,20 @@ const styles = StyleSheet.create({
   },
   sectorTag: {
     backgroundColor: "#F3EFEA",
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 7,
+    borderRadius: buttonCornerRadius,
   },
   inlineChipAction: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 10,
     paddingVertical: 4,
-    borderRadius: 7,
-    backgroundColor: "rgba(255,255,255,0.75)",
+    borderRadius: buttonCornerRadius,
+    backgroundColor: "rgba(255,255,255,0.88)",
+    shadowColor: "#261B16",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 5,
+    elevation: 1,
   },
   chevron: { fontSize: 22, color: "#A1A8B1" },
   emptyBox: { paddingVertical: 28, alignItems: "center", gap: 10 },
@@ -503,10 +522,10 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     gap: 12,
-    minHeight: 58,
+    minHeight: 54,
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: adminStyleColors.line,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(36,28,25,0.08)",
   },
   radio: {
     width: 18,

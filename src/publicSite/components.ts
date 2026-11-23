@@ -46,8 +46,9 @@ export function siteHeader(path: string) {
   return `<header class="header"><div class="wrap header-inner">${brand}
 <nav class="desktop-nav" aria-label="Main navigation">${links}</nav>
 <div class="header-actions">
-  <a class="button secondary" href="/signin/" style="border-radius:999px;border-color:var(--line);font-size:.86rem;min-height:38px;padding:.45rem 1.1rem">Sign in</a>
-  <a class="button primary" href="/register/" style="border-radius:999px;min-height:38px;padding:.45rem 1.1rem;font-size:.86rem;gap:.4rem">Submit Innovation <span class="button-icon" style="width:20px;height:20px;background:rgba(255,255,255,.18);border-radius:50%;display:grid;place-items:center">${icon("arrow")}</span></a>
+  <div id="a11y-header-mount"></div>
+  <a class="button secondary header-signin" href="/signin/">Sign in</a>
+  <a class="button primary header-submit" href="/register/">Submit Innovation <span class="button-icon">${icon("arrow")}</span></a>
 </div>
 <details class="mobile-nav"><summary>${icon("menu")} Menu</summary><nav aria-label="Main navigation">${links}<a href="/signin/">Sign in</a><a href="/register/">Submit Innovation</a></nav></details></div></header>`;
 }

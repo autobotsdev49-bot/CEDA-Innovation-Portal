@@ -64,9 +64,11 @@ export function InnovatorOverview({
           ? 65
           : focusApp?.status === "In review"
             ? 78
-            : apps.length
-              ? 100
-              : 25;
+            : focusApp?.status === "Approved"
+              ? 88
+              : apps.length
+                ? 100
+                : 25;
 
   const profile = data.profile || ({} as InnovatorWorkspaceData["profile"]);
   const profileIncomplete =
@@ -266,6 +268,7 @@ export function InnovatorOverview({
                       ? "Respond to clarification"
                       : "View workspace"
                 }
+                compact
                 onPress={() =>
                   focusApp.status === "Draft"
                     ? onResumeDraft(focusApp)
@@ -274,11 +277,11 @@ export function InnovatorOverview({
                         focusApp.status === "Changes requested" ? "changes" : "summary"
                       )
                 }
-                style={{ flex: 1 }}
               />
               <ActionButton
                 label="Submit new"
                 variant="secondary"
+                compact
                 onPress={onStartNewApplication}
               />
             </View>
@@ -288,7 +291,9 @@ export function InnovatorOverview({
             <Text style={{ fontSize: fs("subbody"), color: adminStyleColors.subtle, lineHeight: 20 }}>
               Start a private draft by choosing Individual or Registered company and a sector.
             </Text>
-            <ActionButton label="Start application" onPress={onStartNewApplication} />
+            <View style={styles.actionRow}>
+              <ActionButton label="Start application" compact onPress={onStartNewApplication} />
+            </View>
           </View>
         )}
       </GlassCard>
@@ -363,7 +368,7 @@ export function InnovatorOverview({
           <IconRow
             key={`${d.ref}-${idx}`}
             title={`Clarification deadline: ${d.due}`}
-            detail={`${d.ref} — ${d.title}`}
+            detail={`${d.ref}: ${d.title}`}
             icon="clock"
             color={adminStyleColors.rust}
             tint="#FBEDE8"
@@ -420,7 +425,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 18,
     gap: 16,
-    paddingBottom: 112,
+    paddingBottom: 144,
     maxWidth: 760,
     width: "100%",
     alignSelf: "center",
@@ -463,11 +468,9 @@ const styles = StyleSheet.create({
     backgroundColor: adminStyleColors.tealBright,
   },
   momentumBox: {
-    padding: 12,
-    borderRadius: 14,
-    backgroundColor: "rgba(247, 242, 235, 0.72)",
-    borderWidth: 1,
-    borderColor: adminStyleColors.line,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: "rgba(247, 242, 235, 0.80)",
   },
   momentumHead: {
     flexDirection: "row",
@@ -478,10 +481,15 @@ const styles = StyleSheet.create({
   },
   actionRow: {
     flexDirection: "row",
-    gap: 10,
+    flexWrap: "wrap",
+    gap: 8,
+    alignItems: "center",
   },
   linkTouch: {
-    minHeight: 40,
+    minHeight: 34,
+    paddingHorizontal: 12,
+    borderRadius: 999,
+    backgroundColor: "rgba(65,122,197,0.10)",
     justifyContent: "center",
   },
   msgRow: {
@@ -489,13 +497,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 12,
     paddingVertical: 11,
-    borderBottomWidth: 1,
-    borderBottomColor: adminStyleColors.line,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(36,28,25,0.08)",
   },
   initialsCircle: {
     width: 38,
     height: 38,
-    borderRadius: 13,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#EBF1F9",

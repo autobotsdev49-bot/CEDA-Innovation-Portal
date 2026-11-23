@@ -13,8 +13,10 @@ import {
   submitApplication,
   uploadPrivateEvidenceFile,
   type InnovatorProfile,
+  type PortalDocumentItem,
   type SectorOption,
 } from "./innovatorApi";
+import { normalizeApplicationFormConfig, type ApplicationFormConfig } from "./portalCatalog";
 import {
   buildReceiptSummaryText,
   evaluateApplicationReadiness,
@@ -44,6 +46,7 @@ import {
   useInnovatorA11y,
 } from "./InnovatorUI";
 import { WizardStepBody } from "./InnovatorWizardSteps";
+import { buttonCornerRadius } from "./theme";
 
 export type WizardScreenMode = "start" | "wizard" | "success";
 
@@ -61,7 +64,10 @@ export function InnovatorWizard({
   onDocumentsUpdated,
   onViewApplication,
   onReturnOverview,
+  onOpenLiveChat,
   saveTriggerRef,
+  applicationFormConfig,
+  portalDocuments,
 }: {
   token: string;
   profile: InnovatorProfile;
@@ -76,8 +82,12 @@ export function InnovatorWizard({
   onDocumentsUpdated: (docs: InnovatorDocument[]) => void;
   onViewApplication: (appId: string) => void;
   onReturnOverview: () => void;
+  onOpenLiveChat?: (ctx: { applicationRef: string | null; wizardStep: number; stepTitle: string }) => void;
   saveTriggerRef: React.MutableRefObject<(() => Promise<boolean>) | null>;
+  applicationFormConfig?: ApplicationFormConfig | Record<string, unknown> | null;
+  portalDocuments?: PortalDocumentItem[];
 }) {
+  const formConfig = normalizeApplicationFormConfig(applicationFormConfig);
   const insets = useSafeAreaInsets();
   const { fs, reducedMotion } = useInnovatorA11y();
 
@@ -136,9 +146,13 @@ export function InnovatorWizard({
 
   useEffect(() => {
     if (initialDraftAppId && initialDraftAppId !== activeAppId) {
+      hydratedIdRef.current = null;
+      setActiveAppId(initialDraftAppId);
+    } else if (mode === "wizard" && !activeAppId && initialDraftAppId) {
+      hydratedIdRef.current = null;
       setActiveAppId(initialDraftAppId);
     }
-  }, [initialDraftAppId]);
+  }, [initialDraftAppId, mode]);
 
   useEffect(() => {
     if (!activeApp || mode !== "wizard") return;
@@ -194,8 +208,8 @@ export function InnovatorWizard({
   );
 
   const readiness = useMemo(
-    () => evaluateApplicationReadiness(activeApp ? { id: activeApp.id, formData } : null, documents),
-    [activeApp, formData, documents]
+    () => evaluateApplicationReadiness(activeApp ? { id: activeApp.id, formData } : null, documents, formConfig),
+    [activeApp, formData, documents, formConfig]
   );
 
   async function persistDraft(stepOverride?: number): Promise<boolean> {
@@ -310,12 +324,6 @@ export function InnovatorWizard({
     setUploadPercent(5);
     try {
       await uploadPrivateEvidenceFile(token, storagePath, picked, (pct) => setUploadPercent(pct));
-      if (opts.replaceExistingId) {
-        const old = draftDocs.find((d) => d.id === opts.replaceExistingId);
-        await removeApplicationDocument(token, opts.replaceExistingId);
-        if (old?.storagePath) await deletePrivateEvidenceObject(token, old.storagePath);
-        setReplacingDocId(null);
-      }
       const nextDocs = await addApplicationDocument(token, {
         appId: activeApp.id,
         sectionKey: opts.sectionKey,
@@ -327,7 +335,13 @@ export function InnovatorWizard({
         mimeType: picked.type,
         fileSize: picked.size,
         storagePath,
+          replaceDocId: opts.replaceExistingId ?? undefined,
       });
+        if (opts.replaceExistingId) {
+          const old = draftDocs.find((d) => d.id === opts.replaceExistingId);
+          if (old?.storagePath) await deletePrivateEvidenceObject(token, old.storagePath);
+          setReplacingDocId(null);
+        }
       onDocumentsUpdated(nextDocs);
       opts.onSuccess?.();
       setEvidenceFeedback(`Uploaded "${picked.name}" privately.`);
@@ -475,18 +489,21 @@ export function InnovatorWizard({
             value="Status updates, messages, and clarification deadlines appear under the header bell."
             last
           />
-          <ActionButton label="View application workspace" onPress={() => onViewApplication(submittedApp.id)} />
-          <ActionButton
-            label="Download / share receipt"
-            variant="secondary"
-            onPress={() =>
-              void Share.share({
-                title: `${submittedApp.reference} Receipt`,
-                message: buildReceiptSummaryText(submittedApp, documents),
-              })
-            }
-          />
-          <ActionButton label="Return to overview" variant="secondary" onPress={onReturnOverview} />
+          <View style={styles.actionRow}>
+            <ActionButton label="View application workspace" compact onPress={() => onViewApplication(submittedApp.id)} />
+            <ActionButton
+              label="Download / share receipt"
+              compact
+              variant="secondary"
+              onPress={() =>
+                void Share.share({
+                  title: `${submittedApp.reference} Receipt`,
+                  message: buildReceiptSummaryText(submittedApp, documents),
+                })
+              }
+            />
+            <ActionButton label="Return to overview" compact variant="secondary" onPress={onReturnOverview} />
+          </View>
         </GlassCard>
       </ScrollView>
     );
@@ -572,11 +589,14 @@ export function InnovatorWizard({
             </Text>
           ) : null}
 
-          <ActionButton
-            label="Start application"
-            loading={startBusy}
-            onPress={() => void handleCreateDraft()}
-          />
+          <View style={styles.actionRow}>
+            <ActionButton
+              label="Start application"
+              compact
+              loading={startBusy}
+              onPress={() => void handleCreateDraft()}
+            />
+          </View>
         </GlassCard>
 
         <GlassCard style={{ paddingVertical: 8 }}>
@@ -616,7 +636,13 @@ export function InnovatorWizard({
   }
 
   // 12-STEP ADAPTIVE WIZARD VIEW
-  const stepMeta = WIZARD_STEPS[step - 1] || WIZARD_STEPS[0];
+  const baseStepMeta = WIZARD_STEPS[step - 1] || WIZARD_STEPS[0];
+  const cfgStep = formConfig.steps.find((st) => st.stepNumber === step);
+  const stepMeta = {
+    ...baseStepMeta,
+    title: cfgStep?.title || baseStepMeta.title,
+    hint: cfgStep?.description || baseStepMeta.hint,
+  };
 
   return (
     <View style={{ flex: 1 }}>
@@ -660,12 +686,26 @@ export function InnovatorWizard({
                 {saving ? "Autosaving..." : dirty ? "Unsaved edits..." : lastSavedText}
               </Text>
             </View>
-            <Pressable onPress={() => setStepPickerOpen(true)}>
-              <Text style={{ fontSize: fs("subbody"), fontWeight: "600", color: adminStyleColors.blueSoft }}>
+            <Pressable onPress={() => setStepPickerOpen(true)} style={styles.headerLinkPill}>
+              <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: adminStyleColors.blueSoft }}>
                 All 12 steps
               </Text>
             </Pressable>
           </View>
+          {onOpenLiveChat ? (
+            <ActionButton
+              label="Live chat with CEDA Consultant"
+              variant="secondary"
+              compact
+              onPress={() =>
+                onOpenLiveChat({
+                  applicationRef: activeApp.reference,
+                  wizardStep: step,
+                  stepTitle: stepMeta.title,
+                })
+              }
+            />
+          ) : null}
           {saveError ? (
             <Text style={{ fontSize: fs("caption"), color: "#9A3026", fontWeight: "600" }}>
               {saveError}
@@ -725,18 +765,21 @@ export function InnovatorWizard({
             districtExpanded={districtExpanded}
             setDistrictExpanded={setDistrictExpanded}
             app={activeApp}
+            formConfig={formConfig}
+            portalDocuments={portalDocuments}
           />
         </GlassCard>
       </ScrollView>
 
-      {/* Bottom Sticky Frosted Step Controls Dock (Matches Admin bottom bar polish!) */}
-      <View style={[styles.wizardDock, { paddingBottom: Math.max(insets.bottom, 12) }]}>
-        <FrostedSurface variant="bar" />
+      {/* Floating Frosted Step Controls Pill Dock */}
+      <View style={[styles.wizardDock, { bottom: Math.max(insets.bottom, 12) }]}>
+        <FrostedSurface variant="bar" borderRadius={28} />
         <View style={styles.footerButtons}>
           {step > 1 ? (
             <ActionButton
               label="Previous"
               variant="secondary"
+              compact
               onPress={() => void goToStep(step - 1)}
               style={{ flex: 1 }}
             />
@@ -744,6 +787,7 @@ export function InnovatorWizard({
             <ActionButton
               label="Setup"
               variant="secondary"
+              compact
               onPress={() => {
                 setActiveAppId(null);
                 hydratedIdRef.current = null;
@@ -755,18 +799,21 @@ export function InnovatorWizard({
           <ActionButton
             label="Save"
             variant="secondary"
+            compact
             loading={saving}
             onPress={() => void persistDraft(step)}
           />
           {step < 12 ? (
             <ActionButton
               label="Next step"
+              compact
               onPress={() => void goToStep(step + 1)}
               style={{ flex: 1 }}
             />
           ) : (
             <ActionButton
               label="Submit"
+              compact
               onPress={() => {
                 setSubmitError(null);
                 setSubmitModalOpen(true);
@@ -869,11 +916,14 @@ export function InnovatorWizard({
                   {submitError}
                 </Text>
               ) : null}
-              <ActionButton
-                label="Confirm & submit application"
-                loading={submitBusy}
-                onPress={() => void handleFinalSubmit()}
-              />
+              <View style={styles.actionRow}>
+                <ActionButton
+                  label="Confirm & submit application"
+                  compact
+                  loading={submitBusy}
+                  onPress={() => void handleFinalSubmit()}
+                />
+              </View>
             </View>
           )}
         </View>
@@ -892,7 +942,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     padding: 18,
     gap: 16,
-    paddingBottom: 112,
+    paddingBottom: 144,
     maxWidth: 760,
     width: "100%",
     alignSelf: "center",
@@ -900,10 +950,23 @@ const styles = StyleSheet.create({
   wizardScrollContent: {
     padding: 18,
     gap: 14,
-    paddingBottom: 100,
+    paddingBottom: 112,
     maxWidth: 760,
     width: "100%",
     alignSelf: "center",
+  },
+  actionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerLinkPill: {
+    minHeight: 32,
+    paddingHorizontal: 12,
+    borderRadius: buttonCornerRadius,
+    backgroundColor: "rgba(65,122,197,0.10)",
+    justifyContent: "center",
   },
   eyebrow: {
     color: adminStyleColors.subtle,
@@ -912,18 +975,21 @@ const styles = StyleSheet.create({
     textTransform: "uppercase",
   },
   sectorChip: {
-    minHeight: 40,
+    minHeight: 36,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 7,
     justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: "rgba(255,250,244,0.88)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: buttonCornerRadius,
+    backgroundColor: "rgba(255,250,244,0.92)",
+    shadowColor: "#261B16",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 1,
   },
   sectorChipActive: {
     backgroundColor: adminStyleColors.navy,
-    borderColor: adminStyleColors.navy,
+    shadowOpacity: 0.1,
   },
   wizardHeadRow: {
     flexDirection: "row",
@@ -944,28 +1010,30 @@ const styles = StyleSheet.create({
   saveDot: { width: 7, height: 7, borderRadius: 3.5 },
   wizardDock: {
     position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    paddingTop: 10,
-    paddingHorizontal: 16,
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.9)",
+    left: 16,
+    right: 16,
+    padding: 8,
+    borderRadius: 28,
     overflow: "hidden",
+    shadowColor: "#241C19",
+    shadowOpacity: 0.11,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 20,
+    elevation: 8,
   },
   footerButtons: { flexDirection: "row", gap: 8, alignItems: "center" },
   stepRow: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 52,
+    minHeight: 50,
     paddingVertical: 10,
-    paddingHorizontal: 8,
-    borderTopWidth: 1,
-    borderTopColor: adminStyleColors.line,
+    paddingHorizontal: 10,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(36,28,25,0.08)",
   },
   stepRowActive: {
-    backgroundColor: "rgba(251,237,232,0.75)",
-    borderRadius: 12,
+    backgroundColor: "rgba(251,237,232,0.85)",
+    borderRadius: 14,
   },
   successCircle: {
     width: 68,

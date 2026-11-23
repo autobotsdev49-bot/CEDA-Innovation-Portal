@@ -12,6 +12,9 @@ import { VerifyEmail } from "./VerifyEmail";
 import { VerificationSuccess } from "./VerificationSuccess";
 import { AdminWorkspace } from "./AdminWorkspace";
 import { InnovatorWorkspace } from "./InnovatorWorkspace";
+import { AssessorWorkspace } from "./AssessorWorkspace";
+import { SupportWorkspace } from "./SupportWorkspace";
+import { CommitteeWorkspace } from "./CommitteeWorkspace";
 
 export type AuthMode = "signin" | "signup";
 const verificationWindow = 15 * 60_000;
@@ -198,7 +201,7 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
 
   useEffect(() => {
     const listener = BackHandler.addEventListener("hardwareBackPress", () => {
-      if (account?.role === "admin" || account?.role === "innovator") return false;
+      if (account) return false;
       if (showVerificationSuccess) openHome();
       else leave();
       return true;
@@ -283,6 +286,17 @@ export function NativeAuth({ mode, retryAt, onRateLimited, onBack, onSwitch }: {
 
   if (account?.role === "innovator") {
     return <InnovatorWorkspace account={account} onSignOut={leave} onAccountChange={setAccount} />;
+  }
+
+  if (account?.role === "assessor") {
+    return <AssessorWorkspace account={account} onSignOut={leave} onAccountChange={setAccount} />;
+  }
+
+  if (account?.role === "support") {
+    return <SupportWorkspace account={account} onSignOut={leave} onAccountChange={setAccount} />;
+  }
+  if (account?.role === "committee") {
+    return <CommitteeWorkspace account={account} onSignOut={leave} onAccountChange={setAccount} />;
   }
 
   return (

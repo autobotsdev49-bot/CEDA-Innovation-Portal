@@ -17,21 +17,21 @@ const FrostedContext = createContext<FrostedContextValue>({
 });
 
 const gradientPresets = {
-  // Exact warm cream frosted glass style from Sign-up, tuned so it is not too transparent.
+  // High-contrast light cream modal/card surfaces so dark text always stays clearly readable.
   sheet: {
-    colors: ["rgba(255,250,244,0.78)", "rgba(255,250,244,0.93)", "#fffaf4"] as const,
+    colors: ["rgba(255,253,249,0.97)", "rgba(255,252,248,0.99)", "#ffffff"] as const,
     locations: [0, 0.38, 1] as const,
-    intensity: 48,
-  },
-  card: {
-    colors: ["rgba(255,250,244,0.82)", "rgba(255,251,247,0.94)", "#fffcf8"] as const,
-    locations: [0, 0.42, 1] as const,
     intensity: 44,
   },
+  card: {
+    colors: ["rgba(255,255,255,0.96)", "rgba(255,253,250,0.98)", "#ffffff"] as const,
+    locations: [0, 0.42, 1] as const,
+    intensity: 40,
+  },
   bar: {
-    colors: ["rgba(255,250,244,0.80)", "rgba(255,250,244,0.92)", "rgba(255,250,244,0.97)"] as const,
+    colors: ["rgba(255,253,249,0.96)", "rgba(255,252,248,0.98)", "#ffffff"] as const,
     locations: [0, 0.45, 1] as const,
-    intensity: 46,
+    intensity: 42,
   },
 };
 
@@ -111,7 +111,7 @@ export function FrostedModalBackdrop({ children }: { children: ReactNode }) {
         importantForAccessibility="no-hide-descendants"
       >
         <LinearGradient
-          colors={["rgba(24,18,15,0.34)", "rgba(36,28,25,0.44)", "rgba(154,61,43,0.28)"]}
+          colors={["rgba(24,18,15,0.26)", "rgba(36,28,25,0.34)", "rgba(154,61,43,0.18)"]}
           locations={[0, 0.65, 1]}
           style={StyleSheet.absoluteFill}
           pointerEvents="none"
@@ -142,7 +142,7 @@ export function FrostedSurface({
           blurTarget={target}
           blurMethod="dimezisBlurViewSdk31Plus"
           intensity={preset.intensity}
-          tint="default"
+          tint="light"
           style={[StyleSheet.absoluteFill, radiusStyle, style]}
           pointerEvents="none"
           accessible={false}

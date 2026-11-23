@@ -7,7 +7,7 @@ const source = await readFile(new URL("../supabase/functions/admincreate/index.t
 function handler(send) {
   let serve;
   vm.runInNewContext(source, {
-    Request, Response, AbortSignal, Set, JSON,
+    Request, Response, AbortSignal, Set, JSON, TextEncoder,
     fetch: send,
     Deno: {
       env: { get: name => ({ SUPABASE_URL: "https://example.supabase.co", SUPABASE_ANON_KEY: "public-test", SUPABASE_SERVICE_ROLE_KEY: "private-test" })[name] },
@@ -16,7 +16,7 @@ function handler(send) {
   });
   return serve;
 }
-const payload = { address: "staff@example.invalid", display_name: "Synthetic Staff", new_role: "support", lead: false, sectors: [], reason: "Test onboarding", password: "SyntheticTest42!" };
+const payload = { address: "staff@example.invalid", display_name: "Synthetic Staff", new_role: "support", lead: false, sectors: [], reason: "Test onboarding", password: "SyntheticTest42!", admin_code: "230701" };
 const request = () => new Request("https://example.supabase.co/functions/v1/admincreate", {
   method: "POST", headers: { Authorization: "Bearer synthetic-session", "Content-Type": "application/json" },
   body: JSON.stringify(payload),
@@ -34,19 +34,19 @@ test("database role or MFA rejection prevents creating accounts", async () => {
   const serve = handler(async (url, options) => {
     paths.push(new URL(url).pathname);
     assert.equal(options.headers.Authorization, "Bearer synthetic-session");
-    return paths.length === 1 ? Response.json({ id: "synthetic" })
+    return paths.length === 1 ? Response.json({ id: "synthetic", email: "autobotsdev49@gmail.com" })
       : Response.json({ code: "42501", message: "Multi-factor verification required" }, { status: 403 });
   });
   assert.equal((await serve(request())).status, 403);
-  assert.deepEqual(paths, ["/auth/v1/user", "/rest/v1/rpc/admin_prepare_invitation"]);
+  assert.deepEqual(paths, ["/auth/v1/user", "/rest/v1/rpc/admin_prepare_invitation_temporary"]);
 });
 test("authorized account creation uses the Admin API only after database authorization", async () => {
   const paths = [];
   const serve = handler(async (url, options) => {
     const endpoint = new URL(url);
     paths.push(endpoint.pathname);
-    if (endpoint.pathname === "/auth/v1/user") return Response.json({ id: "synthetic" });
-    if (endpoint.pathname === "/rest/v1/rpc/admin_prepare_invitation") {
+    if (endpoint.pathname === "/auth/v1/user") return Response.json({ id: "synthetic", email: "autobotsdev49@gmail.com" });
+    if (endpoint.pathname === "/rest/v1/rpc/admin_prepare_invitation_temporary") {
       const { password, ...reservation } = payload;
       assert.deepEqual(JSON.parse(options.body), reservation);
       assert.ok(!options.body.includes(password));
@@ -73,13 +73,19 @@ test("weak passwords are rejected before upstream requests", async () => {
   }));
   assert.equal(result.status, 400);
   assert.equal(calls, 0);
+  const oversized = await serve(new Request("https://example.invalid", {
+    method: "POST", headers: { Authorization: "Bearer synthetic-session" },
+    body: JSON.stringify({ ...payload, password: "Strong1!" + "x".repeat(65) }),
+  }));
+  assert.equal(oversized.status, 400);
+  assert.equal(calls, 0);
 });
 
 test("Auth failures do not echo credentials and do not claim success", async () => {
   let calls = 0;
   const serve = handler(async () => {
     calls++;
-    return calls === 1 ? Response.json({ id: "synthetic" })
+    return calls === 1 ? Response.json({ id: "synthetic", email: "autobotsdev49@gmail.com" })
       : calls === 2 ? Response.json("reservation")
       : Response.json({ message: payload.password }, { status: 400 });
   });

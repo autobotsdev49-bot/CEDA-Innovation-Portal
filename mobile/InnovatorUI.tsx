@@ -34,8 +34,8 @@ export const adminStyleColors = {
   blueSoft: "#417AC5",
   amber: "#94702D",
   purple: "#695198",
-  muted: "#66717E",
-  subtle: "#7C8590",
+  muted: "#4E5A68",
+  subtle: "#4A5564",
   line: "rgba(218,208,198,0.45)",
   borderWhite: "rgba(255,255,255,0.90)",
   canvas: "#F7F2EB",
@@ -50,6 +50,8 @@ export interface InnovatorA11yConfig {
   scale: number;
   highContrast: boolean;
   reducedMotion: boolean;
+  darkMode: boolean;
+  toggleDarkMode?: () => void;
   fs: (step: FontStep) => number;
 }
 
@@ -58,6 +60,7 @@ const defaultA11y: InnovatorA11yConfig = {
   scale: 1,
   highContrast: false,
   reducedMotion: false,
+  darkMode: false,
   fs: (step) => fontSizes[step],
 };
 
@@ -67,11 +70,15 @@ export function InnovatorA11yProvider({
   textSize = "standard",
   highContrast = false,
   reducedMotion = false,
+  darkMode = false,
+  toggleDarkMode,
   children,
 }: {
   textSize?: "standard" | "large" | "xlarge";
   highContrast?: boolean;
   reducedMotion?: boolean;
+  darkMode?: boolean;
+  toggleDarkMode?: () => void;
   children: React.ReactNode;
 }) {
   const scale = textSize === "xlarge" ? 1.22 : textSize === "large" ? 1.11 : 1;
@@ -82,6 +89,8 @@ export function InnovatorA11yProvider({
         scale,
         highContrast,
         reducedMotion,
+        darkMode,
+        toggleDarkMode,
         fs: (step) => Math.round(fontSizes[step] * scale),
       }}
     >
@@ -250,6 +259,8 @@ export function statusAppearance(status: string): {
   label?: string;
 } {
   switch (status) {
+    case "Awarded":
+      return { color: "#7C5317", tint: "#FFF3D8" };
     case "Approved":
     case "Completed":
     case "Resolved":
@@ -979,19 +990,22 @@ const iconStyles = StyleSheet.create({
   dot: { width: 4, height: 4, borderRadius: 2 },
 });
 
+const subtleHairline = "rgba(36, 28, 25, 0.07)";
+const softShadow = {
+  shadowColor: "#241C19",
+  shadowOpacity: 0.05,
+  shadowOffset: { width: 0, height: 6 },
+  shadowRadius: 14,
+  elevation: 2,
+} as const;
+
 const uiStyles = StyleSheet.create({
   card: {
-    borderRadius: 20,
+    borderRadius: 22,
     padding: 16,
-    borderWidth: 1,
-    borderColor: adminStyleColors.borderWhite,
     gap: 12,
     overflow: "hidden",
-    shadowColor: "#241C19",
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 8,
-    elevation: 1,
+    ...softShadow,
   },
   cardHighContrast: { borderWidth: 1.5, borderColor: "rgba(25,44,64,0.42)" },
   badge: {
@@ -999,23 +1013,22 @@ const uiStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 5,
-    borderRadius: 8,
-    paddingHorizontal: 9,
+    borderRadius: 999,
+    paddingHorizontal: 10,
     paddingVertical: 4,
   },
   badgeDot: { width: 6, height: 6, borderRadius: 3 },
   subscreenHero: {
     borderRadius: 22,
-    borderWidth: 1,
-    borderColor: adminStyleColors.borderWhite,
     padding: 18,
     gap: 10,
     overflow: "hidden",
+    ...softShadow,
   },
   subscreenTop: { flexDirection: "row", alignItems: "center", gap: 12 },
   subscreenIcon: {
-    width: 46,
-    height: 46,
+    width: 44,
+    height: 44,
     borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
@@ -1031,21 +1044,15 @@ const uiStyles = StyleSheet.create({
     letterSpacing: -0.6,
     color: adminStyleColors.navy,
   },
-  rowBadge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8 },
+  rowBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 999 },
   metric: {
     flexBasis: "45%",
     flexGrow: 1,
-    borderRadius: 18,
-    borderWidth: 1,
-    borderColor: adminStyleColors.borderWhite,
+    borderRadius: 20,
     padding: 14,
     gap: 8,
     overflow: "hidden",
-    shadowColor: "#241C19",
-    shadowOpacity: 0.04,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 8,
-    elevation: 1,
+    ...softShadow,
   },
   metricTop: { flexDirection: "row", alignItems: "center", gap: 9, flexWrap: "wrap" },
   metricIcon: {
@@ -1072,15 +1079,15 @@ const uiStyles = StyleSheet.create({
   row: {
     flexDirection: "row",
     alignItems: "center",
-    minHeight: 62,
+    minHeight: 58,
     paddingVertical: 12,
     gap: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: adminStyleColors.line,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: subtleHairline,
   },
   rowIcon: {
-    width: 42,
-    height: 42,
+    width: 40,
+    height: 40,
     borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
@@ -1104,40 +1111,43 @@ const uiStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 9,
-    paddingLeft: 13,
-    borderRadius: 24,
-    borderWidth: 1,
-    borderColor: adminStyleColors.borderWhite,
+    paddingLeft: 14,
+    borderRadius: 999,
     overflow: "hidden",
+    shadowColor: "#241C19",
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 1,
   },
   pillSearchInput: {
     flex: 1,
     minWidth: 0,
     color: adminStyleColors.navy,
-    minHeight: 46,
-    paddingVertical: 11,
+    minHeight: 44,
+    paddingVertical: 10,
     paddingRight: 8,
   },
-  clearSearch: { width: 44, height: 44, alignItems: "center", justifyContent: "center" },
+  clearSearch: { width: 40, height: 40, alignItems: "center", justifyContent: "center" },
   clearText: { color: adminStyleColors.subtle, fontSize: 22 },
   buttonBase: {
-    minHeight: 48,
+    minHeight: 42,
     borderRadius: buttonCornerRadius,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: 18,
+    paddingVertical: 10,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     gap: 8,
   },
   buttonCompact: {
-    minHeight: 40,
+    minHeight: 36,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 7,
   },
   buttonPrimary: { backgroundColor: adminStyleColors.rust },
   buttonDanger: { backgroundColor: "#9A3026" },
-  buttonSecondary: { backgroundColor: "rgba(243,239,234,0.92)" },
+  buttonSecondary: { backgroundColor: "rgba(243,239,234,0.94)" },
   buttonSecondaryHighContrast: {
     borderWidth: 1.5,
     borderColor: adminStyleColors.navy,
@@ -1174,68 +1184,62 @@ const uiStyles = StyleSheet.create({
   },
   fieldLabel: { color: adminStyleColors.navy, fontWeight: "700" },
   counterPill: {
-    borderRadius: 7,
+    borderRadius: 999,
     paddingHorizontal: 8,
     paddingVertical: 3,
   },
   fieldHint: { color: adminStyleColors.subtle, lineHeight: 18 },
   input: {
-    minHeight: 48,
-    borderRadius: 14,
+    minHeight: 44,
+    borderRadius: 16,
     paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingVertical: 10,
     color: adminStyleColors.navy,
     backgroundColor: "rgba(255, 255, 255, 0.88)",
-    borderWidth: 1,
-    borderColor: adminStyleColors.inputBorder,
   },
-  inputMultiline: { minHeight: 108, paddingTop: 12 },
+  inputMultiline: { minHeight: 96, paddingTop: 12 },
   inputHighContrast: { borderWidth: 1.5, borderColor: adminStyleColors.navy },
   chipsWrap: { flexDirection: "row", flexWrap: "wrap", gap: 7 },
   chip: {
-    minHeight: 40,
+    minHeight: 36,
     paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingVertical: 7,
     justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: "rgba(255, 250, 244, 0.88)",
-    borderWidth: 1,
-    borderColor: adminStyleColors.borderWhite,
+    borderRadius: 999,
+    backgroundColor: "rgba(255, 250, 244, 0.90)",
   },
   chipActive: {
     backgroundColor: adminStyleColors.navy,
-    borderColor: adminStyleColors.navy,
   },
   chipHighContrast: { borderWidth: 1.5, borderColor: "rgba(25,44,64,0.45)" },
   switchRow: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: adminStyleColors.line,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: subtleHairline,
   },
   progressTrack: {
     width: "100%",
-    borderRadius: 3,
+    borderRadius: 999,
     backgroundColor: "#EEF2F6",
     overflow: "hidden",
   },
-  progressFill: { borderRadius: 3 },
+  progressFill: { borderRadius: 999 },
   factRow: {
     gap: 4,
     paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: adminStyleColors.line,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: subtleHairline,
   },
   factLabel: { color: adminStyleColors.subtle, fontWeight: "600" },
   factValue: { color: adminStyleColors.navy, fontWeight: "500", lineHeight: 22 },
   modalOverlay: { flex: 1, justifyContent: "flex-end" },
   modalKeyboardWrap: { width: "100%", maxHeight: "90%" },
   sheetContainer: {
-    borderTopLeftRadius: 32,
-    borderTopRightRadius: 32,
-    borderTopWidth: 1,
-    borderColor: "rgba(255,255,255,0.92)",
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     overflow: "hidden",
     paddingTop: 10,
     paddingHorizontal: 18,
@@ -1246,7 +1250,7 @@ const uiStyles = StyleSheet.create({
     width: 38,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "rgba(101,86,77,0.28)",
+    backgroundColor: "rgba(101,86,77,0.24)",
   },
   sheetHeader: {
     flexDirection: "row",
@@ -1257,41 +1261,44 @@ const uiStyles = StyleSheet.create({
   sheetEyebrow: {
     fontWeight: "700",
     letterSpacing: 1.1,
-    color: adminStyleColors.subtle,
+    color: "#4A5564",
     textTransform: "uppercase",
     marginBottom: 2,
   },
   sheetTitle: { color: adminStyleColors.navy, fontWeight: "700" },
   closeCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "rgba(255,255,255,0.82)",
+    backgroundColor: "#F5F1EC",
     borderWidth: 1,
     borderColor: "#E5DDD3",
+    shadowColor: "#241C19",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 1,
   },
   sheetScrollContent: { gap: 14, paddingBottom: 8 },
   modalInnerCard: {
-    backgroundColor: "rgba(255, 255, 255, 0.82)",
-    borderRadius: 20,
-    padding: 16,
+    backgroundColor: "#FFFFFF",
     borderWidth: 1,
     borderColor: "#E5DDD3",
+    borderRadius: 20,
+    padding: 16,
     gap: 10,
   },
   previewImage: {
     width: "100%",
     height: 220,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: "#EEF2F6",
   },
   securityBanner: {
     padding: 12,
-    borderRadius: 14,
+    borderRadius: 16,
     backgroundColor: "#FCF4E4",
-    borderWidth: 1,
-    borderColor: "rgba(148, 112, 45, 0.25)",
   },
 });

@@ -19,13 +19,13 @@ async function loadAccount() {
       status.textContent = "Your account session is unavailable or expired.";
       return;
     }
-    const destination = { admin: "/admin/", innovator: "/account/", assessor: "/assessor/", support: "/support/" }[profile.account_role];
+    const destination = { admin: "/admin/", innovator: "/account/", assessor: "/assessor/", support: "/support/", committee: "/committee/" }[profile.account_role];
     if (location.pathname !== destination) {
       location.replace(destination);
       return;
     }
-    document.querySelector("#access-title").textContent = { admin: "Administrator home", innovator: "Innovator home", assessor: profile.lead_assessor ? "Lead Assessor home" : "Assessor home", support: "Support Officer home" }[profile.account_role];
-    document.querySelector(".eyebrow").textContent = profile.account_role === "innovator" ? "Innovator access" : "Staff workspace";
+    document.querySelector("#access-title").textContent = { admin: "Administrator home", innovator: "Innovator home", assessor: profile.lead_assessor ? "Lead Assessor home" : "Assessor home", support: "Support Officer home", committee: "Committee workspace" }[profile.account_role];
+    document.querySelector(".eyebrow").textContent = profile.account_role === "innovator" ? "Innovator access" : profile.account_role === "committee" ? "Committee observer" : "Staff workspace";
     details.querySelector("[data-account-name]").textContent = profile.full_name;
     details.hidden = false;
     close.hidden = false;

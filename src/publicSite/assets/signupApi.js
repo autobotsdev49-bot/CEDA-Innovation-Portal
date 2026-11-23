@@ -70,7 +70,7 @@ export async function verifiedAccountProfile(config, accessToken, send = fetch) 
   const profileResponse = await send(profileUrl, { headers, cache: "no-store", credentials: "omit", redirect: "error" });
   if (!profileResponse.ok) return false;
   const profiles = await profileResponse.json();
-  return Array.isArray(profiles) && profiles.length === 1 && ["innovator", "admin", "assessor", "support"].includes(profiles[0].account_role) && profiles[0].account_status === "active" ? { ...profiles[0], email: user.email } : null;
+  return Array.isArray(profiles) && profiles.length === 1 && ["innovator", "admin", "assessor", "support", "committee"].includes(profiles[0].account_role) && profiles[0].account_status === "active" ? { ...profiles[0], email: user.email } : null;
 }
 export function validApplicantName(name) {
   const trimmed = typeof name === "string" ? name.trim() : "";
@@ -95,7 +95,7 @@ export async function logoutSignup(config, token, send = fetch) {
   return response.ok || response.status === 401 || response.status === 404;
 }
 
-export async function signInInnovator(config, email, password, send = fetch) {
+export async function signInAccount(config, email, password, send = fetch) {
   const response = await send(new URL("/auth/v1/token?grant_type=password", config.url), {
     method: "POST",
     credentials: "omit",
@@ -117,7 +117,14 @@ export async function signInInnovator(config, email, password, send = fetch) {
 
   const token = result.access_token;
   if (typeof token !== "string" || !token) return { status: "unavailable" };
-  if (!await verifiedAccountProfile(config, token, send)) return { status: "no-access" };
-  return { status: "signed-in", token };
+  const profile = await verifiedAccountProfile(config, token, send);
+  if (!profile) return { status: "no-access" };
+  return { status: "signed-in", token, profile };
+}
+
+export async function signInInnovator(config, email, password, send = fetch) {
+  const result = await signInAccount(config, email, password, send);
+  if (result.status === "signed-in" && result.profile?.account_role !== "innovator") return { status: "no-access" };
+  return result;
 }
 

@@ -1,6 +1,8 @@
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, View } from "react-native";
-import type { SectorOption } from "./innovatorApi";
+import { Linking, Pressable, StyleSheet, Text, View } from "react-native";
+import { getPortalContentDownloadUrl, type PortalDocumentItem, type SectorOption } from "./innovatorApi";
+import type { ApplicationFormConfig } from "./portalCatalog";
+import { WizardCustomFieldsBlock } from "./WizardCustomFieldsBlock";
 import {
   applicantVerificationSlots,
   BENEFICIARY_GROUPS,
@@ -74,9 +76,25 @@ export interface WizardStepRenderProps {
   districtExpanded: boolean;
   setDistrictExpanded: (v: boolean) => void;
   app: InnovatorApplication;
+  formConfig?: ApplicationFormConfig;
+  portalDocuments?: PortalDocumentItem[];
 }
 
 export function WizardStepBody(props: WizardStepRenderProps) {
+  return (
+    <View style={{ gap: 14 }}>
+      <BuiltInWizardStepBody {...props} />
+      <WizardCustomFieldsBlock
+        step={props.step}
+        formConfig={props.formConfig}
+        formData={props.formData}
+        setField={props.setField}
+      />
+    </View>
+  );
+}
+
+function BuiltInWizardStepBody(props: WizardStepRenderProps) {
   const { fs } = useInnovatorA11y();
   const [expandedReviewStep, setExpandedReviewStep] = useState<number | null>(null);
   const { step, formData, setField, toggleArrayValue, sectors } = props;
@@ -132,7 +150,7 @@ export function WizardStepBody(props: WizardStepRenderProps) {
     const available = props.draftDocs.filter(d => d.sectionKey === section && d.docKind === "file" && d.uploadStatus === "Saved");
     return <View style={{ gap: 8 }}>
       <Text style={{ color: adminStyleColors.navy, fontSize: fs("subbody") }}>Linked proposal / plan document:</Text>
-      {available.map(doc => <Pressable key={doc.id} onPress={() => setField(documentKey, doc.id)} style={[styles.selectorButton, formData[documentKey] === doc.id && { borderColor: adminStyleColors.rust }]} accessibilityRole="radio" accessibilityState={{ selected: formData[documentKey] === doc.id }}>
+      {available.map(doc => <Pressable key={doc.id} onPress={() => setField(documentKey, doc.id)} style={[styles.selectorButton, formData[documentKey] === doc.id && { backgroundColor: "#FBEDE8" }]} accessibilityRole="radio" accessibilityState={{ selected: formData[documentKey] === doc.id }}>
         <Text style={{ color: adminStyleColors.navy, flex: 1 }}>{doc.title}</Text><InnovatorIcon name="check" color={formData[documentKey] === doc.id ? adminStyleColors.rust : adminStyleColors.subtle} />
       </Pressable>)}
       <ActionButton label="Switch to written answer" variant="secondary" compact onPress={() => setField(sourceKey, "write")} />
@@ -439,22 +457,38 @@ export function WizardStepBody(props: WizardStepRenderProps) {
         <FormField label="Deployment footprint">
           <ChoiceChips
             options={[
-              "Local community / single district",
-              "Multi-district across Botswana",
-              "National coverage",
-              "Regional SADC export potential",
+              "National (Botswana)",
+              "Greater Gaborone",
+              "District / Rural priority",
+              "SADC regional export",
+              ...(formData.deploymentFootprint &&
+              ![
+                "National (Botswana)",
+                "Greater Gaborone",
+                "District / Rural priority",
+                "SADC regional export",
+              ].includes(formData.deploymentFootprint)
+                ? [formData.deploymentFootprint]
+                : []),
             ]}
-            selected={formData.deploymentFootprint || "Local community / single district"}
+            selected={formData.deploymentFootprint || "National (Botswana)"}
             onSelect={(v) => setField("deploymentFootprint", v)}
           />
         </FormField>
-        <FormField label="Citizen inclusion & empowerment focus">
-          <FrostedInput
-            multiline
-            value={s("empowermentFocus")}
-            onChangeText={(v) => setField("empowermentFocus", v)}
-            placeholder="Explain how youth, women, rural producers, or MSMEs benefit cleanly."
+        <FormField label="Citizen empowerment focus">
+          <ChoiceChips
+            options={["Yes", "Partial", "No"]}
+            selected={["Yes", "Partial", "No"].includes(s("empowermentFocus")) ? s("empowermentFocus") : "Yes"}
+            onSelect={(v) => setField("empowermentFocus", v)}
           />
+          {!!s("empowermentFocus") && !["Yes", "Partial", "No"].includes(s("empowermentFocus")) && (
+            <FrostedInput
+              multiline
+              value={s("empowermentFocus")}
+              onChangeText={(v) => setField("empowermentFocus", v)}
+              placeholder="Explain how youth, women, rural producers, or MSMEs benefit cleanly."
+            />
+          )}
         </FormField>
       </View>
     );
@@ -730,9 +764,57 @@ export function WizardStepBody(props: WizardStepRenderProps) {
             PRIVATE EVIDENCE LIMITS
           </Text>
           <Text style={{ fontSize: fs("subbody"), color: adminStyleColors.navy, marginTop: 4, lineHeight: 19 }}>
-            PDF, DOCX, PPTX, XLSX, JPG, PNG · max 10 MB per file · up to 12 applicant verification files, 8 supplementary files, 4 in other sections.
+            PDF, DOCX, PPTX, XLSX, JPG, PNG · max {props.formConfig?.maxEvidenceFileMb || 15} MB per supporting copy · up to 12 applicant verification files, 8 supplementary files, 4 in other sections.
           </Text>
         </View>
+
+        {((props.portalDocuments && props.portalDocuments.length > 0) || (props.formConfig?.requiredDocuments?.length ?? 0) > 0) && (
+          <View style={styles.checklistPanel}>
+            <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: adminStyleColors.rust, letterSpacing: 0.9 }}>
+              PORTAL FORMS &amp; ACCOMPANYING COPIES ({props.formConfig?.formVersion || "2026.1"})
+            </Text>
+            {(props.portalDocuments || []).map((doc) => {
+              const dlUrl = doc.attachmentPath
+                ? getPortalContentDownloadUrl(doc.attachmentPath)
+                : doc.externalUrl && /^https?:\/\//i.test(doc.externalUrl)
+                  ? doc.externalUrl
+                  : "";
+              return (
+                <View key={doc.id} style={styles.verifySlotRow}>
+                  <View style={{ flex: 1, gap: 2 }}>
+                    <Text style={{ fontSize: fs("subbody"), fontWeight: "700", color: adminStyleColors.navy }}>
+                      {doc.title}
+                    </Text>
+                    <Text style={{ fontSize: fs("caption"), color: adminStyleColors.subtle }}>
+                      {doc.kind} · {doc.summary || doc.body}
+                    </Text>
+                  </View>
+                  {!!dlUrl && (
+                    <ActionButton
+                      label={doc.attachmentName ? "Download" : "Open"}
+                      variant="secondary"
+                      compact
+                      onPress={() => void Linking.openURL(dlUrl)}
+                    />
+                  )}
+                </View>
+              );
+            })}
+            {(props.formConfig?.requiredDocuments || []).map((req) => (
+              <View key={req.id} style={styles.checklistItemRow}>
+                <InnovatorIcon name="documents" color={req.required ? adminStyleColors.rust : adminStyleColors.subtle} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ fontSize: fs("subbody"), fontWeight: "600", color: adminStyleColors.navy }}>
+                    {req.label} ({req.required ? "Mandatory" : "Conditional"} · {req.appliesTo})
+                  </Text>
+                  <Text style={{ fontSize: fs("caption"), color: adminStyleColors.subtle }}>
+                    {req.guidance} ({req.acceptedFormats}, max {req.maxSizeMb} MB)
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+        )}
 
         <View style={styles.companyBox}>
           <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: adminStyleColors.blue, letterSpacing: 0.9 }}>
@@ -847,10 +929,13 @@ export function WizardStepBody(props: WizardStepRenderProps) {
           </View>
         ) : null}
 
-        <ActionButton
-          label={props.replacingDocId ? "Pick replacement file & upload" : "Choose & upload file securely"}
-          onPress={props.onPickAndUploadFile}
-        />
+        <View style={styles.actionRow}>
+          <ActionButton
+            label={props.replacingDocId ? "Pick replacement file & upload" : "Choose & upload file securely"}
+            compact
+            onPress={props.onPickAndUploadFile}
+          />
+        </View>
 
         {props.uploadPercent !== null ? (
           <View style={{ gap: 6 }}>
@@ -897,7 +982,9 @@ export function WizardStepBody(props: WizardStepRenderProps) {
             onSelect={props.setVideoSection}
           />
         </FormField>
-        <ActionButton label="Attach HTTPS video link" variant="secondary" onPress={props.onAddVideoLink} />
+        <View style={styles.actionRow}>
+          <ActionButton label="Attach HTTPS video link" compact variant="secondary" onPress={props.onAddVideoLink} />
+        </View>
 
         <View style={styles.divider} />
 
@@ -1141,14 +1228,16 @@ export function WizardStepBody(props: WizardStepRenderProps) {
         />
       </View>
 
-      <View style={{ gap: 10 }}>
+      <View style={styles.actionRow}>
         <ActionButton
           label="Preview full application"
+          compact
           variant="secondary"
           onPress={props.onOpenPreviewModal}
         />
         <ActionButton
           label={`Submit application (${WIZARD_STEPS[11].short})`}
+          compact
           onPress={props.onOpenSubmitModal}
         />
       </View>
@@ -1158,32 +1247,37 @@ export function WizardStepBody(props: WizardStepRenderProps) {
 
 const styles = StyleSheet.create({
   stepStack: { gap: 14 },
+  actionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
   selectorButton: {
-    minHeight: 48,
-    borderRadius: 14,
+    minHeight: 44,
+    borderRadius: 16,
     paddingHorizontal: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    backgroundColor: "rgba(255,255,255,0.88)",
-    borderWidth: 1,
-    borderColor: adminStyleColors.inputBorder,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    shadowColor: "#261B16",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 1,
   },
   companyBox: {
     gap: 12,
     padding: 14,
     borderRadius: 18,
-    backgroundColor: "rgba(234,241,252,0.55)",
-    borderWidth: 1,
-    borderColor: "rgba(40,89,155,0.18)",
+    backgroundColor: "rgba(234,241,252,0.65)",
   },
   checklistPanel: {
     gap: 10,
     padding: 14,
     borderRadius: 18,
-    backgroundColor: "rgba(247, 242, 235, 0.72)",
-    borderWidth: 1,
-    borderColor: adminStyleColors.line,
+    backgroundColor: "rgba(247, 242, 235, 0.80)",
   },
   checklistItemRow: {
     flexDirection: "row",
@@ -1196,7 +1290,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 10,
     paddingVertical: 8,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
     borderTopColor: "rgba(40,89,155,0.12)",
   },
   inlineAttachBox: {
@@ -1212,19 +1306,25 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
-    paddingHorizontal: 10,
-    paddingVertical: 7,
-    borderRadius: 10,
-    backgroundColor: "rgba(255,255,255,0.86)",
-    borderWidth: 1,
-    borderColor: adminStyleColors.line,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 14,
+    backgroundColor: "rgba(255,255,255,0.92)",
+    shadowColor: "#261B16",
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 1,
   },
   reviewStepCard: {
-    padding: 12,
-    borderRadius: 14,
-    backgroundColor: "rgba(255,255,255,0.82)",
-    borderWidth: 1,
-    borderColor: adminStyleColors.line,
+    padding: 13,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,250,244,0.92)",
+    shadowColor: "#261B16",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 1,
     gap: 8,
   },
   reviewStepHead: {
@@ -1235,45 +1335,44 @@ const styles = StyleSheet.create({
   reviewStepBody: {
     gap: 6,
     paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: adminStyleColors.line,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: "rgba(36,28,25,0.08)",
   },
   inlineThree: { flexDirection: "row", gap: 8 },
   amberBanner: {
     padding: 14,
     borderRadius: 16,
     backgroundColor: "#FCF4E4",
-    borderWidth: 1,
-    borderColor: "rgba(148,112,45,0.22)",
   },
   tealBanner: {
     padding: 14,
     borderRadius: 16,
     backgroundColor: "#E4F4F0",
-    borderWidth: 1,
-    borderColor: "rgba(35,109,97,0.22)",
   },
   replaceNotice: {
     flexDirection: "row",
     alignItems: "center",
     padding: 10,
-    borderRadius: 12,
+    borderRadius: 14,
     backgroundColor: "#FBEDE8",
     gap: 8,
   },
-  divider: { height: 1, backgroundColor: adminStyleColors.line, marginVertical: 4 },
+  divider: { height: StyleSheet.hairlineWidth, backgroundColor: "rgba(36,28,25,0.08)", marginVertical: 4 },
   docItemRow: {
     paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: adminStyleColors.line,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: "rgba(36,28,25,0.08)",
   },
   missingChip: {
-    minHeight: 38,
+    minHeight: 36,
     paddingHorizontal: 13,
     justifyContent: "center",
-    borderRadius: 20,
-    backgroundColor: "rgba(255,250,244,0.88)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: 999,
+    backgroundColor: "rgba(255,250,244,0.94)",
+    shadowColor: "#261B16",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 1,
   },
 });

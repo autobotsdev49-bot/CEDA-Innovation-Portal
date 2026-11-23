@@ -1,6 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
+import { ActivityIndicator, Pressable, ScrollView, Share, StyleSheet, Text, View } from "react-native";
 import { pickEvidenceDocument } from "./filePicker";
+import { FrostedSurface } from "./FrostedGlass";
+import { buttonCornerRadius } from "./theme";
 import {
   addApplicationDocument,
   sendPortalMessage,
@@ -8,6 +10,11 @@ import {
   uploadPrivateEvidenceFile,
   withdrawApplication,
 } from "./innovatorApi";
+import {
+  FREE_ALERT_PLAN_LABEL,
+  toggleSubmissionAlerts,
+  type AlertSubscriptionItem,
+} from "./notificationsApi";
 import {
   buildOutcomeSummaryText,
   buildReceiptSummaryText,
@@ -61,6 +68,8 @@ export function InnovatorApplicationDetail({
   onMessagesUpdated,
   onContinueDraft,
   onOpenSupport,
+  alertSubscription,
+  onSubscriptionsUpdated,
 }: {
   token: string;
   userId: string;
@@ -73,10 +82,15 @@ export function InnovatorApplicationDetail({
   onMessagesUpdated: (msgs: InnovatorMessage[]) => void;
   onContinueDraft: (app: InnovatorApplication) => void;
   onOpenSupport: () => void;
+  alertSubscription?: AlertSubscriptionItem | null;
+  onSubscriptionsUpdated?: (subs: AlertSubscriptionItem[]) => void;
 }) {
   const { fs } = useInnovatorA11y();
   const [activeTab, setActiveTab] = useState<string>(initialTab || "summary");
   const [previewDoc, setPreviewDoc] = useState<InnovatorDocument | null>(null);
+  const [subBusy, setSubBusy] = useState(false);
+  const [subNotice, setSubNotice] = useState<string | null>(null);
+  const isAlertsSubscribed = alertSubscription ? alertSubscription.isSubscribed !== false : true;
 
   const normalizedChanges = useMemo(
     () => normalizeRequestedChanges(application.requestedChanges),
@@ -122,15 +136,23 @@ export function InnovatorApplicationDetail({
     [messages, application.id]
   );
 
-  const snapshot = application.originalSnapshot || application.formData || {};
+  const hasOriginalSnapshot =
+    application.status !== "Draft" &&
+    Boolean(application.originalSnapshot && Object.keys(application.originalSnapshot).length > 0);
+  const snapshot = hasOriginalSnapshot ? application.originalSnapshot! : application.formData || {};
   const outcomeObj =
     application.outcomeData && Object.keys(application.outcomeData).length > 0
       ? application.outcomeData
       : application.outcome && Object.keys(application.outcome).length > 0
         ? application.outcome
         : null;
+  const awardObj =
+    (application as InnovatorApplication & { awardData?: Record<string, unknown> | null }).awardData &&
+    Object.keys((application as InnovatorApplication & { awardData?: Record<string, unknown> | null }).awardData || {}).length > 0
+      ? ((application as InnovatorApplication & { awardData?: Record<string, unknown> | null }).awardData as Record<string, unknown>)
+      : null;
   const hasOutcome =
-    Boolean(outcomeObj) || ["Completed", "Approved", "Rejected"].includes(application.status);
+    Boolean(outcomeObj) || ["Completed", "Approved", "Awarded", "Rejected"].includes(application.status);
   const timelineItems = application.timeline || application.applicantTimeline || [];
   const tone = statusAppearance(application.status);
 
@@ -184,8 +206,8 @@ export function InnovatorApplicationDetail({
 
   async function handleSubmitClarification() {
     const trimmed = clarificationNote.trim();
-    if (trimmed.length < 5) {
-      setClarificationFeedback("Enter a response note explaining what changed (minimum 5 characters).");
+    if (trimmed.length < 10) {
+      setClarificationFeedback("Enter a response note explaining what changed (minimum 10 characters).");
       return;
     }
     const editedValue = clarificationFieldEdit.trim();
@@ -222,7 +244,7 @@ export function InnovatorApplicationDetail({
       const nextMessages = await sendPortalMessage(token, {
         applicationId: application.id,
         threadType: "application",
-        subject: `${application.reference} — Applicant enquiry`,
+        subject: `${application.reference}: Applicant enquiry`,
         body: trimmed,
       });
       onMessagesUpdated(nextMessages);
@@ -304,8 +326,17 @@ export function InnovatorApplicationDetail({
                 <FactRow label="Created date" value={application.createdAt} />
                 <FactRow label="Submitted date" value={application.submittedDate || "Draft (not submitted)"} />
                 <FactRow label="Receipt code" value={application.receiptCode || "Issued on final submit"} />
+                <FactRow
+                  label="Free alert subscription"
+                  value={isAlertsSubscribed ? `Subscribed: ${alertSubscription?.feeLabel || FREE_ALERT_PLAN_LABEL}` : "Alerts paused (unsubscribe active)"}
+                />
                 <FactRow label="Record version" value={`v${application.version}`} last />
               </View>
+              {!!subNotice && (
+                <Text style={{ fontSize: fs("caption"), color: adminStyleColors.teal, fontWeight: "600", marginTop: 4 }}>
+                  {subNotice}
+                </Text>
+              )}
               {application.withdrawnReason ? (
                 <View style={styles.amberBanner}>
                   <Text style={{ fontSize: fs("subbody"), fontWeight: "700", color: adminStyleColors.navy }}>
@@ -317,16 +348,43 @@ export function InnovatorApplicationDetail({
                 </View>
               ) : null}
 
-              <View style={{ gap: 10 }}>
+              <View style={styles.actionRow}>
                 {application.status === "Draft" ? (
-                  <ActionButton label="Continue editing draft" onPress={() => onContinueDraft(application)} />
+                  <ActionButton label="Continue editing draft" compact onPress={() => onContinueDraft(application)} />
                 ) : null}
+                <ActionButton
+                  label={subBusy ? "Updating alerts..." : isAlertsSubscribed ? "Alerts: Free (Unsubscribe)" : "Subscribe free alerts (P0.00)"}
+                  compact
+                  variant="secondary"
+                  loading={subBusy}
+                  onPress={async () => {
+                    setSubBusy(true);
+                    setSubNotice(null);
+                    try {
+                      const nextSubs = await toggleSubmissionAlerts(token, {
+                        applicationId: application.id,
+                        isSubscribed: !isAlertsSubscribed,
+                      });
+                      onSubscriptionsUpdated?.(nextSubs);
+                      setSubNotice(
+                        !isAlertsSubscribed
+                          ? `Subscribed to free alerts (${FREE_ALERT_PLAN_LABEL}).`
+                          : "Paused email and push alerts for this submission. Portal timeline stays active."
+                      );
+                    } catch (err) {
+                      setSubNotice(err instanceof Error ? err.message : "Could not update alert subscription.");
+                    } finally {
+                      setSubBusy(false);
+                    }
+                  }}
+                />
                 {application.receiptCode ? (
-                  <ActionButton label="Download / share submission receipt" variant="secondary" onPress={() => void handleShareReceipt()} />
+                  <ActionButton label="Download / share submission receipt" compact variant="secondary" onPress={() => void handleShareReceipt()} />
                 ) : null}
                 {canWithdrawApplication(application) ? (
                   <ActionButton
                     label="Withdraw application"
+                    compact
                     variant="secondary"
                     onPress={() => {
                       setWithdrawErr(null);
@@ -346,11 +404,27 @@ export function InnovatorApplicationDetail({
                   right={<StatusPill status={outcomeObj?.status || application.status} />}
                 />
                 <View style={styles.outcomeBox}>
+                  {application.status === "Awarded" && awardObj ? (
+                    <View style={{ marginBottom: 10, paddingBottom: 10, borderBottomWidth: 1, borderBottomColor: "rgba(180,122,24,0.28)" }}>
+                      <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: "#7C5317" }}>
+                        OFFICIAL INNOVATION AWARD CONFERRED
+                      </Text>
+                      <Text style={{ fontSize: fs("body"), fontWeight: "700", color: adminStyleColors.navy, marginTop: 3 }}>
+                        {String(awardObj.awardTitle || `CEDA Innovation Award: ${application.title}`)}
+                      </Text>
+                      <Text style={{ fontSize: fs("subbody"), color: adminStyleColors.subtle, marginTop: 2 }}>
+                        {String(awardObj.awardCategory || "Innovation Recognition & Support")}
+                        {awardObj.awardAmount ? ` · ${String(awardObj.awardAmount)}` : ""}
+                        {awardObj.conferredAt ? ` · ${String(awardObj.conferredAt)}` : ""}
+                      </Text>
+                    </View>
+                  ) : null}
                   <Text style={{ fontSize: fs("subbody"), fontWeight: "700", color: adminStyleColors.teal }}>
-                    Approved applicant feedback
+                    {application.status === "Awarded" ? "Award citation & feedback" : "Approved applicant feedback"}
                   </Text>
                   <Text style={{ fontSize: fs("body"), color: adminStyleColors.navy, lineHeight: 22, marginTop: 4 }}>
-                    {outcomeObj?.applicantFeedback ||
+                    {(application.status === "Awarded" && typeof awardObj?.awardSummary === "string" ? awardObj.awardSummary : null) ||
+                      outcomeObj?.applicantFeedback ||
                       outcomeObj?.feedback ||
                       outcomeObj?.summary ||
                       "Approved CEDA outcome guidance is recorded on your workspace."}
@@ -374,10 +448,11 @@ export function InnovatorApplicationDetail({
                     </Text>
                   )}
                 </View>
-                <View style={{ gap: 8 }}>
-                  <ActionButton label="Download outcome letter" onPress={() => void handleShareOutcomeLetter()} />
+                <View style={styles.actionRow}>
+                  <ActionButton label="Download outcome letter" compact onPress={() => void handleShareOutcomeLetter()} />
                   <ActionButton
                     label={outcomeObj?.appealAllowed || outcomeObj?.appealPermitted ? "Request appeal or clarification" : "Contact support"}
+                    compact
                     variant="secondary"
                     onPress={onOpenSupport}
                   />
@@ -395,8 +470,8 @@ export function InnovatorApplicationDetail({
               subtitle="Original submitted text remains preserved unless CEDA requests clarification."
               right={
                 application.status === "Changes requested" ? (
-                  <Pressable onPress={() => setActiveTab("changes")}>
-                    <Text style={{ fontSize: fs("subbody"), fontWeight: "700", color: adminStyleColors.rust }}>
+                  <Pressable onPress={() => setActiveTab("changes")} style={styles.headerLinkPill}>
+                    <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: adminStyleColors.rustDark }}>
                       Edit and resubmit
                     </Text>
                   </Pressable>
@@ -405,16 +480,16 @@ export function InnovatorApplicationDetail({
             />
             <View>
               <FactRow label="Full name" value={String(snapshot.fullName || application.applicant)} />
-              <FactRow label="Phone & district" value={`${snapshot.phone || "—"} • ${snapshot.district || "—"}`} />
-              <FactRow label="Innovation stage" value={String(snapshot.stage || "—")} />
+              <FactRow label="Phone & district" value={`${snapshot.phone || "N/A"} • ${snapshot.district || "N/A"}`} />
+              <FactRow label="Innovation stage" value={String(snapshot.stage || "N/A")} />
               <FactRow label="Title" value={String(snapshot.title || application.title)} />
               <FactRow label="Summary" value={String(snapshot.summary || application.summary)} />
-              <FactRow label="Problem" value={String(snapshot.problem || "—")} />
-              <FactRow label="Proposed solution" value={String(snapshot.solution || "—")} />
-              <FactRow label="Botswana benefit" value={String(snapshot.botswanaBenefit || "—")} />
-              <FactRow label="Implementation plan" value={String(snapshot.implementationApproach || "—")} />
-              <FactRow label="Team capacity" value={String(snapshot.teamExperience || "—")} />
-              <FactRow label="Support requested" value={String(snapshot.supportRequestedSummary || "—")} last />
+              <FactRow label="Problem" value={String(snapshot.problem || "N/A")} />
+              <FactRow label="Proposed solution" value={String(snapshot.solution || "N/A")} />
+              <FactRow label="Botswana benefit" value={String(snapshot.botswanaBenefit || "N/A")} />
+              <FactRow label="Implementation plan" value={String(snapshot.implementationApproach || "N/A")} />
+              <FactRow label="Team capacity" value={String(snapshot.teamExperience || "N/A")} />
+              <FactRow label="Support requested" value={String(snapshot.supportRequestedSummary || "N/A")} last />
             </View>
           </GlassCard>
         ) : null}
@@ -428,7 +503,9 @@ export function InnovatorApplicationDetail({
             />
             {application.status === "Changes requested" ? (
               <View style={{ gap: 8 }}>
-                <ActionButton label="Upload supplemental evidence" onPress={() => void handleSupplementalUpload()} />
+                <View style={styles.actionRow}>
+                  <ActionButton label="Upload supplemental evidence" compact onPress={() => void handleSupplementalUpload()} />
+                </View>
                 {uploadPct !== null ? <ProgressBar percent={uploadPct} /> : null}
                 {uploadNotice ? (
                   <Text style={{ fontSize: fs("subbody"), color: adminStyleColors.teal, fontWeight: "600" }}>
@@ -464,8 +541,42 @@ export function InnovatorApplicationDetail({
             <SectionHeader
               eyebrow="APPLICANT TIMELINE"
               title="Progress milestones"
-              subtitle="Applicant-facing status events recorded by CEDA."
+              subtitle="Submission → Review → Feedback → Approval → Award"
             />
+            <View style={{ flexDirection: "row", flexWrap: "wrap", gap: 6, marginBottom: 12 }}>
+              {[
+                { label: "Submission", rank: 1 },
+                { label: "Review", rank: 2 },
+                { label: "Feedback", rank: 3 },
+                { label: application.status === "Rejected" ? "Outcome" : "Approval", rank: 4 },
+                { label: "Award", rank: 5 },
+              ].map((st) => {
+                const curRank =
+                  application.status === "Awarded" ? 5
+                    : application.status === "Approved" || application.status === "Rejected" ? 4
+                      : application.status === "Changes requested" ? 3
+                        : application.status === "In review" ? 2
+                          : application.status === "Submitted" ? 1
+                            : 0;
+                const active = curRank > st.rank || (st.rank === 5 && application.status === "Awarded");
+                const current = curRank === st.rank && !active;
+                return (
+                  <View
+                    key={st.label}
+                    style={{
+                      paddingHorizontal: 10,
+                      paddingVertical: 5,
+                      borderRadius: 999,
+                      backgroundColor: active ? "#E5F3E9" : current ? "#FFF1D6" : "#F1F3F6",
+                    }}
+                  >
+                    <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: active ? "#236D61" : current ? "#7C5317" : adminStyleColors.muted }}>
+                      {st.rank}. {st.label}
+                    </Text>
+                  </View>
+                );
+              })}
+            </View>
             <View style={{ marginTop: 4 }}>
               {timelineItems.length ? (
                 timelineItems.map((evt, idx) => {
@@ -511,22 +622,35 @@ export function InnovatorApplicationDetail({
               eyebrow="APPLICATION THREAD"
               title="CEDA Communication"
               subtitle="Direct thread linked cleanly to this application."
+              right={<ActionButton label="Support" variant="secondary" compact onPress={onOpenSupport} />}
             />
             <View style={{ gap: 10 }}>
               {appMessages.length ? (
                 appMessages.map((m) => {
                   const mine = m.senderRole === "innovator";
                   return (
-                    <View
-                      key={m.id}
-                      style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleStaff]}
-                    >
-                      <Text style={{ fontSize: fs("caption"), fontWeight: "700", color: mine ? adminStyleColors.rust : adminStyleColors.blue }}>
-                        {m.senderName} · {m.createdAt}
-                      </Text>
-                      <Text style={{ fontSize: fs("body"), color: adminStyleColors.navy, marginTop: 4, lineHeight: 21 }}>
-                        {m.body}
-                      </Text>
+                    <View key={m.id} style={[styles.chatRow, mine && styles.chatRowMine]}>
+                      <View style={[styles.bubble, mine ? styles.bubbleMine : styles.bubbleStaff]}>
+                        <Text
+                          style={{
+                            fontSize: fs("caption"),
+                            fontWeight: "700",
+                            color: mine ? "rgba(255,255,255,0.82)" : adminStyleColors.teal,
+                          }}
+                        >
+                          {m.senderName} · {m.createdAt}
+                        </Text>
+                        <Text
+                          style={{
+                            fontSize: fs("body"),
+                            color: mine ? adminStyleColors.white : adminStyleColors.navy,
+                            marginTop: 4,
+                            lineHeight: 21,
+                          }}
+                        >
+                          {m.body}
+                        </Text>
+                      </View>
                     </View>
                   );
                 })
@@ -536,28 +660,41 @@ export function InnovatorApplicationDetail({
                 </Text>
               )}
 
-              <FormField label="Reply to CEDA team">
-                <FrostedInput
-                  multiline
-                  maxLength={4000}
-                  value={replyText}
-                  onChangeText={setReplyText}
-                  placeholder="Write an enquiry about this application..."
-                />
-              </FormField>
               {replyFeedback ? (
                 <Text style={{ fontSize: fs("subbody"), color: adminStyleColors.teal, fontWeight: "600" }}>
                   {replyFeedback}
                 </Text>
               ) : null}
-              <View style={{ flexDirection: "row", gap: 8 }}>
-                <ActionButton
-                  label="Send message"
-                  loading={replyBusy}
-                  onPress={() => void handleSendAppMessage()}
-                  style={{ flex: 1 }}
+              <View style={styles.messageComposer}>
+                <FrostedSurface variant="bar" borderRadius={28} />
+                <FrostedInput
+                  accessibilityLabel="Reply to CEDA team"
+                  multiline
+                  maxLength={4000}
+                  value={replyText}
+                  onChangeText={setReplyText}
+                  placeholder="Write an enquiry about this application..."
+                  style={styles.messageInput}
                 />
-                <ActionButton label="Support" variant="secondary" onPress={onOpenSupport} />
+                <Pressable
+                  accessibilityRole="button"
+                  accessibilityLabel="Send message"
+                  disabled={replyBusy || !replyText.trim()}
+                  onPress={() => void handleSendAppMessage()}
+                  style={({ pressed }) => [
+                    styles.sendCircle,
+                    (!replyText.trim() || replyBusy) && styles.sendCircleDisabled,
+                    pressed && !replyBusy && replyText.trim() ? { opacity: 0.78 } : null,
+                  ]}
+                >
+                  {replyBusy ? (
+                    <ActivityIndicator size="small" color={adminStyleColors.white} />
+                  ) : (
+                    <Text style={styles.sendArrow} accessible={false}>
+                      {"↑"}
+                    </Text>
+                  )}
+                </Pressable>
               </View>
             </View>
           </GlassCard>
@@ -606,7 +743,7 @@ export function InnovatorApplicationDetail({
                       placeholder="Update requested section text clearly..."
                     />
                   </FormField>
-                  <FormField label="Response note explaining what changed (min 5 chars)">
+                  <FormField label="Response note explaining what changed (min 10 chars)">
                     <FrostedInput
                       multiline
                       value={clarificationNote}
@@ -614,22 +751,26 @@ export function InnovatorApplicationDetail({
                       placeholder="Summarize what you clarified for reviewers..."
                     />
                   </FormField>
-                  <ActionButton
-                    label="Attach supplemental file"
-                    variant="secondary"
-                    onPress={() => void handleSupplementalUpload()}
-                  />
+                  <View style={styles.actionRow}>
+                    <ActionButton
+                      label="Attach supplemental file"
+                      compact
+                      variant="secondary"
+                      onPress={() => void handleSupplementalUpload()}
+                    />
+                    <ActionButton
+                      label="Submit revised version"
+                      compact
+                      loading={clarificationBusy}
+                      onPress={() => void handleSubmitClarification()}
+                    />
+                  </View>
                   {uploadPct !== null ? <ProgressBar percent={uploadPct} /> : null}
                   {clarificationFeedback ? (
                     <Text style={{ fontSize: fs("subbody"), color: adminStyleColors.teal, fontWeight: "600" }}>
                       {clarificationFeedback}
                     </Text>
                   ) : null}
-                  <ActionButton
-                    label="Submit revised version"
-                    loading={clarificationBusy}
-                    onPress={() => void handleSubmitClarification()}
-                  />
                 </View>
               ) : null}
             </View>
@@ -664,12 +805,15 @@ export function InnovatorApplicationDetail({
               {withdrawErr}
             </Text>
           ) : null}
-          <ActionButton
-            label="Confirm withdrawal"
-            variant="danger"
-            loading={withdrawBusy}
-            onPress={() => void handleWithdraw()}
-          />
+          <View style={styles.actionRow}>
+            <ActionButton
+              label="Confirm withdrawal"
+              compact
+              variant="danger"
+              loading={withdrawBusy}
+              onPress={() => void handleWithdraw()}
+            />
+          </View>
         </View>
       </FlushSheetModal>
     </View>
@@ -685,21 +829,37 @@ const styles = StyleSheet.create({
     width: "100%",
     alignSelf: "center",
   },
-  tabRow: { gap: 7, paddingVertical: 2 },
+  actionRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    alignItems: "center",
+    gap: 8,
+  },
+  headerLinkPill: {
+    minHeight: 34,
+    paddingHorizontal: 12,
+    borderRadius: buttonCornerRadius,
+    backgroundColor: "rgba(154,61,43,0.10)",
+    justifyContent: "center",
+  },
+  tabRow: { gap: 8, paddingVertical: 4 },
   tabPill: {
-    minHeight: 40,
+    minHeight: 36,
     paddingHorizontal: 14,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,250,244,0.88)",
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.9)",
+    borderRadius: buttonCornerRadius,
+    backgroundColor: "rgba(255,250,244,0.92)",
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
+    shadowColor: "#261B16",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 3 },
+    shadowRadius: 8,
+    elevation: 1,
   },
   tabPillActive: {
     backgroundColor: adminStyleColors.navy,
-    borderColor: adminStyleColors.navy,
+    shadowOpacity: 0.1,
   },
   tabAlertDot: {
     width: 6,
@@ -711,15 +871,11 @@ const styles = StyleSheet.create({
     padding: 14,
     borderRadius: 16,
     backgroundColor: "#FCF4E4",
-    borderWidth: 1,
-    borderColor: "rgba(148,112,45,0.22)",
   },
   outcomeBox: {
     padding: 14,
     borderRadius: 16,
     backgroundColor: "#E4F4F0",
-    borderWidth: 1,
-    borderColor: "rgba(35,109,97,0.22)",
   },
   timelineRow: { flexDirection: "row", gap: 12 },
   timelineTrackCol: { alignItems: "center", width: 26 },
@@ -737,17 +893,67 @@ const styles = StyleSheet.create({
     backgroundColor: adminStyleColors.line,
     marginVertical: 3,
   },
+  chatRow: { alignItems: "flex-start" },
+  chatRowMine: { alignItems: "flex-end" },
   bubble: {
-    padding: 14,
-    borderRadius: 16,
-    borderWidth: 1,
+    maxWidth: "88%",
+    paddingHorizontal: 14,
+    paddingVertical: 11,
+    borderRadius: 18,
   },
   bubbleMine: {
-    backgroundColor: "#FBEDE8",
-    borderColor: "rgba(154,61,43,0.18)",
+    borderTopRightRadius: 5,
+    backgroundColor: adminStyleColors.rust,
+    shadowColor: "#4A1E15",
+    shadowOpacity: 0.12,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 2,
   },
   bubbleStaff: {
-    backgroundColor: "rgba(255,255,255,0.86)",
-    borderColor: "#E5DDD3",
+    borderTopLeftRadius: 5,
+    backgroundColor: "rgba(255,250,244,0.96)",
+    shadowColor: "#261B16",
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 4 },
+    shadowRadius: 10,
+    elevation: 2,
   },
+  messageComposer: {
+    overflow: "hidden",
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 8,
+    marginTop: 4,
+    paddingLeft: 14,
+    paddingRight: 7,
+    paddingVertical: 7,
+    borderRadius: 28,
+    backgroundColor: "rgba(255,250,244,0.94)",
+    shadowColor: "#261B16",
+    shadowOpacity: 0.08,
+    shadowOffset: { width: 0, height: 6 },
+    shadowRadius: 14,
+    elevation: 4,
+  },
+  messageInput: {
+    flex: 1,
+    minHeight: 38,
+    maxHeight: 120,
+    paddingHorizontal: 4,
+    paddingTop: 8,
+    paddingBottom: 8,
+    borderRadius: 0,
+    backgroundColor: "transparent",
+  },
+  sendCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: adminStyleColors.rust,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  sendCircleDisabled: { opacity: 0.42 },
+  sendArrow: { color: adminStyleColors.white, fontSize: 18, fontWeight: "700", lineHeight: 20 },
 });

@@ -48,6 +48,20 @@ Use axe in Playwright for representative screens and manual keyboard, assistive 
 3. For application regression, redeploy the last known green build if schema remains compatible. For data regressions, halt affected writes and use reviewed forward fixes or an approved restore. Record backup coverage for both DB and Storage, test an isolated restore, and reconcile counts and references before resuming.
 4. Keep incident timeline, impact, remediation and remaining risks. Route live-data notifications through authorized CEDA contacts and approved procedures.
 
+## Hosting support, fault remediation & turnaround SLAs
+
+- **Managed Hosting Stack**: Supabase Managed PostgreSQL, Auth, Private Storage & Edge Functions (`Africa/Gaborone` UTC+2 operational baseline) paired with Vercel Edge CDN for static portal delivery and TLS termination.
+- **Availability & Fault Prevention**: 99.9% monthly portal availability target, automated edge circuit breakers (`optimus`, `fcm-dispatch`, `email-dispatch`) with exponential backoff, zero-downtime rolling deployments, and 15-minute instant edge rollback.
+- **Backup & Recovery Objectives**: RPO <= 24 hours (daily encrypted snapshots, PITR enabled in production) and RTO <= 4 hours for full database and private document bucket restoration.
+- **Operating Windows & Escalation Channels**: Live CEDA service consultant desk operates **Monday to Friday, 09:00 to 16:00 Africa/Gaborone** via in-portal Live Chat (`support@ceda.co.bw` / Follow-ups queue), backed by 24/7 P1 emergency SRE & Security escalation.
+
+| Severity | Scope & Examples | Initial Acknowledge | Containment / Mitigation | Full Resolution Turnaround | Escalation Owner |
+|---|---|---|---|---|---|
+| **P1: Critical** | Portal offline, Auth/RLS isolation fault, database outage | 15 minutes | 1 hour | 4 hours | 24/7 On-Call SRE & Security Lead |
+| **P2: High** | Evidence uploads failing, live chat down in 09:00 to 16:00 working days, alert outbox stalled | 30 minutes | 2 hours | 8 working hours | Tier-2 Platform Engineer & Support Lead |
+| **P3: Normal** | Non-blocking UI fault, CSV export edge case, delayed catalog cache refresh | 2 working hours | 1 working day | 2 working days | Product Support & Maintenance Engineering |
+| **P4: Low** | Minor copy, cosmetic layout refinement, accessibility improvement | 1 working day | Scheduled release | 5 working days | Release & UX Maintenance Cycle |
+
 ## References
 
 - [OWASP ASVS](https://asvs.owasp.org/)

@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  AppState,
   BackHandler,
   Image,
   Modal,
   Pressable,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   View,
 } from "react-native";
@@ -19,6 +21,7 @@ import {
   markNotificationsRead,
   type InnovatorWorkspaceData,
 } from "./innovatorApi";
+import { pollInnovatorNotifications } from "./notificationsApi";
 import type { InnovatorApplication } from "./innovatorDomain";
 import { InnovatorApplicationDetail } from "./InnovatorApplicationDetail";
 import { InnovatorApplications } from "./InnovatorApplications";
@@ -46,7 +49,8 @@ import {
   type InnovatorIconName,
 } from "./InnovatorUI";
 import { InnovatorWizard, type WizardScreenMode } from "./InnovatorWizard";
-import { fontSizes } from "./theme";
+import { buttonCornerRadius, fontSizes } from "./theme";
+import { useAccessibility } from "./useAccessibility";
 
 const WORKSPACE_BG = require("./assets/innovation.webp");
 
@@ -68,6 +72,7 @@ export function InnovatorWorkspace({
   onAccountChange: (next: Account) => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { darkMode, setDarkMode, announce } = useAccessibility();
   const [data, setData] = useState<InnovatorWorkspaceData | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -86,7 +91,13 @@ export function InnovatorWorkspace({
   const [pendingNav, setPendingNav] = useState<PendingNavAction | null>(null);
   const [unsavedBusy, setUnsavedBusy] = useState(false);
 
-  const [optimusPromptSeed, setOptimusPromptSeed] = useState<{ prompt: string; topic: string } | null>(null);
+  const [optimusPromptSeed, setOptimusPromptSeed] = useState<{
+    prompt: string;
+    topic: string;
+    applicationRef?: string | null;
+    wizardStep?: number | null;
+    directLiveChat?: boolean;
+  } | null>(null);
   const [optimusSheetOpen, setOptimusSheetOpen] = useState(false);
 
   const [drawerOpen, setDrawerOpen] = useState(false);
@@ -117,6 +128,89 @@ export function InnovatorWorkspace({
   useEffect(() => {
     void loadWorkspace(false);
   }, [account.token]);
+
+  const hasActiveSupportChat = Boolean(data && getActiveOptimusSupportRequest(data.supportRequests));
+  const pollSinceRef = useRef<string | null>(null);
+  useEffect(() => {
+    if (!data) return;
+    let currentAppState = AppState.currentState;
+
+    const syncLightDelta = () => {
+      void pollInnovatorNotifications(account.token, pollSinceRef.current)
+        .then((snap) => {
+          if (!snap) return;
+          if (snap.serverTime) pollSinceRef.current = snap.serverTime;
+          setData((prev) => {
+            if (!prev) return prev;
+            const incomingNotifs = Array.isArray(snap.notifications)
+              ? snap.notifications.map((n) => ({
+                  ...n,
+                  applicationRef: n.applicationRef ?? null,
+                  targetHash: n.targetHash ?? null,
+                }))
+              : [];
+            const mergedNotifs = incomingNotifs.length
+              ? [
+                  ...incomingNotifs,
+                  ...prev.notifications.filter((n) => !incomingNotifs.some((inc) => inc.id === n.id)),
+                ].slice(0, 40)
+              : prev.notifications;
+            const statusMap = new Map(
+              (snap.applicationStatuses || []).map((s) => [s.id, s])
+            );
+            const nextApps = prev.applications.map((app) => {
+              const hit = statusMap.get(app.id);
+              return hit && (hit.status !== app.status || hit.version !== app.version)
+                ? { ...app, status: hit.status, version: hit.version, updatedAt: hit.updatedAt || app.updatedAt }
+                : app;
+            });
+            return {
+              ...prev,
+              notifications: mergedNotifs,
+              applications: nextApps,
+              alertSubscriptions: Array.isArray(snap.alertSubscriptions)
+                ? snap.alertSubscriptions
+                : prev.alertSubscriptions,
+            };
+          });
+        })
+        .catch(() => undefined);
+    };
+
+    const syncChatBootstrap = () => {
+      void fetchInnovatorBootstrap(account.token, true)
+        .then(boot => setData(boot))
+        .catch(() => undefined);
+    };
+
+    const inLiveChat = optimusSheetOpen || subScreen === "optimus" || subScreen === "support";
+    const appSub = AppState.addEventListener("change", (nextState) => {
+      const prev = currentAppState;
+      currentAppState = nextState;
+      if (prev !== "active" && nextState === "active") {
+        if (inLiveChat) syncChatBootstrap();
+        else syncLightDelta();
+      }
+    });
+
+    if (inLiveChat) {
+      const timer = setInterval(() => {
+        if (currentAppState === "active") syncChatBootstrap();
+      }, hasActiveSupportChat ? 5000 : 15000);
+      return () => {
+        clearInterval(timer);
+        appSub.remove();
+      };
+    }
+
+    const lightTimer = setInterval(() => {
+      if (currentAppState === "active") syncLightDelta();
+    }, 12000);
+    return () => {
+      clearInterval(lightTimer);
+      appSub.remove();
+    };
+  }, [account.token, Boolean(data), hasActiveSupportChat, optimusSheetOpen, subScreen]);
 
   const isNestedScreen =
     Boolean(subScreen) || Boolean(detailState) || (tab === "submit" && wizardMode === "wizard");
@@ -379,8 +473,10 @@ export function InnovatorWorkspace({
       textSize={(prefs.textSize as "standard" | "large" | "xlarge") || "standard"}
       highContrast={Boolean(prefs.highContrast)}
       reducedMotion={Boolean(prefs.reducedMotion)}
+      darkMode={darkMode}
+      toggleDarkMode={() => setDarkMode(!darkMode)}
     >
-      <View style={styles.screen}>
+      <View style={[styles.screen, darkMode && { backgroundColor: "#131009" }]}>
         <FrostedScreenBackdrop image={WORKSPACE_BG} imageHeight={320}>
           {/* Top Frosted Header (Matches AdminWorkspace.tsx) */}
           <View style={styles.header}>
@@ -451,8 +547,10 @@ export function InnovatorWorkspace({
                     Could not reach your workspace
                   </Text>
                   <Text style={{ fontSize: fontSizes.subbody, color: adminStyleColors.subtle }}>{loadError}</Text>
-                  <ActionButton label="Retry connection" onPress={() => void loadWorkspace(true)} />
-                  <ActionButton label="Sign out" variant="secondary" onPress={onSignOut} />
+                  <View style={styles.inlineButtonRow}>
+                    <ActionButton label="Retry connection" compact onPress={() => void loadWorkspace(true)} />
+                    <ActionButton label="Sign out" compact variant="secondary" onPress={onSignOut} />
+                  </View>
                 </GlassCard>
               </View>
             ) : data ? (
@@ -465,14 +563,25 @@ export function InnovatorWorkspace({
                   initialTab={detailState?.initialTab}
                   documents={data.documents}
                   messages={data.messages}
+                  alertSubscription={(data.alertSubscriptions || []).find(
+                    (s) => s.applicationId === detailApp.id || s.applicationRef === detailApp.reference
+                  )}
+                  onSubscriptionsUpdated={(subs) => setData((p) => (p ? { ...p, alertSubscriptions: subs } : p))}
                   onApplicationUpdated={upsertApplication}
                   onDocumentsUpdated={(docs) => setData((p) => (p ? { ...p, documents: docs } : p))}
                   onMessagesUpdated={(msgs) => setData((p) => (p ? { ...p, messages: msgs } : p))}
                   onContinueDraft={resumeDraftInWizard}
                   onOpenSupport={() => {
-                    setDetailState(null);
-                    setTab("more");
-                    setSubScreen("support");
+                    const app = data.applications.find((a) => a.id === detailState?.appId);
+                    setOptimusPromptSeed({
+                      prompt: app?.reference
+                        ? `I need to speak with a CEDA service consultant regarding application ${app.reference}: `
+                        : "I need to speak with a CEDA service consultant: ",
+                      topic: "Application Escalation",
+                      applicationRef: app?.reference || null,
+                      directLiveChat: true,
+                    });
+                    setOptimusSheetOpen(true);
                   }}
                 />
               ) : subScreen === "documents" ? (
@@ -483,6 +592,7 @@ export function InnovatorWorkspace({
                   fullName={data.profile?.fullName}
                   history={data.optimusHistory}
                   supportRequests={data.supportRequests}
+                  liveChatStatus={data.liveChatStatus}
                   initialQuestion={optimusPromptSeed}
                   onHistoryUpdated={(items) => setData((p) => (p ? { ...p, optimusHistory: items } : p))}
                   onEscalated={(reqs) => setData((p) => (p ? { ...p, supportRequests: reqs } : p))}
@@ -491,9 +601,20 @@ export function InnovatorWorkspace({
                 <InnovatorSupportScreen
                   token={account.token}
                   faqs={data.faqs}
+                  portalDocuments={data.portalDocuments}
+                  regulatoryContacts={data.regulatoryContacts}
                   applications={data.applications}
                   supportRequests={data.supportRequests}
+                  liveChatStatus={data.liveChatStatus}
                   onRequestsUpdated={(reqs) => setData((p) => (p ? { ...p, supportRequests: reqs } : p))}
+                  onOpenLiveChat={() => {
+                    setOptimusPromptSeed({
+                      prompt: "",
+                      topic: "Live Chat",
+                      directLiveChat: true,
+                    });
+                    setOptimusSheetOpen(true);
+                  }}
                 />
               ) : subScreen === "settings" ? (
                 <InnovatorSettingsScreen
@@ -544,6 +665,8 @@ export function InnovatorWorkspace({
                   sectors={data.sectors}
                   applications={data.applications}
                   documents={data.documents}
+                  applicationFormConfig={data.applicationFormConfig}
+                  portalDocuments={data.portalDocuments}
                   initialDraftAppId={wizardDraftAppId}
                   mode={wizardMode}
                   onModeChange={setWizardMode}
@@ -558,6 +681,16 @@ export function InnovatorWorkspace({
                     setWizardMode("start");
                     setTab("home");
                   }}
+                  onOpenLiveChat={(ctx) => {
+                    setOptimusPromptSeed({
+                      prompt: `Need CEDA consultant help on Step ${ctx.wizardStep} of 12 (${ctx.stepTitle})${ctx.applicationRef ? ` for ${ctx.applicationRef}` : ""}: `,
+                      topic: "Submission Wizard",
+                      applicationRef: ctx.applicationRef,
+                      wizardStep: ctx.wizardStep,
+                      directLiveChat: true,
+                    });
+                    setOptimusSheetOpen(true);
+                  }}
                   saveTriggerRef={wizardSaveRef}
                 />
               ) : tab === "messages" ? (
@@ -571,8 +704,12 @@ export function InnovatorWorkspace({
                   onRefresh={() => void loadWorkspace(true, true)}
                   onMessagesUpdated={(msgs) => setData((p) => (p ? { ...p, messages: msgs } : p))}
                   onEscalateHumanSupport={() => {
-                    setTab("more");
-                    setSubScreen("support");
+                    setOptimusPromptSeed({
+                      prompt: "I need to escalate my enquiry to a CEDA service consultant in Live Chat: ",
+                      topic: "Application Escalation",
+                      directLiveChat: true,
+                    });
+                    setOptimusSheetOpen(true);
                   }}
                 />
               ) : (
@@ -601,14 +738,14 @@ export function InnovatorWorkspace({
                   : "Open Optimus Prime AI chat"
               }
               onPress={() => setOptimusSheetOpen(true)}
-              style={[
+              style={({ pressed }) => [
                 styles.optimusFloatingPill,
-                { bottom: Math.max(insets.bottom, 10) + 74 },
+                { bottom: Math.max(insets.bottom, 16) + 78 },
+                pressed && { opacity: 0.85 },
               ]}
             >
-              <FrostedSurface variant="sheet" borderRadius={26} />
               <View style={styles.optimusFloatingIcon}>
-                <InnovatorIcon name="optimus" color={adminStyleColors.purple} />
+                <InnovatorIcon name="optimus" color={adminStyleColors.rust} />
               </View>
               <Text style={styles.optimusFloatingLabel}>
                 {activeOptimusSupport ? "Continue support chat" : "Chat with Optimus"}
@@ -616,13 +753,13 @@ export function InnovatorWorkspace({
             </Pressable>
           ) : null}
 
-          {/* Bottom Tab Bar (Exact AdminWorkspace pill highlight; hidden on sub-screens/detail/wizard) */}
+          {/* Floating Frosted Bottom Pill Dock */}
           {!isNestedScreen ? (
             <View
               accessibilityRole="tablist"
-              style={[styles.tabBar, { paddingBottom: Math.max(insets.bottom, 10) }]}
+              style={[styles.tabBar, { bottom: Math.max(insets.bottom, 12) }]}
             >
-              <FrostedSurface variant="bar" />
+              <FrostedSurface variant="bar" borderRadius={28} />
               {tabs.map((item) => {
                 const selected = tab === item.key && !subScreen && !detailState;
                 return (
@@ -631,7 +768,11 @@ export function InnovatorWorkspace({
                     accessibilityRole="tab"
                     accessibilityState={{ selected }}
                     onPress={() => guardedNavigate({ kind: "tab", tab: item.key })}
-                    style={[styles.tab, selected && styles.tabSelected]}
+                    style={({ pressed }) => [
+                      styles.tab,
+                      selected && styles.tabSelected,
+                      pressed && !selected && { opacity: 0.72 },
+                    ]}
                   >
                     <View>
                       <InnovatorIcon
@@ -655,7 +796,7 @@ export function InnovatorWorkspace({
             </View>
           ) : null}
 
-          {/* Slide-out LEFT Navigation Drawer (Matches AdminWorkspace.tsx) */}
+          {/* Borderless Frosted Left Navigation Drawer */}
           <Modal
             visible={drawerOpen}
             transparent
@@ -681,7 +822,7 @@ export function InnovatorWorkspace({
                     },
                   ]}
                 >
-                  <FrostedSurface variant="sheet" />
+                  <FrostedSurface variant="sheet" borderRadius={28} />
                   <View style={styles.drawerHeading}>
                     <View style={styles.drawerBrand}>
                       <Image
@@ -706,6 +847,25 @@ export function InnovatorWorkspace({
                       <InnovatorIcon name="close" color="#52606E" />
                     </Pressable>
                   </View>
+
+                  {data ? (
+                    <View style={styles.drawerStatsRow}>
+                      <View style={styles.drawerStatItem}>
+                        <Text style={styles.drawerStatValue}>{data.applications.length}</Text>
+                        <Text style={styles.drawerStatLabel}>Applications</Text>
+                      </View>
+                      <View style={styles.drawerStatItem}>
+                        <Text style={styles.drawerStatValue}>
+                          {data.applications.filter((a) => a.status === "Draft").length}
+                        </Text>
+                        <Text style={styles.drawerStatLabel}>Drafts</Text>
+                      </View>
+                      <View style={styles.drawerStatItem}>
+                        <Text style={styles.drawerStatValue}>{unreadMsgs + unreadNotifs}</Text>
+                        <Text style={styles.drawerStatLabel}>Unread</Text>
+                      </View>
+                    </View>
+                  ) : null}
 
                   <ScrollView contentContainerStyle={styles.drawerContent}>
                     <Text style={styles.drawerSectionLabel}>MAIN WORKSPACE</Text>
@@ -769,6 +929,48 @@ export function InnovatorWorkspace({
                         </Pressable>
                       );
                     })}
+
+                    <Text style={[styles.drawerSectionLabel, { marginTop: 12 }]}>
+                      ACCESSIBILITY
+                    </Text>
+                    <View style={styles.drawerA11yBox}>
+                      <View style={styles.drawerA11yRow}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.drawerItemTitle}>Dark mode</Text>
+                          <Text style={styles.drawerSub}>High-contrast dark palette</Text>
+                        </View>
+                        <Switch
+                          value={darkMode}
+                          onValueChange={setDarkMode}
+                          thumbColor={darkMode ? adminStyleColors.rust : "#fff"}
+                          trackColor={{ false: "#d1c4bb", true: "rgba(154,61,43,0.35)" }}
+                          accessibilityLabel="Toggle dark mode"
+                        />
+                      </View>
+                      <View style={[styles.drawerA11yRow, { marginTop: 8, paddingTop: 8, borderTopWidth: StyleSheet.hairlineWidth, borderTopColor: "rgba(36,28,25,0.08)" }]}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.drawerItemTitle}>TalkBack speech</Text>
+                          <Text style={styles.drawerSub}>Read status aloud</Text>
+                        </View>
+                        <Pressable
+                          accessibilityRole="button"
+                          accessibilityLabel="Read account and application status aloud"
+                          onPress={() => {
+                            const appCount = data?.applications?.length || 0;
+                            const unread = (unreadMsgs || 0) + (unreadNotifs || 0);
+                            announce(`Innovator portal. Signed in as ${data?.profile?.fullName || account.name}. You have ${appCount} applications and ${unread} unread notifications.`);
+                          }}
+                          style={{
+                            paddingHorizontal: 12,
+                            paddingVertical: 6,
+                            borderRadius: buttonCornerRadius,
+                            backgroundColor: adminStyleColors.rust,
+                          }}
+                        >
+                          <Text style={{ color: "#fff", fontSize: 11, fontWeight: "700" }}>Speak</Text>
+                        </Pressable>
+                      </View>
+                    </View>
                   </ScrollView>
 
                   <View style={styles.drawerAccount}>
@@ -850,6 +1052,7 @@ export function InnovatorWorkspace({
               fullName={data.profile?.fullName}
               history={data.optimusHistory}
               supportRequests={data.supportRequests}
+              liveChatStatus={data.liveChatStatus}
               initialQuestion={optimusPromptSeed}
               onHistoryUpdated={(items) =>
                 setData((p) => (p ? { ...p, optimusHistory: items } : p))
@@ -867,42 +1070,47 @@ export function InnovatorWorkspace({
             title="Save draft before leaving?"
             onClose={() => setPendingNav(null)}
           >
-            <View style={{ gap: 10 }}>
+            <View style={{ gap: 12 }}>
               <Text style={{ fontSize: fontSizes.subbody, color: adminStyleColors.subtle, lineHeight: 20 }}>
                 Save your current wizard edits safely before switching views, or discard unsaved field changes.
               </Text>
-              <ActionButton
-                label="Save draft & continue"
-                loading={unsavedBusy}
-                onPress={async () => {
-                  setUnsavedBusy(true);
-                  const ok = wizardSaveRef.current ? await wizardSaveRef.current() : true;
-                  setUnsavedBusy(false);
-                  if (ok && pendingNav) {
-                    const target = pendingNav;
-                    setPendingNav(null);
-                    setWizardDirty(false);
-                    executeNav(target);
-                  }
-                }}
-              />
-              <ActionButton
-                label="Discard unsaved edits"
-                variant="secondary"
-                onPress={() => {
-                  if (pendingNav) {
-                    const target = pendingNav;
-                    setPendingNav(null);
-                    setWizardDirty(false);
-                    executeNav(target);
-                  }
-                }}
-              />
-              <ActionButton
-                label="Stay on application"
-                variant="secondary"
-                onPress={() => setPendingNav(null)}
-              />
+              <View style={styles.inlineButtonRow}>
+                <ActionButton
+                  label="Save draft & continue"
+                  compact
+                  loading={unsavedBusy}
+                  onPress={async () => {
+                    setUnsavedBusy(true);
+                    const ok = wizardSaveRef.current ? await wizardSaveRef.current() : true;
+                    setUnsavedBusy(false);
+                    if (ok && pendingNav) {
+                      const target = pendingNav;
+                      setPendingNav(null);
+                      setWizardDirty(false);
+                      executeNav(target);
+                    }
+                  }}
+                />
+                <ActionButton
+                  label="Discard unsaved edits"
+                  compact
+                  variant="secondary"
+                  onPress={() => {
+                    if (pendingNav) {
+                      const target = pendingNav;
+                      setPendingNav(null);
+                      setWizardDirty(false);
+                      executeNav(target);
+                    }
+                  }}
+                />
+                <ActionButton
+                  label="Stay on application"
+                  compact
+                  variant="secondary"
+                  onPress={() => setPendingNav(null)}
+                />
+              </View>
             </View>
           </FlushSheetModal>
         </FrostedScreenBackdrop>
@@ -910,6 +1118,8 @@ export function InnovatorWorkspace({
     </InnovatorA11yProvider>
   );
 }
+
+const hairline = "rgba(36,28,25,0.08)";
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: adminStyleColors.canvas },
@@ -919,23 +1129,28 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 10,
     gap: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "rgba(255,255,255,0.88)",
     overflow: "hidden",
+    shadowColor: "#241C19",
+    shadowOpacity: 0.04,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 8,
+    elevation: 2,
   },
   headerAction: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "rgba(255,255,255,0.82)",
-    borderWidth: 1,
-    borderColor: "#E5DDD3",
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(255,255,255,0.88)",
     justifyContent: "center",
     alignItems: "center",
+    shadowColor: "#241C19",
+    shadowOpacity: 0.06,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 1,
   },
   backButton: {
     backgroundColor: "#EAF1FC",
-    borderColor: "#D9E5F7",
   },
   bellDot: {
     position: "absolute",
@@ -945,8 +1160,6 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 3.5,
     backgroundColor: adminStyleColors.rust,
-    borderWidth: 1.2,
-    borderColor: "white",
   },
   headerCenter: {
     flex: 1,
@@ -983,6 +1196,12 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     paddingHorizontal: 18,
   },
+  inlineButtonRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    paddingTop: 2,
+  },
   quickEyebrow: {
     fontSize: fontSizes.caption,
     fontWeight: "700",
@@ -991,27 +1210,31 @@ const styles = StyleSheet.create({
   },
   tabBar: {
     position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
+    left: 16,
+    right: 16,
     flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: "rgba(255,255,255,0.9)",
-    paddingTop: 8,
-    paddingHorizontal: 6,
+    alignItems: "center",
+    gap: 4,
+    padding: 6,
+    borderRadius: 28,
     overflow: "hidden",
+    shadowColor: "#241C19",
+    shadowOpacity: 0.11,
+    shadowOffset: { width: 0, height: 8 },
+    shadowRadius: 20,
+    elevation: 8,
   },
   tab: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    gap: 5,
-    minHeight: 56,
+    gap: 3,
+    minHeight: 50,
     paddingVertical: 6,
+    borderRadius: 22,
   },
   tabSelected: {
-    backgroundColor: "rgba(251,237,232,0.88)",
-    borderRadius: 14,
+    backgroundColor: "rgba(251,237,232,0.96)",
   },
   tabLabel: {
     fontSize: fontSizes.caption,
@@ -1026,17 +1249,20 @@ const styles = StyleSheet.create({
     height: 7,
     borderRadius: 3.5,
     backgroundColor: adminStyleColors.rust,
-    borderWidth: 1,
-    borderColor: "white",
   },
   drawerBackdrop: { flex: 1 },
   drawer: {
-    width: "86%",
-    maxWidth: 360,
+    width: "84%",
+    maxWidth: 340,
     height: "100%",
-    borderRightWidth: 1,
-    borderColor: "rgba(255,255,255,0.94)",
+    borderTopRightRadius: 28,
+    borderBottomRightRadius: 28,
     overflow: "hidden",
+    shadowColor: "#241C19",
+    shadowOpacity: 0.14,
+    shadowOffset: { width: 6, height: 0 },
+    shadowRadius: 24,
+    elevation: 10,
   },
   drawerHeading: {
     flexDirection: "row",
@@ -1045,8 +1271,30 @@ const styles = StyleSheet.create({
     gap: 10,
     paddingHorizontal: 18,
     paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: adminStyleColors.line,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: hairline,
+  },
+  drawerStatsRow: {
+    flexDirection: "row",
+    paddingHorizontal: 18,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: hairline,
+    gap: 12,
+  },
+  drawerStatItem: {
+    flex: 1,
+    alignItems: "center",
+    gap: 2,
+  },
+  drawerStatValue: {
+    fontSize: fontSizes.heading,
+    fontWeight: "700",
+    color: adminStyleColors.navy,
+  },
+  drawerStatLabel: {
+    fontSize: fontSizes.caption,
+    color: adminStyleColors.subtle,
   },
   drawerBrand: {
     flex: 1,
@@ -1061,14 +1309,17 @@ const styles = StyleSheet.create({
     letterSpacing: -0.3,
   },
   closeCircle: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.82)",
-    borderWidth: 1,
-    borderColor: "#E5DDD3",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "rgba(255,255,255,0.88)",
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#241C19",
+    shadowOpacity: 0.05,
+    shadowOffset: { width: 0, height: 2 },
+    shadowRadius: 6,
+    elevation: 1,
   },
   drawerContent: { padding: 14, gap: 4 },
   drawerSectionLabel: {
@@ -1085,11 +1336,11 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 12,
     paddingVertical: 10,
-    minHeight: 50,
-    borderRadius: 14,
+    minHeight: 48,
+    borderRadius: 16,
   },
   drawerLinkActive: {
-    backgroundColor: "rgba(251,237,232,0.88)",
+    backgroundColor: "rgba(251,237,232,0.92)",
   },
   drawerItemTitle: {
     color: adminStyleColors.navy,
@@ -1097,8 +1348,8 @@ const styles = StyleSheet.create({
     fontSize: fontSizes.body,
   },
   drawerIcon: {
-    width: 36,
-    height: 36,
+    width: 34,
+    height: 34,
     borderRadius: 12,
     alignItems: "center",
     justifyContent: "center",
@@ -1114,16 +1365,30 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingHorizontal: 18,
     paddingTop: 14,
-    borderTopColor: adminStyleColors.line,
-    borderTopWidth: 1,
+    borderTopColor: hairline,
+    borderTopWidth: StyleSheet.hairlineWidth,
+  },
+  drawerA11yBox: {
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: "rgba(36,28,25,0.04)",
+    borderRadius: 16,
+    marginHorizontal: 8,
+    marginVertical: 4,
+  },
+  drawerA11yRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 8,
   },
   notifRow: {
     flexDirection: "row",
     alignItems: "flex-start",
     gap: 12,
     paddingVertical: 12,
-    borderTopWidth: 1,
-    borderTopColor: adminStyleColors.line,
+    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopColor: hairline,
   },
   notifBadgeDot: {
     width: 8,
@@ -1149,32 +1414,33 @@ const styles = StyleSheet.create({
   optimusFloatingPill: {
     position: "absolute",
     right: 16,
+    zIndex: 50,
     flexDirection: "row",
     alignItems: "center",
-    gap: 8,
+    gap: 9,
     paddingHorizontal: 14,
-    paddingVertical: 10,
-    borderRadius: 26,
-    borderWidth: 1,
-    borderColor: "rgba(255,255,255,0.92)",
-    shadowColor: "#241C19",
-    shadowOpacity: 0.14,
+    paddingVertical: 9,
+    borderRadius: buttonCornerRadius,
+    backgroundColor: adminStyleColors.rust,
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+    shadowColor: "#4A1E15",
+    shadowOpacity: 0.24,
     shadowOffset: { width: 0, height: 6 },
     shadowRadius: 14,
-    elevation: 6,
-    overflow: "hidden",
+    elevation: 10,
   },
   optimusFloatingIcon: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: "#F0ECFB",
+    backgroundColor: "#FFFFFF",
     alignItems: "center",
     justifyContent: "center",
   },
   optimusFloatingLabel: {
     fontSize: fontSizes.subbody,
     fontWeight: "700",
-    color: adminStyleColors.navy,
+    color: "#FFFFFF",
   },
 });

@@ -1,11 +1,17 @@
+import { buildPortalDocumentPublicUrl, type ApplicationFormConfig } from "./portalCatalog.ts";
 import type {
   InnovatorApplication,
   InnovatorDocument,
   InnovatorMessage,
   WizardFormData,
 } from "./innovatorDomain";
+import { kickFcmDispatch, type AlertSubscriptionItem } from "./notificationsApi.ts";
 
 export interface InnovatorPreferences {
+  emailNotifications?: boolean;
+  pushNotifications?: boolean;
+  inAppNotifications?: boolean;
+  freeAlertPlan?: boolean;
   notifyStatus?: boolean;
   notifyClarifications?: boolean;
   notifyMessages?: boolean;
@@ -63,8 +69,35 @@ export interface SupportRequestItem {
   applicationRef: string | null;
   detail: string;
   steps: string;
+  escalationSource?: string;
+  wizardStep?: number | null;
+  queuedOutsideHours?: boolean;
+  availabilityStatus?: "available" | "all_agents_busy" | "after_hours" | "non_working_day" | string;
+  availabilityNotice?: string | null;
+  satisfactionRating?: number | null;
   thread: SupportThreadMessage[];
   reportedAt: string;
+  updatedAt?: string;
+}
+
+export interface LiveChatStatusPayload {
+  status: "available" | "all_agents_busy" | "after_hours" | "non_working_day" | string;
+  isLiveAvailable: boolean;
+  isWorkingDay: boolean;
+  isHoliday?: boolean;
+  isWithinHours: boolean;
+  dateKey: string;
+  currentDayLabel: string;
+  currentTimeCat: string;
+  scheduleLabel: string;
+  shortScheduleLabel: string;
+  badgeLabel: string;
+  notificationMessage: string;
+  availableAgentsCount: number;
+  busyAgentsCount: number;
+  onlineAgentsCount: number;
+  totalActiveChats: number;
+  totalCapacity: number;
 }
 
 export interface FaqArticle {
@@ -72,6 +105,34 @@ export interface FaqArticle {
   title: string;
   summary?: string;
   body?: string;
+  kind?: string;
+  authorityCode?: string | null;
+  contactDetails?: Record<string, string> | null;
+  externalUrl?: string | null;
+}
+
+export interface PortalDocumentItem {
+  id: string;
+  kind: "Application form" | "Accompanying copies" | string;
+  title: string;
+  summary?: string;
+  body?: string;
+  attachmentName?: string | null;
+  attachmentMime?: string | null;
+  attachmentSize?: number | null;
+  attachmentPath?: string | null;
+  externalUrl?: string | null;
+  updated?: string;
+}
+
+export interface RegulatoryContactItem {
+  id: string;
+  title: string;
+  summary?: string;
+  body?: string;
+  authorityCode?: string | null;
+  contactDetails?: Record<string, string> | null;
+  externalUrl?: string | null;
 }
 
 export interface OptimusInteraction {
@@ -81,25 +142,45 @@ export interface OptimusInteraction {
   answer: string;
   sourceArticle: string;
   escalated: boolean;
+  escalationReason?: string | null;
+  aiProvider?: string | null;
   rating: "helpful" | "not_helpful" | null;
   createdAt: string;
 }
 
+export interface OptimusAskResult {
+  latest: OptimusInteraction;
+  history: OptimusInteraction[];
+  supportRequests?: SupportRequestItem[];
+  liveChatStatus?: LiveChatStatusPayload;
+  autoEscalated?: boolean;
+  escalatedTicketRef?: string | null;
+  followUpChips?: string[];
+  escalationMode?: "none" | "suggest" | "auto";
+  aiProvider?: string;
+}
+
 export interface InnovatorWorkspaceData {
   profile: InnovatorProfile;
+  liveChatStatus?: LiveChatStatusPayload;
   sectors: SectorOption[];
   applications: InnovatorApplication[];
   documents: InnovatorDocument[];
   messages: InnovatorMessage[];
   notifications: NotificationItem[];
+  alertSubscriptions?: AlertSubscriptionItem[];
   supportRequests: SupportRequestItem[];
   faqs: FaqArticle[];
+  portalDocuments?: PortalDocumentItem[];
+  regulatoryContacts?: RegulatoryContactItem[];
+  applicationFormConfig?: ApplicationFormConfig | Record<string, unknown> | null;
   optimusHistory: OptimusInteraction[];
 }
 
 export interface ApiConfig {
   origin: string;
   key: string;
+  fetchFn?: typeof fetch;
 }
 
 const REQUEST_TIMEOUT_MS = 15000;
@@ -114,6 +195,15 @@ function getSupabaseConfig(override?: Partial<ApiConfig>): ApiConfig {
     throw new Error("Configure your Supabase URL and publishable key before continuing.");
   }
   return { origin, key };
+}
+
+export function getPortalContentDownloadUrl(attachmentPath: string | null | undefined, override?: Partial<ApiConfig>): string {
+  try {
+    const { origin } = getSupabaseConfig(override);
+    return buildPortalDocumentPublicUrl(origin, attachmentPath);
+  } catch {
+    return "";
+  }
 }
 
 export function getCachedValue<T>(key: string): T | null {
@@ -266,12 +356,14 @@ export async function addApplicationDocument(
     storagePath?: string | null;
     videoUrl?: string | null;
     passwordProtected?: boolean;
+    replaceDocId?: string;
   },
   configOverride?: Partial<ApiConfig>
 ): Promise<InnovatorDocument[]> {
   const docs = await callRpc<InnovatorDocument[]>(
-    "innovator_add_document",
+    params.replaceDocId ? "innovator_replace_document" : "innovator_add_document",
     {
+      ...(params.replaceDocId ? { p_replace_doc_id: params.replaceDocId } : {}),
       p_app_id: params.appId,
       p_section_key: params.sectionKey,
       p_doc_kind: params.docKind,
@@ -329,6 +421,7 @@ export async function submitApplication(
     configOverride
   );
   invalidateInnovatorCache();
+  kickFcmDispatch(token, { limit: 10 }, configOverride ? { url: configOverride.origin, publishableKey: configOverride.key, fetchFn: configOverride.fetchFn } : undefined);
   return submitted;
 }
 
@@ -372,6 +465,7 @@ export async function submitClarification(
     configOverride
   );
   invalidateInnovatorCache();
+  kickFcmDispatch(token, { limit: 10 }, configOverride ? { url: configOverride.origin, publishableKey: configOverride.key, fetchFn: configOverride.fetchFn } : undefined);
   return updated;
 }
 
@@ -401,6 +495,7 @@ export async function sendPortalMessage(
     configOverride
   );
   invalidateInnovatorCache();
+  kickFcmDispatch(token, { limit: 10 }, configOverride ? { url: configOverride.origin, publishableKey: configOverride.key, fetchFn: configOverride.fetchFn } : undefined);
   return messages;
 }
 
@@ -458,6 +553,7 @@ export async function createSupportRequest(
     configOverride
   );
   invalidateInnovatorCache();
+  kickFcmDispatch(token, { limit: 10 }, configOverride ? { url: configOverride.origin, publishableKey: configOverride.key, fetchFn: configOverride.fetchFn } : undefined);
   return requests;
 }
 
@@ -474,6 +570,7 @@ export async function replySupportRequest(
     configOverride
   );
   invalidateInnovatorCache();
+  kickFcmDispatch(token, { limit: 10 }, configOverride ? { url: configOverride.origin, publishableKey: configOverride.key, fetchFn: configOverride.fetchFn } : undefined);
   return requests;
 }
 
@@ -482,8 +579,41 @@ export async function askOptimusPrime(
   question: string,
   contextSection = "general",
   configOverride?: Partial<ApiConfig>
-): Promise<{ latest: OptimusInteraction; history: OptimusInteraction[] }> {
-  const result = await callRpc<{ latest: OptimusInteraction; history: OptimusInteraction[] }>(
+): Promise<OptimusAskResult> {
+  if (!token) throw new Error("Sign in required to access your Innovator workspace.");
+  const { origin, key } = getSupabaseConfig(configOverride);
+  const edgeUrl = `${origin}/functions/v1/optimus`;
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  try {
+    const response = await fetch(edgeUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json",
+        apikey: key,
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({ question, contextSection }),
+      cache: "no-store",
+      credentials: "omit",
+      redirect: "error",
+      signal: controller.signal,
+    });
+    if (response.ok) {
+      const edgeResult = (await response.json()) as OptimusAskResult;
+      if (edgeResult && edgeResult.latest && Array.isArray(edgeResult.history)) {
+        invalidateInnovatorCache();
+        return edgeResult;
+      }
+    }
+  } catch {
+    // Circuit breaker falls back cleanly to SQL controlled assistant RPC
+  } finally {
+    clearTimeout(timer);
+  }
+
+  const result = await callRpc<OptimusAskResult>(
     "innovator_ask_optimus",
     { p_question: question, p_context_section: contextSection },
     token,
@@ -522,6 +652,7 @@ export async function escalateOptimusToSupport(
     configOverride
   );
   invalidateInnovatorCache();
+  kickFcmDispatch(token, { limit: 10 }, configOverride ? { url: configOverride.origin, publishableKey: configOverride.key, fetchFn: configOverride.fetchFn } : undefined);
   return requests;
 }
 
@@ -737,13 +868,114 @@ export function isClosedSupportRequest(request: Partial<SupportRequestItem> | nu
 }
 
 export function isOptimusSupportRequest(request: Partial<SupportRequestItem> | null | undefined): boolean {
-  return request?.title === "Human support follow-up from Optimus Prime";
+  if (!request) return false;
+  if (request.title === "Human support follow-up from Optimus Prime") return true;
+  const combined = [
+    request.title,
+    request.steps,
+    request.escalationSource,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+  return /optimus|live chat|escalat|submission step|wizard step|consultant/i.test(combined);
 }
 
 export function getActiveOptimusSupportRequest(
   requests: SupportRequestItem[] = []
 ): SupportRequestItem | null {
   return (requests || []).find((r) => isOptimusSupportRequest(r) && !isClosedSupportRequest(r)) || null;
+}
+
+export function getActiveLiveChatRequests(
+  requests: SupportRequestItem[] = []
+): SupportRequestItem[] {
+  return (requests || []).filter((r) => !isClosedSupportRequest(r));
+}
+
+export async function startLiveChat(
+  token: string,
+  input: {
+    title?: string;
+    message: string;
+    escalationSource?: string;
+    applicationRef?: string | null;
+    wizardStep?: number | null;
+    kind?: "Support" | "Bug" | "Feedback";
+    priority?: "Normal" | "High";
+  },
+  configOverride?: Partial<ApiConfig>
+): Promise<SupportRequestItem[]> {
+  const cleanMsg = (input.message || "").trim();
+  if (cleanMsg.length < 2 || cleanMsg.length > 2000) {
+    throw new Error("Enter a message between 2 and 2000 characters.");
+  }
+  const cleanTitle = (input.title || "").trim() || (
+    input.wizardStep
+      ? `Submission live chat · Step ${input.wizardStep}`
+      : "Live chat with CEDA Service Consultant"
+  );
+  const source = (input.escalationSource || "").trim() || (
+    input.wizardStep ? "Submission Wizard" : "Live Chat"
+  );
+
+  try {
+    const res = await callRpc<SupportRequestItem[]>(
+      "innovator_start_live_chat",
+      {
+        p_title: cleanTitle,
+        p_message: cleanMsg,
+        p_escalation_source: source,
+        p_application_ref: input.applicationRef || null,
+        p_wizard_step: input.wizardStep ?? null,
+        p_kind: input.kind || "Support",
+        p_priority: input.priority || "Normal",
+      },
+      token,
+      configOverride
+    );
+    invalidateInnovatorCache();
+    kickFcmDispatch(token, { limit: 10 }, configOverride ? { url: configOverride.origin, publishableKey: configOverride.key, fetchFn: configOverride.fetchFn } : undefined);
+    return Array.isArray(res) ? res : [];
+  } catch {
+    // Fallback to standard support request creation if older DB schema is connected
+    const res = await callRpc<SupportRequestItem[]>(
+      "innovator_create_support_request",
+      {
+        p_kind: input.kind || "Support",
+        p_title: cleanTitle,
+        p_detail: cleanMsg.length >= 10 ? cleanMsg : `${cleanTitle}: ${cleanMsg}`,
+        p_application_ref: input.applicationRef || null,
+        p_steps: input.wizardStep ? `Live Chat · Submission Step ${input.wizardStep}` : `Live Chat · ${source}`,
+      },
+      token,
+      configOverride
+    );
+    invalidateInnovatorCache();
+    kickFcmDispatch(token, { limit: 10 }, configOverride ? { url: configOverride.origin, publishableKey: configOverride.key, fetchFn: configOverride.fetchFn } : undefined);
+    return Array.isArray(res) ? res : [];
+  }
+}
+
+export async function rateSupportChat(
+  token: string,
+  reference: string,
+  rating: number,
+  comment?: string,
+  configOverride?: Partial<ApiConfig>
+): Promise<SupportRequestItem[]> {
+  const res = await callRpc<SupportRequestItem[]>(
+    "innovator_rate_support_chat",
+    {
+      p_reference: reference.trim(),
+      p_rating: Math.max(1, Math.min(5, Math.round(rating))),
+      p_comment: comment?.trim() || null,
+    },
+    token,
+    configOverride
+  );
+  invalidateInnovatorCache();
+  return Array.isArray(res) ? res : [];
 }
 
 export function generateIdempotencyKey(): string {

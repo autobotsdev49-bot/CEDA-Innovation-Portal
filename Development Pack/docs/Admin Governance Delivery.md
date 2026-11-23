@@ -1,28 +1,21 @@
 # Admin governance delivery
 
-Updated 20 November 2026. The web UI lives in `src/publicSite/adminGovernance.ts` and `src/publicSite/assets/admin.js`. Content and notification drafts remain in the current browser tab only. They are explicitly previews; do not claim they have been published or sent.
+Updated 21 November 2026. The web UI lives in `src/publicSite/adminGovernance.ts`, `src/publicSite/adminOperations.ts`, `src/publicSite/adminOverview.ts` and `src/publicSite/assets/admin.js`. Operational tables, O(log n) indexes, message queue outbox and protected Admin RPCs are deployed to the `Ceda Innovation` Supabase project (`inzupertrdvlenrozqep`).
 
 ## Operational state
 
-| Workspace | Local implementation | Server work needed |
+| Workspace | Database & RPC implementation (Deployed) | Remaining external integrations |
 | --- | --- | --- |
-| Content management (`#content`) | 4 summary stat cards, category tabs, search/stage directory toolbar, badge pills, accessible draft dialog | Versioned public content and partner approval, publisher role, safe rendering and release/rollback |
-| Notifications (Header bell modal) | Header bell trigger, 4 summary stat cards, Inbox & delivery alerts tab, Event templates tab, draft composer and delivery-failure jump | Versioned templates, opt-in preferences, sender queue, delivery receipts, deduplicated retries, FCM and EmailJS credentials held on the server |
-| Admin follow-up (`#followup`, includes Feedback) | Unified triage queue for Bugs, Support escalations, Delivery failures and User Feedback with status cards, filters and investigation dialog | Reporter intake, privacy rules, assigned owner, internal notes, visible replies and resolution history |
-| Audit logs (`#audit`, includes Activity log) | Unified screen with 4 summary stat cards, Protected audit log tab (`admin_audit_feed` RPC) and Portal activity stream tab | Apply migration, validate actual privilege boundary, retention and redaction; broaden audit coverage for future writes |
-| Analytics & reports (`#analytics`, includes Reports) | Traffic charts, device breakdown, popular pages, submission pipeline report table and report export packages | Real application/assessment source data, date filters, aggregate queries, server-side privacy-reviewed CSV exports |
-| Account & settings (`#settings`, includes Profile & Account security) | Unified screen with 4 summary stat cards and tabs for Profile & sessions, Account security (TOTP MFA) and Portal policies & settings | Versioned configuration, dual review where needed, verified password recovery, profile changes and device/session management from Auth |
+| Content management (`#content`) | `public.portal_content` table, `admin_content_list` and `admin_save_content` RPCs with version tracking and `admin_audit` logging | Public website dynamic rendering of approved content versions |
+| Notifications (Header bell modal) | `public.notification_templates` and `public.notification_queue` outbox table, `admin_notifications_overview` and `admin_save_notification` RPCs with idempotency keys and audit logging | Background worker dispatch via server-held EmailJS and FCM credentials |
+| Admin follow-up (`#followup`, includes Feedback) | `public.admin_matters` table (`Bug`, `Support`, `Delivery`, `Feedback`), `admin_matters_list` and `admin_update_matter` RPCs with actor-attributed history and audit logging | Public/Innovator reporter intake endpoint and visible reporter replies |
+| Applications (`#applications`) & Sectors (`#sectors`) | `public.innovation_applications` table, `admin_applications`, `admin_revise_application`, `admin_intervene_application_status` and live per-sector outcome counts in `admin_sectors` | Applicant submission wizard, private file storage and Assessor scoring tables |
+| Audit logs (`#audit`, includes Activity log) | `public.admin_audit_feed` RPC deployed and verified; records every user, role, sector, application, content, notification, matter and configuration mutation | Long-term archival and retention automation |
+| Optimus Prime (`#optimus`) & Account & settings (`#settings`) | `public.portal_configurations` table (`optimus_guidance`, `optimus_knowledge`, `portal_policies`), `admin_get_configurations` and `admin_save_configuration` RPCs with version increments and audit logging | Live Gemini API prompt consumption and verified Auth password-reset email flow |
 
-## Next implementation sequence
+## Security, caching and indexing conventions
 
-1. Apply `supabase/migrations/20261120230000AdministrationAudit.sql` on the Ceda Innovation project. Test inactive user, innovator, expired Admin session and active Admin reads; verify no raw JSON detail or secret appears. Current connected account does not provide project access; this migration has not been applied.
-2. Add public content tables with draft/review/published/archived versions. Expose public read only for approved versions, Admin mutations through an authenticated server boundary with reason and event log. Validate links and strip unsafe HTML.
-3. Add feedback records and issue history with reporter ownership rules. Separate internal notes from public replies, test cross-user access and attachments.
-4. Add notification template versions, recipient preferences, a delivery outbox and provider receipt records. Server workers own all EmailJS/FCM credentials; retries require an idempotency key and delivery inspection. Do not send previews.
-5. Add reporting aggregates and bounded, privacy-reviewed exports after real application/assessment tables exist. No invented production counts.
-6. Add configuration versions and verified personal account endpoints; keep user credentials in Supabase Auth. Require recent MFA for sensitive Admin configuration changes. Audit every change with previous/new version, reason and actor.
-7. Run browser keyboard, screen-reader and mobile review; verify loading, empty, failure and retry behavior, role denial, and deployment.
-
-## Security and UX conventions
-
-The menu and browser content do not grant server access. Every privileged endpoint must derive the actor and role from an active verified session, reject unverified or suspended users, enforce row policies and record an audit entry. The audit explorer calls only `public.admin_audit_feed`, which checks `ceda_private.require_admin()` and returns a bounded set of actor, action, target, date and reason fields. It never returns `admin_audit.detail` to the browser. Display dynamic content using `textContent`, retain clear labels, visible focus, and text descriptions alongside status colors. Review all external content before publication.
+1. **Authorization boundary:** Every RPC wrapper in `public` is `security invoker` and delegates to `ceda_private`, which calls `ceda_private.require_admin()` to enforce an active `admin` profile, confirmed non-anonymous email identity, and a live `auth.sessions` record. Direct table access to `portal_content`, `notification_templates`, `notification_queue`, `admin_matters`, `innovation_applications` and `portal_configurations` is revoked and blocked by restrictive RLS policies.
+2. **O(log n) PostgreSQL indexing:** B-tree indexes cover audit timestamps/actions/actors, content `(kind, stage, updated_at desc)`, notification queue `(status, created_at desc)`, matters `(state, kind, priority, reported_at desc)` and `application_ref`, applications `(status, submitted_date desc)` and `(lower(sector), status)`, plus all foreign-key columns.
+3. **In-memory RAM caching:** `src/publicSite/assets/admin.js` caches read RPC responses in memory (`adminRamCache`) with a 30-second TTL and explicitly invalidates affected cache keys immediately upon any write mutation or sign-out.
+4. **Verification:** Rollback-only SQL integration tests in `supabase/tests/admin_backend_operations.sql` and `supabase/tests/admin_password_creation.sql` pass against `inzupertrdvlenrozqep`, confirming non-admin denial (`42501`), versioned mutations, and audit trail completeness.

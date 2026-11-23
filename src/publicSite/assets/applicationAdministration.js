@@ -24,7 +24,7 @@ export function interveneOnStatus(application, status, context) {
   if (context.role !== "admin" || context.confirmed !== true) throw new Error("Confirm the administrator intervention.");
   if (!context.actor || !context.reason || context.reason.trim().length < 5) throw new Error("Provide an actor and intervention reason.");
   if (context.version !== (application.version || 1)) throw new Error("This application changed. Reload before intervening.");
-  if (!["In review", "Approved", "Rejected"].includes(status) || application.status === status) throw new Error("Choose a different supported status.");
+  if (!["Submitted", "In review", "Changes requested", "Approved", "Awarded", "Rejected"].includes(status) || application.status === status) throw new Error("Choose a different supported status.");
   const event = { type: "Admin status intervention", actor: context.actor, at: context.at, reason: context.reason.trim(), before: application.status, after: status };
   return { ...application, status, version: (application.version || 1) + 1, history: [...(application.history || []), event] };
 }
