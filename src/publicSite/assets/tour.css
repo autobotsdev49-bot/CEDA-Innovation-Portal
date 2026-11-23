@@ -1,0 +1,215 @@
+/* CEDA Innovation Portal - Interactive Guided Tour */
+
+.ceda-tour-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(154, 61, 43, 0.28);
+  background: rgba(251, 237, 232, 0.9);
+  color: #9a3d2b;
+  font-family: inherit;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.16s ease, transform 0.14s ease, border-color 0.16s ease;
+  white-space: nowrap;
+}
+
+.ceda-tour-trigger:hover,
+.ceda-tour-trigger:focus-visible {
+  background: #9a3d2b;
+  color: #ffffff;
+  border-color: #9a3d2b;
+  outline: 2px solid #9a3d2b;
+  outline-offset: 2px;
+}
+
+.ceda-tour-trigger svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+:root[data-theme="dark"] .ceda-tour-trigger {
+  background: rgba(224, 112, 96, 0.16);
+  color: #f3a699;
+  border-color: rgba(224, 112, 96, 0.35);
+}
+
+:root[data-theme="dark"] .ceda-tour-trigger:hover,
+:root[data-theme="dark"] .ceda-tour-trigger:focus-visible {
+  background: #e07060;
+  color: #131009;
+  border-color: #e07060;
+}
+
+.ceda-tour-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 99990;
+  pointer-events: auto;
+  background: transparent;
+}
+
+.ceda-tour-spotlight {
+  position: fixed;
+  z-index: 99991;
+  border-radius: 14px;
+  border: 2.5px solid #e07060;
+  box-shadow: 0 0 0 9999px rgba(15, 19, 25, 0.64), 0 0 24px rgba(224, 112, 96, 0.55);
+  pointer-events: none;
+  transition: top 0.25s ease, left 0.25s ease, width 0.25s ease, height 0.25s ease;
+}
+
+.ceda-tour-card {
+  position: fixed;
+  z-index: 99992;
+  width: min(370px, calc(100vw - 24px));
+  background: #ffffff;
+  color: #192c40;
+  border: 1px solid rgba(36, 28, 25, 0.12);
+  border-radius: 20px;
+  padding: 18px 20px;
+  box-shadow: 0 18px 46px rgba(15, 19, 25, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-family: inherit;
+  transition: top 0.25s ease, left 0.25s ease;
+}
+
+:root[data-theme="dark"] .ceda-tour-card {
+  background: #1e1812;
+  color: #f0e8e0;
+  border-color: rgba(240, 220, 200, 0.16);
+}
+
+.ceda-tour-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.ceda-tour-step {
+  font-size: 0.76rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #9a3d2b;
+}
+
+:root[data-theme="dark"] .ceda-tour-step {
+  color: #e07060;
+}
+
+.ceda-tour-close {
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  border: none;
+  background: rgba(36, 28, 25, 0.07);
+  color: inherit;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+:root[data-theme="dark"] .ceda-tour-close {
+  background: rgba(240, 220, 200, 0.12);
+}
+
+.ceda-tour-title {
+  margin: 0;
+  font-size: 1.08rem;
+  font-weight: 800;
+  line-height: 1.3;
+}
+
+.ceda-tour-desc {
+  margin: 0;
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: #4a5564;
+}
+
+:root[data-theme="dark"] .ceda-tour-desc {
+  color: #c8b8a8;
+}
+
+.ceda-tour-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.ceda-tour-actions-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ceda-tour-btn {
+  min-height: 36px;
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.86rem;
+  font-weight: 700;
+  cursor: pointer;
+  border: 1px solid transparent;
+}
+
+.ceda-tour-btn-ghost {
+  background: transparent;
+  color: #66717e;
+  padding-left: 6px;
+  padding-right: 8px;
+}
+
+:root[data-theme="dark"] .ceda-tour-btn-ghost {
+  color: #b8a898;
+}
+
+.ceda-tour-btn-secondary {
+  background: #f4efe9;
+  color: #192c40;
+  border-color: rgba(36, 28, 25, 0.12);
+}
+
+:root[data-theme="dark"] .ceda-tour-btn-secondary {
+  background: #2b231b;
+  color: #f0e8e0;
+  border-color: rgba(240, 220, 200, 0.16);
+}
+
+.ceda-tour-btn-primary {
+  background: #9a3d2b;
+  color: #ffffff;
+}
+
+.ceda-tour-btn-primary:hover {
+  background: #7b3123;
+}
+
+@media (max-width: 640px) {
+  .ceda-tour-trigger span {
+    display: none;
+  }
+  .ceda-tour-trigger {
+    padding: 6px 9px;
+  }
+}

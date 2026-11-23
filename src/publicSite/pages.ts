@@ -250,7 +250,7 @@ export function renderPage(path: string, page: typeof pages[string]) {
       : '<script type="module" src="/assets/site.js"></script>';
   return `<!doctype html>
 <html lang="en-BW"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-<title>${title}</title><meta name="description" content="${page.description}"><link rel="stylesheet" href="/assets/site.css"><link rel="stylesheet" href="/assets/accessibility.css"><script src="/assets/accessibility.js"></script>${pageAssets}</head>
+<title>${title}</title><meta name="description" content="${page.description}"><link rel="stylesheet" href="/assets/site.css"><link rel="stylesheet" href="/assets/accessibility.css"><link rel="stylesheet" href="/assets/tour.css"><script src="/assets/accessibility.js"></script><script src="/assets/tour.js" defer></script>${pageAssets}</head>
 <body><a class="skip" href="#main">Skip to content</a>${isAccessPage || accountScript ? "" : siteHeader(path)}
 <main id="main" tabindex="-1">${page.body}</main>
 ${isAccessPage || accountScript ? "" : siteFooter}</body></html>`;
