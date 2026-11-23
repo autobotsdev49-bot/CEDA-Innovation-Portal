@@ -1,36 +1,78 @@
 # CEDA Innovation Portal
 
-Team repository: [CEDA Innovation Portal on GitHub](https://github.com/autobotsdev49-bot/CEDA-Innovation-Portal).
+Team repository: [CEDA Innovation Portal on GitHub](https://github.com/autobotsdev49-bot/CEDA-Innovation-Portal)
 
-**Develop from this folder: `CEDA INNOVATION HACKATHON`.** Run web commands from here and mobile commands from `mobile`.
+---
 
-| Path | Use |
+## Mandatory Submission Links & Deliverables
+
+| Deliverable | Link / Location |
 | --- | --- |
-| `src/features/assessment/round.ts` | Pinned assessment inputs, review and vote checks, and decision release preparation |
-| `src/features/support/approvedGuidance.ts` | Optimus Prime approved guidance and human handoff signal |
-| `src/features/experiments/evidenceGuidance.ts` | Evidence wording experiment allocation and reporting |
-| `scripts/demoAutobotsDev.ts` | Synthetic command-line walkthrough |
-| `tests/autobotsDev.test.ts` | Automated checks for the current implementation |
-| [Mobile app](mobile/README.md) | Expo splash screen, public overview and portal handoffs |
-| `src/publicSite` | Public page layouts, shared navigation, content, and styles. Edit `assets/site.css` for the shared visual theme |
-| `supabase/migrations` and `supabase/tests` | Versioned database schema and access-policy checks |
-| [Live public preview](https://ceda-innovation-portal-nine.vercel.app/) | Public information, account screens and email verification return |
-| [Development Pack](<Development Pack/README.md>) | Guide, progress, decisions, user flows and reference screens |
+| **Live Web Solution (Vercel)** | [https://ceda-innovation-portal-nine.vercel.app/](https://ceda-innovation-portal-nine.vercel.app/) |
+| **Source Code (GitHub)** | [https://github.com/autobotsdev49-bot/CEDA-Innovation-Portal](https://github.com/autobotsdev49-bot/CEDA-Innovation-Portal) |
+| **User Manual** | [USER_MANUAL.md](USER_MANUAL.md) |
+| **Android Executable (EAS APK)** | [Latest EAS Android APK Build (`preview`)](https://expo.dev/accounts/jaycoder267/projects/ceda-innovation-portal/builds/f399e8e7-9f6d-459b-80b9-0292aa661a66) |
+| **Figma Project Designs** | `[Insert Figma Design Link Here]` |
 
-## Run locally
+---
 
-Use Node.js 22.20.0, recorded in `.nvmrc`. The static web build has no external package dependencies. The Expo app has its own package manifest in `mobile`.
+## Architecture & Repository Structure
 
+**Develop from the repo root (`CEDA INNOVATION HACKATHON`).** Run web commands from the root and mobile commands from `mobile/`.
+
+| Path | Purpose |
+| --- | --- |
+| `src/publicSite/` | Public pages, role-based web portals (`/account/`, `/assessor/`, `/support/`, `/committee/`, `/admin/`), CSS, and zero-dependency ES modules |
+| `src/features/` | Shared domain logic for assessment rounds, Optimus approved guidance, and evidence experiments |
+| `mobile/` | Expo React Native app (Android/iOS/Expo Go) with native workspaces for all 5 roles |
+| `supabase/migrations/` | Versioned PostgreSQL schema, RLS policies, RPCs, and notification triggers |
+| `supabase/functions/` | Deno Edge Functions: `optimus` (Gemini AI), `fcm-dispatch` (FCM HTTP v1), `email-dispatch` (EmailJS / Resend), `admincreate`, `admininvite` |
+| `scripts/` | Static site builder (`buildPublic.ts`), local preview server (`previewPublic.ts`), and synthetic demo (`demoAutobotsDev.ts`) |
+| `tests/` | Automated test suite (`node --test`) |
+| `USER_MANUAL.md` | End-user manual for all portal roles |
+
+---
+
+## Tools & Platform Setup
+
+### Prerequisites
+- **Node.js `22.20.0`** (see `.nvmrc`) and **npm**
+- **Expo Go** (for quick mobile testing) or **EAS CLI** (for building standalone `.apk` / `.ipa`)
+- **Supabase Project** (`inzupertrdvlenrozqep`) — Auth, PostgreSQL, Private Storage, and Edge Functions
+- **Firebase Project** (`bw-gov-schools-2026`) — Firebase Cloud Messaging (FCM) for Android, iOS, and Web Push
+- **EmailJS** (or **Resend**) — Transactional email acknowledgements & alerts
+- **Google Gemini API** — Powers Optimus Prime AI assistant
+- **Vercel** — Static web hosting & security headers (`dist/vercel.json`)
+
+### 1. Environment Variables (`.env.local`)
+Copy `.env.example` to `.env.local` and populate:
+- **Supabase**: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`, `NEXT_PUBLIC_APP_URL`
+- **Firebase Web Push**: `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_APP_ID`, `NEXT_PUBLIC_FIREBASE_VAPID_KEY`
+- **Supabase Edge Function Secrets** (configured in Supabase Dashboard → Edge Functions → Secrets):
+  - **EmailJS**: `EMAILJS_SERVICE_ID`, `EMAILJS_TEMPLATE_ID`, `EMAILJS_PUBLIC_KEY`, `EMAILJS_PRIVATE_KEY`
+  - **FCM HTTP v1**: `FCM_PROJECT_ID`, `FCM_CLIENT_EMAIL`, `FCM_PRIVATE_KEY`
+  - **Gemini AI**: `GEMINI_API_KEY`, `GEMINI_MODEL`
+
+### 2. Run the Web Portal Locally
 ```powershell
-npm test
-npm run demo:autobots
-npm run dev
+npm test        # Run automated unit & integration tests (120 tests)
+npm run build   # Build static portal into dist/
+npm run dev     # Build and start local preview server at http://localhost:3000
 ```
 
-The development command generates the public pages and serves them locally. Run `npm run build` to regenerate the deployable `dist` folder after editing the public site. For the current account release checkpoint and test steps, see [Signup integration](<Development Pack/docs/Signup Integration.md>).
+### 3. Run the Mobile App (Expo Go)
+```powershell
+cd mobile
+npm install
+npm run typecheck
+npx expo start
+```
+Scan the QR code with **Expo Go** (Android/iOS) or press `a` for Android Emulator.
 
-The current web build is static. Sign in and Sign up share an animated interface. The hosted sign-in and sign-up forms use Supabase Auth. Verified Innovators with active profiles can open the temporary account home. Live verification-email delivery still needs an end-to-end check. The TypeScript assessment, support and experiment modules have synthetic coverage. They are awaiting persistence and API integration. The [Database Design](<Development Pack/docs/Database Design.md>) describes the Supabase schema and migration order.
-
-The hackathon stack targets **USD $0**. Vercel hosts the web app and its server routes. Supabase supplies Auth, PostgreSQL and private Storage. EmailJS, Firebase Cloud Messaging and the Google Gemini API are foundation integrations. Use the placeholder settings in [the environment example](.env.example) and the [Platform Setup](<Development Pack/docs/Platform Setup.md>) guide for account setup, limits and the Android smoke test.
-
-[Autobots Dev](<Development Pack/docs/Autobots Dev.md>) explains the product advantage and the rules that support it. [Engineering Choices](<Development Pack/docs/Engineering Choices.md>) explains the stack decisions for junior developers. [Development Status](<Development Pack/docs/Development Status.md>) tracks tested progress and outstanding work.
+### 4. Build a Standalone Android APK (EAS Build)
+```powershell
+cd mobile
+npx eas login
+npx eas build --platform android --profile preview
+```
+When the build finishes on Expo, download the `.apk` directly from the EAS dashboard link or scan the install QR code.
