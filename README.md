@@ -1,6 +1,7 @@
 # CEDA Innovation Portal
 
 Team repository: [CEDA Innovation Portal on GitHub](https://github.com/autobotsdev49-bot/CEDA-Innovation-Portal)
+ADMIN Auth Code: 230701
 
 ---
 
